@@ -120,7 +120,7 @@ namespace nomango
 		{
 			switch (json.type())
 			{
-			case JsonType::Object:
+			case json_type::object:
 			{
 				auto& object = *json.value_.data.object;
 
@@ -183,7 +183,7 @@ namespace nomango
 				return;
 			}
 
-			case JsonType::Array:
+			case json_type::array:
 			{
 				auto& vector = *json.value_.data.vector;
 
@@ -239,7 +239,7 @@ namespace nomango
 				return;
 			}
 
-			case JsonType::String:
+			case json_type::string:
 			{
 				out->write('\"');
 				dump_string(*json.value_.data.string);
@@ -247,7 +247,7 @@ namespace nomango
 				return;
 			}
 
-			case JsonType::Boolean:
+			case json_type::boolean:
 			{
 				if (json.value_.data.boolean)
 				{
@@ -260,19 +260,19 @@ namespace nomango
 				return;
 			}
 
-			case JsonType::Integer:
+			case json_type::number_integer:
 			{
 				dump_integer(json.value_.data.number_integer);
 				return;
 			}
 
-			case JsonType::Float:
+			case json_type::number_float:
 			{
 				dump_float(json.value_.data.number_float);
 				return;
 			}
 
-			case JsonType::Null:
+			case json_type::null:
 			{
 				out->write(L"null");
 				return;

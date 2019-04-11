@@ -26,15 +26,15 @@ namespace nomango
 	// json value type
 	//
 
-	enum class JsonType
+	enum class json_type
 	{
-		Integer,
-		Float,
-		String,
-		Array,
-		Object,
-		Boolean,
-		Null,
+		number_integer,
+		number_float,
+		string,
+		array,
+		object,
+		boolean,
+		null,
 	};
 
 	//
@@ -52,7 +52,7 @@ namespace nomango
 		using array_type	= typename _BasicJsonTy::array_type;
 		using object_type	= typename _BasicJsonTy::object_type;
 
-		JsonType type;
+		json_type type;
 		union
 		{
 			object_type* object;
@@ -65,80 +65,80 @@ namespace nomango
 
 		json_value()
 		{
-			type = JsonType::Null;
+			type = json_type::null;
 			data.object = nullptr;
 		}
 
 		json_value(std::nullptr_t)
 		{
-			type = JsonType::Null;
+			type = json_type::null;
 			data.object = nullptr;
 		}
 
 		json_value(const object_type& value)
 		{
-			type = JsonType::Object;
+			type = json_type::object;
 			data.object = create<object_type>(value);
 		}
 
 		json_value(const array_type& value)
 		{
-			type = JsonType::Array;
+			type = json_type::array;
 			data.vector = create<array_type>(value);
 		}
 
 		json_value(const string_type& value)
 		{
-			type = JsonType::String;
+			type = json_type::string;
 			data.string = create<string_type>(value);
 		}
 
 		template <typename _CharT>
 		json_value(const _CharT* str)
 		{
-			type = JsonType::String;
+			type = json_type::string;
 			data.string = create<string_type>(str);
 		}
 
 		json_value(const integer_type value)
 		{
-			type = JsonType::Integer;
+			type = json_type::number_integer;
 			data.number_integer = value;
 		}
 
 		json_value(const float_type value)
 		{
-			type = JsonType::Float;
+			type = json_type::number_float;
 			data.number_float = value;
 		}
 
 		json_value(const boolean_type value)
 		{
-			type = JsonType::Boolean;
+			type = json_type::boolean;
 			data.boolean = value;
 		}
 
-		json_value(const JsonType value_type)
+		json_value(const json_type value_type)
 		{
 			type = value_type;
 			switch (type)
 			{
-			case JsonType::Object:
+			case json_type::object:
 				data.object = create<object_type>();
 				break;
-			case JsonType::Array:
+			case json_type::array:
 				data.vector = create<array_type>();
 				break;
-			case JsonType::String:
+			case json_type::string:
 				data.string = create<string_type>();
 				break;
-			case JsonType::Integer:
+			case json_type::number_integer:
 				data.number_integer = integer_type(0);
 				break;
-			case JsonType::Float:
+			case json_type::number_float:
 				data.number_float = float_type(0.0);
 				break;
-			case JsonType::Boolean:
+			case json_type::boolean:
 				data.boolean = boolean_type(false);
 				break;
 			default:
@@ -153,22 +153,22 @@ namespace nomango
 			
 			switch (other.type)
 			{
-			case JsonType::Object:
+			case json_type::object:
 				data.object = create<object_type>(*other.data.object);
 				break;
-			case JsonType::Array:
+			case json_type::array:
 				data.vector = create<array_type>(*other.data.vector);
 				break;
-			case JsonType::String:
+			case json_type::string:
 				data.string = create<string_type>(*other.data.string);
 				break;
-			case JsonType::Integer:
+			case json_type::number_integer:
 				data.number_integer = other.data.number_integer;
 				break;
-			case JsonType::Float:
+			case json_type::number_float:
 				data.number_float = other.data.number_float;
 				break;
-			case JsonType::Boolean:
+			case json_type::boolean:
 				data.boolean = other.data.boolean;
 				break;
 			default:
@@ -181,7 +181,7 @@ namespace nomango
 		{
 			type = other.type;
 			data = other.data;
-			other.type = JsonType::Null;
+			other.type = json_type::null;
 			other.data.object = nullptr;
 		}
 
@@ -200,13 +200,13 @@ namespace nomango
 		{
 			switch (type)
 			{
-			case JsonType::Object:
+			case json_type::object:
 				destroy<object_type>(data.object);
 				break;
-			case JsonType::Array:
+			case json_type::array:
 				destroy<array_type>(data.vector);
 				break;
-			case JsonType::String:
+			case json_type::string:
 				destroy<string_type>(data.string);
 				break;
 			default:
@@ -249,7 +249,7 @@ namespace nomango
 			type = other.type;
 			data = std::move(other.data);
 			// invalidate payload
-			other.type = JsonType::Null;
+			other.type = json_type::null;
 			other.data.object = nullptr;
 			return (*this);
 		}

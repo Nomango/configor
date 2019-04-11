@@ -98,9 +98,9 @@ namespace nomango
             check_iterator();
             switch (data_->type())
             {
-            case JsonType::Object:
+            case json_type::object:
                 return (it_.object_iter->second);
-            case JsonType::Array:
+            case json_type::array:
                 return (*it_.array_iter);
             default:
                 return *data_;
@@ -113,9 +113,9 @@ namespace nomango
             check_iterator();
             switch (data_->type())
             {
-            case JsonType::Object:
+            case json_type::object:
                 return &(it_.object_iter->second);
-            case JsonType::Array:
+            case json_type::array:
                 return &(*it_.array_iter);
             default:
                 return data_;
@@ -142,12 +142,12 @@ namespace nomango
 
             switch (data_->type())
             {
-                case JsonType::Object:
+                case json_type::object:
                 {
                     it_.object_iter = data_->value_.data.object->begin();
                     break;
                 }
-                case JsonType::Array:
+                case json_type::array:
                 {
                     it_.array_iter = data_->value_.data.vector->begin();
                     break;
@@ -166,12 +166,12 @@ namespace nomango
 
             switch (data_->type())
             {
-                case JsonType::Object:
+                case json_type::object:
                 {
                     it_.object_iter = data_->value_.data.object->end();
                     break;
                 }
-                case JsonType::Array:
+                case json_type::array:
                 {
                     it_.array_iter = data_->value_.data.vector->end();
                     break;
@@ -191,12 +191,12 @@ namespace nomango
 
             switch (data_->type())
             {
-                case JsonType::Object:
+                case json_type::object:
                 {
                     std::advance(it_.object_iter, 1);
                     break;
                 }
-                case JsonType::Array:
+                case json_type::array:
                 {
                     std::advance(it_.array_iter, 1);
                     break;
@@ -217,12 +217,12 @@ namespace nomango
 
             switch (data_->type())
             {
-                case JsonType::Object:
+                case json_type::object:
                 {
                     std::advance(it_.object_iter, -1);
                     break;
                 }
-                case JsonType::Array:
+                case json_type::array:
                 {
                     std::advance(it_.array_iter, -1);
                     break;
@@ -245,12 +245,12 @@ namespace nomango
 
             switch (data_->type())
             {
-                case JsonType::Object:
+                case json_type::object:
                 {
                     throw json_invalid_iterator("cannot use offsets with object type");
                     break;
                 }
-                case JsonType::Array:
+                case json_type::array:
                 {
                     std::advance(it_.array_iter, off);
                     break;
@@ -275,11 +275,11 @@ namespace nomango
 
             switch (data_->type())
             {
-                case JsonType::Object:
+                case json_type::object:
                 {
                     return it_.object_iter == other.it_.object_iter;
                 }
-                case JsonType::Array:
+                case json_type::array:
                 {
                     return it_.array_iter == other.it_.array_iter;
                 }
@@ -303,9 +303,9 @@ namespace nomango
 
             switch (data_->type())
             {
-            case JsonType::Object:
+            case json_type::object:
                 throw json_invalid_iterator("cannot compare iterators with object type");
-            case JsonType::Array:
+            case json_type::array:
                 return it_.array_iter < other.it_.array_iter;
             default:
                 return it_.original_iter < other.it_.original_iter;
@@ -325,13 +325,13 @@ namespace nomango
         {
             switch (data_->type())
             {
-            case JsonType::Object:
+            case json_type::object:
                 if (it_.object_iter == data_->value_.data.object->end())
                 {
                     throw std::out_of_range("iterator out of range");
                 }
                 break;
-            case JsonType::Array:
+            case json_type::array:
                 if (it_.array_iter == data_->value_.data.vector->end())
                 {
                     throw std::out_of_range("iterator out of range");

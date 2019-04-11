@@ -117,14 +117,14 @@ namespace nomango
 
 		basic_json(std::nullptr_t) {}
 
-		basic_json(const JsonType type) : value_(type) {}
+		basic_json(const json_type type) : value_(type) {}
 
 		basic_json(basic_json const& other) : value_(other.value_) {}
 
 		basic_json(basic_json&& other) : value_(std::move(other.value_))
 		{
 			// invalidate payload
-			other.value_.type = JsonType::Null;
+			other.value_.type = json_type::null;
 			other.value_.data.object = nullptr;
 		}
 
@@ -135,7 +135,7 @@ namespace nomango
 			typename std::enable_if<std::is_constructible<string_type, _CompatibleTy>::value, int>::type = 0>
 		basic_json(const _CompatibleTy& value)
 		{
-			value_.type = JsonType::String;
+			value_.type = json_type::string;
 			value_.data.string = value_.template create<string_type>(value);
 		}
 
@@ -189,7 +189,7 @@ namespace nomango
 
 			if (is_an_object)
 			{
-				value_ = JsonType::Object;
+				value_ = json_type::object;
 
 				std::for_each(init_list.begin(), init_list.end(), [this](const basic_json& json)
 				{
@@ -201,7 +201,7 @@ namespace nomango
 			}
 			else
 			{
-				value_ = JsonType::Array;
+				value_ = json_type::array;
 				value_.data.vector->reserve(init_list.size());
 				value_.data.vector->assign(init_list.begin(), init_list.end());
 			}
@@ -215,7 +215,7 @@ namespace nomango
 			}
 
 			basic_json json;
-			json.value_ = JsonType::Object;
+			json.value_ = json_type::object;
 			json.value_.data.object->emplace(*((*init_list.begin()).value_.data.string), *(init_list.begin() + 1));
 			return json;
 		}
@@ -223,7 +223,7 @@ namespace nomango
 		static inline basic_json array(initializer_list const& init_list)
 		{
 			basic_json json;
-			json.value_ = JsonType::Array;
+			json.value_ = json_type::array;
 
 			if (init_list.size())
 			{
@@ -233,41 +233,41 @@ namespace nomango
 			return json;
 		}
 
-		inline bool is_object() const				{ return value_.type == JsonType::Object; }
+		inline bool is_object() const				{ return value_.type == json_type::object; }
 
-		inline bool is_array() const				{ return value_.type == JsonType::Array; }
+		inline bool is_array() const				{ return value_.type == json_type::array; }
 
-		inline bool is_string() const				{ return value_.type == JsonType::String; }
+		inline bool is_string() const				{ return value_.type == json_type::string; }
 
-		inline bool is_boolean() const				{ return value_.type == JsonType::Boolean; }
+		inline bool is_boolean() const				{ return value_.type == json_type::boolean; }
 
-		inline bool is_integer() const				{ return value_.type == JsonType::Integer; }
+		inline bool is_integer() const				{ return value_.type == json_type::number_integer; }
 
-		inline bool is_float() const				{ return value_.type == JsonType::Float; }
+		inline bool is_float() const				{ return value_.type == json_type::number_float; }
 
 		inline bool is_number() const				{ return is_integer() || is_float(); }
 
-		inline bool is_null() const					{ return value_.type == JsonType::Null; }
+		inline bool is_null() const					{ return value_.type == json_type::null; }
 
-		inline JsonType type() const				{ return value_.type; }
+		inline json_type type() const				{ return value_.type; }
 
 		inline string_type type_name() const
 		{
 			switch (type())
 			{
-			case JsonType::Object:
+			case json_type::object:
 				return string_type(L"object");
-			case JsonType::Array:
+			case json_type::array:
 				return string_type(L"array");
-			case JsonType::String:
+			case json_type::string:
 				return string_type(L"string");
-			case JsonType::Integer:
+			case json_type::number_integer:
 				return string_type(L"integer");
-			case JsonType::Float:
+			case json_type::number_float:
 				return string_type(L"float");
-			case JsonType::Boolean:
+			case json_type::boolean:
 				return string_type(L"boolean");
-			case JsonType::Null:
+			case json_type::null:
 				return string_type(L"null");
 			}
 			return string_type();
@@ -295,11 +295,11 @@ namespace nomango
 		{
 			switch (type())
 			{
-			case JsonType::Null:
+			case json_type::null:
 				return 0;
-			case JsonType::Array:
+			case json_type::array:
 				return value_.data.vector->size();
-			case JsonType::Object:
+			case json_type::object:
 				return value_.data.object->size();
 			default:
 				return 1;
@@ -368,13 +368,13 @@ namespace nomango
 
 			switch (type())
 			{
-			case JsonType::Object:
+			case json_type::object:
 			{
 				result.it_.object_iter = value_.data.object->erase(pos.it_.object_iter);
 				break;
 			}
 
-			case JsonType::Array:
+			case json_type::array:
 			{
 				result.it_.array_iter = value_.data.vector->erase(pos.it_.array_iter);
 				break;
@@ -399,13 +399,13 @@ namespace nomango
 
 			switch (type())
 			{
-			case JsonType::Object:
+			case json_type::object:
 			{
 				result.it_.object_iter = value_.data.object->erase(first.it_.object_iter, last.it_.object_iter);
 				break;
 			}
 
-			case JsonType::Array:
+			case json_type::array:
 			{
 				result.it_.array_iter = value_.data.vector->erase(first.it_.array_iter, last.it_.array_iter);
 				break;
@@ -427,7 +427,7 @@ namespace nomango
 
 			if (is_null())
 			{
-				value_ = JsonType::Array;
+				value_ = json_type::array;
 			}
 
 			value_.data.vector->push_back(std::move(json));
@@ -443,37 +443,37 @@ namespace nomango
 		{
 			switch (type())
 			{
-			case JsonType::Integer:
+			case json_type::number_integer:
 			{
 				value_.data.number_integer = 0;
 				break;
 			}
 
-			case JsonType::Float:
+			case json_type::number_float:
 			{
 				value_.data.number_float = static_cast<float_type>(0.0);
 				break;
 			}
 
-			case JsonType::Boolean:
+			case json_type::boolean:
 			{
 				value_.data.boolean = false;
 				break;
 			}
 
-			case JsonType::String:
+			case json_type::string:
 			{
 				value_.data.string->clear();
 				break;
 			}
 
-			case JsonType::Array:
+			case json_type::array:
 			{
 				value_.data.vector->clear();
 				break;
 			}
 
-			case JsonType::Object:
+			case json_type::object:
 			{
 				value_.data.object->clear();
 				break;
@@ -645,7 +645,7 @@ namespace nomango
 		{
 			if (is_null())
 			{
-				value_ = JsonType::Array;
+				value_ = json_type::array;
 			}
 
 			if (!is_array())
@@ -681,7 +681,7 @@ namespace nomango
 		{
 			if (is_null())
 			{
-				value_ = JsonType::Object;
+				value_ = json_type::object;
 			}
 
 			if (!is_object())
@@ -711,7 +711,7 @@ namespace nomango
 		{
 			if (is_null())
 			{
-				value_ = JsonType::Object;
+				value_ = json_type::object;
 			}
 
 			if (!is_object())
@@ -835,36 +835,36 @@ namespace nomango
 			{
 				switch (lhs_type)
 				{
-				case JsonType::Array:
+				case json_type::array:
 					return (*lhs.value_.data.vector == *rhs.value_.data.vector);
 
-				case JsonType::Object:
+				case json_type::object:
 					return (*lhs.value_.data.object == *rhs.value_.data.object);
 
-				case JsonType::Null:
+				case json_type::null:
 					return true;
 
-				case JsonType::String:
+				case json_type::string:
 					return (*lhs.value_.data.string == *rhs.value_.data.string);
 
-				case JsonType::Boolean:
+				case json_type::boolean:
 					return (lhs.value_.data.boolean == rhs.value_.data.boolean);
 
-				case JsonType::Integer:
+				case json_type::number_integer:
 					return (lhs.value_.data.number_integer == rhs.value_.data.number_integer);
 
-				case JsonType::Float:
+				case json_type::number_float:
 					return (lhs.value_.data.number_float == rhs.value_.data.number_float);
 
 				default:
 					return false;
 				}
 			}
-			else if (lhs_type == JsonType::Integer && rhs_type == JsonType::Float)
+			else if (lhs_type == json_type::number_integer && rhs_type == json_type::number_float)
 			{
 				return (static_cast<float_type>(lhs.value_.data.number_integer) == rhs.value_.data.number_float);
 			}
-			else if (lhs_type == JsonType::Float && rhs_type == JsonType::Integer)
+			else if (lhs_type == json_type::number_float && rhs_type == json_type::number_integer)
 			{
 				return (lhs.value_.data.number_float == static_cast<float_type>(rhs.value_.data.number_integer));
 			}
@@ -886,36 +886,36 @@ namespace nomango
 			{
 				switch (lhs_type)
 				{
-				case JsonType::Array:
+				case json_type::array:
 					return (*lhs.value_.data.vector) < (*rhs.value_.data.vector);
 
-				case JsonType::Object:
+				case json_type::object:
 					return (*lhs.value_.data.object) < (*rhs.value_.data.object);
 
-				case JsonType::Null:
+				case json_type::null:
 					return false;
 
-				case JsonType::String:
+				case json_type::string:
 					return (*lhs.value_.data.string) < (*rhs.value_.data.string);
 
-				case JsonType::Boolean:
+				case json_type::boolean:
 					return (lhs.value_.data.boolean < rhs.value_.data.boolean);
 
-				case JsonType::Integer:
+				case json_type::number_integer:
 					return (lhs.value_.data.number_integer < rhs.value_.data.number_integer);
 
-				case JsonType::Float:
+				case json_type::number_float:
 					return (lhs.value_.data.number_float < rhs.value_.data.number_float);
 
 				default:
 					return false;
 				}
 			}
-			else if (lhs_type == JsonType::Integer && rhs_type == JsonType::Float)
+			else if (lhs_type == json_type::number_integer && rhs_type == json_type::number_float)
 			{
 				return (static_cast<float_type>(lhs.value_.data.number_integer) < rhs.value_.data.number_float);
 			}
-			else if (lhs_type == JsonType::Float && rhs_type == JsonType::Integer)
+			else if (lhs_type == json_type::number_float && rhs_type == json_type::number_integer)
 			{
 				return (lhs.value_.data.number_float < static_cast<float_type>(rhs.value_.data.number_integer));
 			}

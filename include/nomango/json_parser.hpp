@@ -610,17 +610,17 @@ namespace nomango
 			switch (get_token())
 			{
 			case token_type::literal_true:
-				json = JsonType::Boolean;
+				json = json_type::boolean;
 				json.value_.data.boolean = true;
 				break;
 
 			case token_type::literal_false:
-				json = JsonType::Boolean;
+				json = json_type::boolean;
 				json.value_.data.boolean = false;
 				break;
 
 			case token_type::literal_null:
-				json = JsonType::Null;
+				json = json_type::null;
 				break;
 
 			case token_type::value_string:
@@ -636,7 +636,7 @@ namespace nomango
 				break;
 
 			case token_type::begin_array:
-				json = JsonType::Array;
+				json = json_type::array;
 				while (true)
 				{
 					json.value_.data.vector->push_back(_BasicJsonTy());
@@ -651,7 +651,7 @@ namespace nomango
 				break;
 
 			case token_type::begin_object:
-				json = JsonType::Object;
+				json = json_type::object;
 				while (true)
 				{
 					if (get_token() != token_type::value_string)
