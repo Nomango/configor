@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Kiwano - Nomango
+// Copyright (c) 2016-2018 JSON-cpp - Nomango
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
