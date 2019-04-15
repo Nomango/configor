@@ -170,3 +170,7 @@ std::wcout << j;    // 可以使用 std::setw(4) 对输出内容美化
 实际上 json::parse() 和 json::dump() 函数也是通过自定义的 `string_output_adapter` 和 `string_input_adapter` 实现对字符串内容的输入和输出。
 
 详细内容请参考 json_parser.hpp 和 json_serializer.hpp
+
+### 鸣谢
+
+感谢 [nlohmann](https://github.com/nlohmann/json) 的 `JSON for Modern C++` 项目，本仓库的许多概念和灵感都来源于此。
