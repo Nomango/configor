@@ -1,40 +1,52 @@
 // Copyright (c) 2019 Nomango
 
-#include "test_serializer.h"
-#include "nomango/json.hpp"
+#include <gtest/gtest.h>
+#include <jsonxx/json.hpp>
 #include <fstream>
 #include <iomanip>
 
-using namespace nomango;
+using namespace jsonxx;
 
-void test_serializer()
+class SerializerTest : public testing::Test
 {
-	json j = {
-		{L"pi", 3.141},
-		{L"happy", true},
-		{L"name", "Nomango"},
-		{L"nothing", nullptr},
-		{L"answer", {
-			{L"everything", 42}
-		}},
-		{L"list", {1, 0, 2}},
-		{L"object", {
-			{L"currency", L"USD"},
-			{L"value", 42.99}
-		}}
-	};
+protected:
+    void SetUp() override
+    {
+        j = {
+            {"pi", 3.141},
+            {"happy", true},
+            {"name", "Nomango"},
+            {"nothing", nullptr},
+            {"answer", {
+                {"everything", 42}
+            }},
+            {"list", {1, 0, 2}},
+            {"object", {
+                {"currency", "USD"},
+                {"value", 42.99}
+            }}
+        };
+    }
 
-	{
-		// write prettified JSON to another file
-		std::wofstream o(L"data/output/pretty.json");
-		o << std::setw(4) << j << std::endl;
-	}
+    json j;
+};
 
-	{
-		std::wstring serialized_string = j.dump();
-	}
+TEST_F(SerializerTest, test_write_to_file)
+{
+    // write prettified JSON to another file
+    std::ofstream o("output/pretty.json");
+    o << std::setw(4) << j << std::endl;
+    o.close();
+}
 
-	{
-		std::wstring serialized_string = j.dump(4, ' ');
-	}
+TEST_F(SerializerTest, test_dump)
+{
+    std::string serialized_string = j.dump();
+    (void)serialized_string;
+}
+
+TEST_F(SerializerTest, test_pretty_dump)
+{
+    std::string serialized_string = j.dump(4, ' ');
+    (void)serialized_string;
 }

@@ -1,66 +1,80 @@
 // Copyright (c) 2019 Nomango
 
-#include "test_basic_json.h"
-#include "nomango/json.hpp"
+#include <gtest/gtest.h>
+#include <jsonxx/json.hpp>
 #include <iostream>
 
-using namespace nomango;
+using namespace jsonxx;
 
-void test_basic_json()
+TEST(test_basic_json, test_assign)
 {
-	{
-		json j;
+    json j;
 
-		// add a number that is stored as double (note the implicit conversion of j to an object)
-		j[L"pi"] = 3.141;
+    // add a number that is stored as double (note the implicit conversion of j to an object)
+    j["pi"] = 3.141;
 
-		// add a Boolean that is stored as bool
-		j[L"happy"] = true;
+    // add a Boolean that is stored as bool
+    j["happy"] = true;
 
-		// add a string that is stored as std::string
-		j[L"name"] = L"Nomango";
+    // add a string that is stored as std::string
+    j["name"] = "Nomango";
 
-		// add another null object by passing nullptr
-		j[L"nothing"] = nullptr;
+    // add another null object by passing nullptr
+    j["nothing"] = nullptr;
 
-		// add an object inside the object
-		j[L"answer"][L"everything"] = 42;
+    // add an object inside the object
+    j["answer"]["everything"] = 42;
 
-		// add an array that is stored as std::vector (using an initializer list)
-		j[L"list"] = { 1, 0, 2 };
+    // add an array that is stored as std::vector (using an initializer list)
+    j["list"] = { 1, 0, 2 };
 
-		// add another object (using an initializer list of pairs)
-		j[L"object"] = { {L"currency", "USD"}, {L"value", 42.99} };
-	}
+    // add another object (using an initializer list of pairs)
+    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
+}
 
-	json j = {
-		{L"pi", 3.141},
-		{L"happy", true},
-		{L"name", L"Nomango"},
-		{L"nothing", nullptr},
-		{L"answer", {
-				{L"everything", 42}
-		}},
-		{L"list", {1, 0, 2}},
-		{L"object", {
-			{L"currency", L"USD"},
-			{L"value", 42.99}
-		}}
-	};
+class BasicJsonTest : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        j = {
+            {"pi", 3.141},
+            {"happy", true},
+            {"name", "Nomango"},
+            {"nothing", nullptr},
+            {"answer", {
+                    {"everything", 42}
+            }},
+            {"list", {1, 0, 2}},
+            {"object", {
+                {"currency", "USD"},
+                {"value", 42.99}
+            }}
+        };
+    }
 
-	{
-		// for-each
-		for (const auto& v : j)
-		{
-			(void)v.dump();
-		}
-	}
+    json j;
+};
 
-	{
-		// iterator
-		for (auto iter = j.begin(); iter != j.end(); iter++)
-		{
-			(void)iter->dump();
-		}
-	}
+TEST_F(BasicJsonTest, test_dump)
+{
+    {
+        // for-each
+        for (const auto& v : j)
+        {
+            (void)v.dump();
+        }
+    }
+
+}
+
+TEST_F(BasicJsonTest, test_iterator_dump)
+{
+    {
+        // iterator
+        for (auto iter = j.begin(); iter != j.end(); iter++)
+        {
+            (void)iter->dump();
+        }
+    }
 }

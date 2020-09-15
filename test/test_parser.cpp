@@ -1,34 +1,34 @@
 // Copyright (c) 2019 Nomango
 
-#include "test_parser.h"
-#include "nomango/json.hpp"
+#include <gtest/gtest.h>
+#include <jsonxx/json.hpp>
 #include <array>
 #include <fstream>
 
-using namespace nomango;
+using namespace jsonxx;
 
-void test_parser()
+TEST(test_parser, test_parse)
 {
-	{
-		auto j = json::parse(L"{ \"happy\": true, \"pi\": 3.141 }");
-	}
+    auto j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+    (void)j;
+}
 
-	{
-		std::array<std::wstring, 5> files = {
-			L"data/json.org/1.json",
-			L"data/json.org/2.json",
-			L"data/json.org/3.json",
-			L"data/json.org/4.json",
-			L"data/json.org/5.json",
-		};
+TEST(test_parser, test_read_from_file)
+{
+    std::array<std::string, 5> files = {
+        "data/json.org/1.json",
+        "data/json.org/2.json",
+        "data/json.org/3.json",
+        "data/json.org/4.json",
+        "data/json.org/5.json",
+    };
 
-		for (const auto& file : files)
-		{
-			// read a JSON file
-			std::wifstream ifs(file);
+    for (const auto& file : files)
+    {
+        // read a json file
+        std::ifstream ifs(file);
 
-			json j;
-			ifs >> j;
-		}
-	}
+        json j;
+        ifs >> j;
+    }
 }
