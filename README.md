@@ -62,12 +62,12 @@ json obj = json::object({ "user", { { "id", 1 }, { "name", "Nomango" } } });
 
 ```cpp
 // 判断 JSON 值类型
-bool is_null()
-bool is_boolean()
-bool is_integer()
-bool is_float()
-bool is_array()
-bool is_object()
+bool is_null();
+bool is_boolean();
+bool is_integer();
+bool is_float();
+bool is_array();
+bool is_object();
 ```
 
 - 将 JSON 对象进行显式或隐式转换
@@ -78,7 +78,7 @@ auto b = j["boolean"].as_boolean();        // bool
 auto i = j["number"].as_integer();         // int32_t
 auto f = j["float"].as_float();            // float
 const auto& arr = j["array"].as_array();   // arr 实际是 std::vector<json> 类型
-const auto& obj = j["user"].as_object();   // obj 实际是 std::map<std::wstring, json> 类型
+const auto& obj = j["user"].as_object();   // obj 实际是 std::map<std::string, json> 类型
 ```
 
 ```cpp
@@ -87,7 +87,7 @@ bool b = j["boolean"];
 int i = j["number"];           // int32_t 自动转换为 int
 double d = j["float"];         // float 自动转换成 double
 std::vector<json> arr = j["array"];
-std::map<std::wstring, json> obj = j["user"];
+std::map<std::string, json> obj = j["user"];
 ```
 
 > 若 JSON 值类型与待转换类型不相同也不协变，会引发 json_type_error 异常
@@ -104,14 +104,14 @@ bool ret = j["boolean"].get_value(&n); // 若取值成功，ret 为 true
 ```cpp
 // 增强 for 循环
 for (auto& j : obj) {
-    std::wcout << j << std::endl;
+    std::cout << j << std::endl;
 }
 ```
 
 ```cpp
 // 使用迭代器遍历
 for (auto iter = obj.begin(); iter != obj.end(); iter++) {
-    std::wcout << iter.key() << ":" << iter.value() << std::endl;
+    std::cout << iter.key() << ":" << iter.value() << std::endl;
 }
 ```
 
@@ -133,16 +133,16 @@ ifs >> j;
 ```cpp
 // 从标准输入流读取 JSON
 json j;
-std::wcin >> j;
+std::cin >> j;
 ```
 
 - JSON 序列化
 
 ```cpp
 // 序列化为字符串
-std::wstring json_str = j.dump();
+std::string json_str = j.dump();
 // 美化输出，使用 4 个空格对输出进行格式化
-std::wstring pretty_str = j.dump(4, ' ');
+std::string pretty_str = j.dump(4, ' ');
 ```
 
 ```cpp
@@ -160,7 +160,7 @@ ofs << std::setw(4) << j << std::endl;
 ```cpp
 // 将 JSON 内容输出到标准输出流
 json j;
-std::wcout << j;    // 可以使用 std::setw(4) 对输出内容美化
+std::cout << j;    // 可以使用 std::setw(4) 对输出内容美化
 ```
 
 ### 更多
