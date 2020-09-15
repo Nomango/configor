@@ -1,15 +1,15 @@
-// Copyright (c) 2016-2018 JSON-cpp - Nomango
-// 
+// Copyright (c) 2018-2020 jsonxx - Nomango
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,12 +25,12 @@
 #include <vector>
 #include <cstdint>
 
-namespace nomango
+namespace jsonxx
 {
 	template <
-		template <class _Kty, class _Ty, class ..._Args> typename _ObjectTy = std::map,
-		template <class _Kty, class ..._Args> typename _ArrayTy = std::vector,
-		typename _StringTy = std::wstring,
+		template <class _Kty, class _Ty, class... _Args> typename _ObjectTy = std::map,
+		template <class _Kty, class... _Args> typename _ArrayTy = std::vector,
+		typename _StringTy = std::string,
 		typename _IntegerTy = std::int32_t,
 		typename _FloatTy = double,
 		typename _BooleanTy = bool,
@@ -41,19 +41,18 @@ namespace nomango
 	// details of basic_json
 	//
 
-#define DECLARE_BASIC_JSON_TEMPLATE\
-	template <\
-		template <class _Kty, class _Ty, class ..._Args> typename _ObjectTy, \
-		template <class _Kty, class ..._Args> typename _ArrayTy, \
-		typename _StringTy, \
-		typename _IntegerTy, \
-		typename _FloatTy, \
-		typename _BooleanTy, \
+#define DECLARE_BASIC_JSON_TEMPLATE                                          \
+	template <                                                               \
+		template <class _Kty, class _Ty, class... _Args> typename _ObjectTy, \
+		template <class _Kty, class... _Args> typename _ArrayTy,             \
+		typename _StringTy,                                                  \
+		typename _IntegerTy,                                                 \
+		typename _FloatTy,                                                   \
+		typename _BooleanTy,                                                 \
 		template <class _Ty> typename _Allocator>
 
 #define DECLARE_BASIC_JSON_TPL_ARGS \
 	_ObjectTy, _ArrayTy, _StringTy, _IntegerTy, _FloatTy, _BooleanTy, _Allocator
-
 
 	//
 	// is_basic_json
@@ -61,13 +60,13 @@ namespace nomango
 
 	template <typename>
 	struct is_basic_json
-		: ::std::false_type
+		: std::false_type
 	{
 	};
 
 	DECLARE_BASIC_JSON_TEMPLATE
-	struct is_basic_json< basic_json<DECLARE_BASIC_JSON_TPL_ARGS> >
-		: ::std::true_type
+	struct is_basic_json<basic_json<DECLARE_BASIC_JSON_TPL_ARGS>>
+		: std::true_type
 	{
 	};
 
@@ -86,22 +85,22 @@ namespace nomango
 
 	public:
 		template <typename _Ty>
-		using allocator_type			= _Allocator<_Ty>;
-		using size_type					= std::size_t;
-		using difference_type			= std::ptrdiff_t;
-		using string_type				= _StringTy;
-		using char_type					= typename _StringTy::value_type;
-		using integer_type				= _IntegerTy;
-		using float_type				= _FloatTy;
-		using boolean_type				= _BooleanTy;
-		using array_type				= typename _ArrayTy<basic_json, allocator_type<basic_json>>;
-		using object_type				= typename _ObjectTy<string_type, basic_json, std::less<string_type>, allocator_type<std::pair<const string_type, basic_json>>>;
-		using initializer_list			= std::initializer_list<basic_json>;
+		using allocator_type = _Allocator<_Ty>;
+		using size_type = std::size_t;
+		using difference_type = std::ptrdiff_t;
+		using string_type = _StringTy;
+		using char_type = typename _StringTy::value_type;
+		using integer_type = _IntegerTy;
+		using float_type = _FloatTy;
+		using boolean_type = _BooleanTy;
+		using array_type = _ArrayTy<basic_json, allocator_type<basic_json>>;
+		using object_type = _ObjectTy<string_type, basic_json, std::less<string_type>, allocator_type<std::pair<const string_type, basic_json>>>;
+		using initializer_list = std::initializer_list<basic_json>;
 
-		using iterator					= iterator_impl<basic_json>;
-		using const_iterator			= iterator_impl<const basic_json>;
-		using reverse_iterator			= std::reverse_iterator<iterator>;
-		using const_reverse_iterator	= std::reverse_iterator<const_iterator>;
+		using iterator = iterator_impl<basic_json>;
+		using const_iterator = iterator_impl<const basic_json>;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	public:
 		basic_json() {}
@@ -110,32 +109,32 @@ namespace nomango
 
 		basic_json(const json_type type) : value_(type) {}
 
-		basic_json(basic_json const& other) : value_(other.value_) {}
+		basic_json(basic_json const &other) : value_(other.value_) {}
 
-		basic_json(basic_json&& other) : value_(std::move(other.value_))
+		basic_json(basic_json &&other) : value_(std::move(other.value_))
 		{
 			// invalidate payload
 			other.value_.type = json_type::null;
 			other.value_.data.object = nullptr;
 		}
 
-		basic_json(string_type const& value) : value_(value) {}
+		basic_json(string_type const &value) : value_(value) {}
 
 		template <
 			typename _CompatibleTy,
 			typename std::enable_if<std::is_constructible<string_type, _CompatibleTy>::value, int>::type = 0>
-		basic_json(const _CompatibleTy& value)
+		basic_json(const _CompatibleTy &value)
 		{
 			value_.type = json_type::string;
 			value_.data.string = value_.template create<string_type>(value);
 		}
 
-		basic_json(array_type const& arr)
+		basic_json(array_type const &arr)
 			: value_(arr)
 		{
 		}
 
-		basic_json(object_type const& object)
+		basic_json(object_type const &object)
 			: value_(object)
 		{
 		}
@@ -146,9 +145,9 @@ namespace nomango
 		}
 
 		template <
-			typename _IntegerTy,
-			typename std::enable_if<std::is_integral<_IntegerTy>::value, int>::type = 0>
-		basic_json(_IntegerTy value)
+			typename _IntegerUTy,
+			typename std::enable_if<std::is_integral<_IntegerUTy>::value, int>::type = 0>
+		basic_json(_IntegerUTy value)
 			: value_(static_cast<integer_type>(value))
 		{
 		}
@@ -171,10 +170,9 @@ namespace nomango
 		{
 		}
 
-		basic_json(initializer_list const& init_list)
+		basic_json(initializer_list const &init_list)
 		{
-			bool is_an_object = std::all_of(init_list.begin(), init_list.end(), [](const basic_json& json)
-			{
+			bool is_an_object = std::all_of(init_list.begin(), init_list.end(), [](const basic_json &json) {
 				return (json.is_array() && json.size() == 2 && json[0].is_string());
 			});
 
@@ -182,12 +180,10 @@ namespace nomango
 			{
 				value_ = json_type::object;
 
-				std::for_each(init_list.begin(), init_list.end(), [this](const basic_json& json)
-				{
+				std::for_each(init_list.begin(), init_list.end(), [this](const basic_json &json) {
 					value_.data.object->emplace(
 						*((*json.value_.data.vector)[0].value_.data.string),
-						(*json.value_.data.vector)[1]
-					);
+						(*json.value_.data.vector)[1]);
 				});
 			}
 			else
@@ -198,7 +194,7 @@ namespace nomango
 			}
 		}
 
-		static inline basic_json object(initializer_list const& init_list)
+		static inline basic_json object(initializer_list const &init_list)
 		{
 			if (init_list.size() != 2 || !(*init_list.begin()).is_string())
 			{
@@ -211,7 +207,7 @@ namespace nomango
 			return json;
 		}
 
-		static inline basic_json array(initializer_list const& init_list)
+		static inline basic_json array(initializer_list const &init_list)
 		{
 			basic_json json;
 			json.value_ = json_type::array;
@@ -224,62 +220,81 @@ namespace nomango
 			return json;
 		}
 
-		inline bool is_object() const				{ return value_.type == json_type::object; }
+		inline bool is_object() const { return value_.type == json_type::object; }
 
-		inline bool is_array() const				{ return value_.type == json_type::array; }
+		inline bool is_array() const { return value_.type == json_type::array; }
 
-		inline bool is_string() const				{ return value_.type == json_type::string; }
+		inline bool is_string() const { return value_.type == json_type::string; }
 
-		inline bool is_boolean() const				{ return value_.type == json_type::boolean; }
+		inline bool is_boolean() const { return value_.type == json_type::boolean; }
 
-		inline bool is_integer() const				{ return value_.type == json_type::number_integer; }
+		inline bool is_integer() const { return value_.type == json_type::number_integer; }
 
-		inline bool is_float() const				{ return value_.type == json_type::number_float; }
+		inline bool is_float() const { return value_.type == json_type::number_float; }
 
-		inline bool is_number() const				{ return is_integer() || is_float(); }
+		inline bool is_number() const { return is_integer() || is_float(); }
 
-		inline bool is_null() const					{ return value_.type == json_type::null; }
+		inline bool is_null() const { return value_.type == json_type::null; }
 
-		inline json_type type() const				{ return value_.type; }
+		inline json_type type() const { return value_.type; }
 
 		inline string_type type_name() const
 		{
 			switch (type())
 			{
 			case json_type::object:
-				return string_type(L"object");
+				return string_type("object");
 			case json_type::array:
-				return string_type(L"array");
+				return string_type("array");
 			case json_type::string:
-				return string_type(L"string");
+				return string_type("string");
 			case json_type::number_integer:
-				return string_type(L"integer");
+				return string_type("integer");
 			case json_type::number_float:
-				return string_type(L"float");
+				return string_type("float");
 			case json_type::boolean:
-				return string_type(L"boolean");
+				return string_type("boolean");
 			case json_type::null:
-				return string_type(L"null");
+				return string_type("null");
 			}
 			return string_type();
 		}
 
-		inline void swap(basic_json& rhs) { value_.swap(rhs.value_); }
+		inline void swap(basic_json &rhs) { value_.swap(rhs.value_); }
 
 	public:
-
-		inline iterator					begin()				{ iterator iter(this); iter.set_begin(); return iter; }
-		inline const_iterator			begin() const		{ return cbegin(); }
-		inline const_iterator			cbegin() const		{ const_iterator iter(this); iter.set_begin(); return iter; }
-		inline iterator					end()				{ iterator iter(this); iter.set_end(); return iter; }
-		inline const_iterator			end() const			{ return cend(); }
-		inline const_iterator			cend() const		{ const_iterator iter(this); iter.set_end(); return iter; }
-		inline reverse_iterator			rbegin()			{ return reverse_iterator(end()); }
-		inline const_reverse_iterator	rbegin() const		{ return const_reverse_iterator(end()); }
-		inline const_reverse_iterator	crbegin() const		{ return rbegin(); }
-		inline reverse_iterator			rend()				{ return reverse_iterator(begin()); }
-		inline const_reverse_iterator	rend() const		{ return const_reverse_iterator(begin()); }
-		inline const_reverse_iterator	crend() const		{ return rend(); }
+		inline iterator begin()
+		{
+			iterator iter(this);
+			iter.set_begin();
+			return iter;
+		}
+		inline const_iterator begin() const { return cbegin(); }
+		inline const_iterator cbegin() const
+		{
+			const_iterator iter(this);
+			iter.set_begin();
+			return iter;
+		}
+		inline iterator end()
+		{
+			iterator iter(this);
+			iter.set_end();
+			return iter;
+		}
+		inline const_iterator end() const { return cend(); }
+		inline const_iterator cend() const
+		{
+			const_iterator iter(this);
+			iter.set_end();
+			return iter;
+		}
+		inline reverse_iterator rbegin() { return reverse_iterator(end()); }
+		inline const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+		inline const_reverse_iterator crbegin() const { return rbegin(); }
+		inline reverse_iterator rend() { return reverse_iterator(begin()); }
+		inline const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+		inline const_reverse_iterator crend() const { return rend(); }
 
 	public:
 		inline size_type size() const
@@ -312,7 +327,7 @@ namespace nomango
 		}
 
 		template <typename _Kty>
-		inline const_iterator find(_Kty && key) const
+		inline const_iterator find(_Kty &&key) const
 		{
 			if (is_object())
 			{
@@ -324,12 +339,12 @@ namespace nomango
 		}
 
 		template <typename _Kty>
-		inline size_type count(_Kty && key) const
+		inline size_type count(_Kty &&key) const
 		{
 			return is_object() ? value_.data.object->count(std::forward<_Kty>(key)) : 0;
 		}
 
-		inline size_type erase(const typename object_type::key_type& key)
+		inline size_type erase(const typename object_type::key_type &key)
 		{
 			if (!is_object())
 			{
@@ -347,12 +362,12 @@ namespace nomango
 			value_.data.vector->erase(value_.data.vector->begin() + static_cast<difference_type>(index));
 		}
 
-		template<
+		template <
 			class _IteratorTy,
 			typename std::enable_if<
 				std::is_same<_IteratorTy, iterator>::value ||
-				std::is_same<_IteratorTy, const_iterator>::value, int
-			>::type = 0>
+					std::is_same<_IteratorTy, const_iterator>::value,
+				int>::type = 0>
 		inline _IteratorTy erase(_IteratorTy pos)
 		{
 			_IteratorTy result = end();
@@ -378,12 +393,12 @@ namespace nomango
 			return result;
 		}
 
-		template<
+		template <
 			class _IteratorTy,
 			typename std::enable_if<
 				std::is_same<_IteratorTy, iterator>::value ||
-				std::is_same<_IteratorTy, const_iterator>::value, int
-			>::type = 0>
+					std::is_same<_IteratorTy, const_iterator>::value,
+				int>::type = 0>
 		inline _IteratorTy erase(_IteratorTy first, _IteratorTy last)
 		{
 			_IteratorTy result = end();
@@ -409,7 +424,7 @@ namespace nomango
 			return result;
 		}
 
-		inline void push_back(basic_json&& json)
+		inline void push_back(basic_json &&json)
 		{
 			if (!is_null() && !is_array())
 			{
@@ -424,7 +439,7 @@ namespace nomango
 			value_.data.vector->push_back(std::move(json));
 		}
 
-		inline basic_json& operator+=(basic_json&& json)
+		inline basic_json &operator+=(basic_json &&json)
 		{
 			push_back(std::move(json));
 			return (*this);
@@ -478,7 +493,7 @@ namespace nomango
 	public:
 		// GET value functions
 
-		inline bool get_value(boolean_type& val) const
+		inline bool get_value(boolean_type &val) const
 		{
 			if (is_boolean())
 			{
@@ -488,7 +503,7 @@ namespace nomango
 			return false;
 		}
 
-		inline bool get_value(integer_type& val) const
+		inline bool get_value(integer_type &val) const
 		{
 			if (is_integer())
 			{
@@ -498,7 +513,7 @@ namespace nomango
 			return false;
 		}
 
-		inline bool get_value(float_type& val) const
+		inline bool get_value(float_type &val) const
 		{
 			if (is_float())
 			{
@@ -509,13 +524,13 @@ namespace nomango
 		}
 
 		template <
-			typename _IntegerTy,
-			typename std::enable_if<std::is_integral<_IntegerTy>::value, int>::type = 0>
-		inline bool get_value(_IntegerTy& val) const
+			typename _IntegerUTy,
+			typename std::enable_if<std::is_integral<_IntegerUTy>::value, int>::type = 0>
+		inline bool get_value(_IntegerUTy &val) const
 		{
 			if (is_integer())
 			{
-				val = static_cast<_IntegerTy>(value_.data.number_integer);
+				val = static_cast<_IntegerUTy>(value_.data.number_integer);
 				return true;
 			}
 			return false;
@@ -524,7 +539,7 @@ namespace nomango
 		template <
 			typename _FloatingTy,
 			typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-		inline bool get_value(_FloatingTy& val) const
+		inline bool get_value(_FloatingTy &val) const
 		{
 			if (is_float())
 			{
@@ -534,7 +549,7 @@ namespace nomango
 			return false;
 		}
 
-		inline bool get_value(array_type& val) const
+		inline bool get_value(array_type &val) const
 		{
 			if (is_array())
 			{
@@ -544,7 +559,7 @@ namespace nomango
 			return false;
 		}
 
-		inline bool get_value(string_type& val) const
+		inline bool get_value(string_type &val) const
 		{
 			if (is_string())
 			{
@@ -554,7 +569,7 @@ namespace nomango
 			return false;
 		}
 
-		inline bool get_value(object_type& val) const
+		inline bool get_value(object_type &val) const
 		{
 			if (is_object())
 			{
@@ -566,37 +581,43 @@ namespace nomango
 
 		boolean_type as_bool() const
 		{
-			if (!is_boolean()) throw json_type_error("json value must be boolean");
+			if (!is_boolean())
+				throw json_type_error("json value must be boolean");
 			return value_.data.boolean;
 		}
 
 		integer_type as_int() const
 		{
-			if (!is_integer()) throw json_type_error("json value must be integer");
+			if (!is_integer())
+				throw json_type_error("json value must be integer");
 			return value_.data.number_integer;
 		}
 
 		float_type as_float() const
 		{
-			if (!is_float()) throw json_type_error("json value must be float");
+			if (!is_float())
+				throw json_type_error("json value must be float");
 			return value_.data.number_float;
 		}
 
-		const array_type& as_array() const
+		const array_type &as_array() const
 		{
-			if (!is_array()) throw json_type_error("json value must be array");
+			if (!is_array())
+				throw json_type_error("json value must be array");
 			return *value_.data.vector;
 		}
 
-		const string_type& as_string() const
+		const string_type &as_string() const
 		{
-			if (!is_string()) throw json_type_error("json value must be string");
+			if (!is_string())
+				throw json_type_error("json value must be string");
 			return *value_.data.string;
 		}
 
-		const object_type& as_object() const
+		const object_type &as_object() const
 		{
-			if (!is_object()) throw json_type_error("json value must be object");
+			if (!is_object())
+				throw json_type_error("json value must be object");
 			return *value_.data.object;
 		}
 
@@ -611,19 +632,19 @@ namespace nomango
 	public:
 		// operator= functions
 
-		inline basic_json& operator=(basic_json const& other)
+		inline basic_json &operator=(basic_json const &other)
 		{
 			value_ = other.value_;
 			return (*this);
 		}
 
-		inline basic_json& operator=(basic_json&& other)
+		inline basic_json &operator=(basic_json &&other)
 		{
 			value_ = std::move(other.value_);
 			return (*this);
 		}
 
-		inline basic_json& operator=(std::nullptr_t)
+		inline basic_json &operator=(std::nullptr_t)
 		{
 			value_ = nullptr;
 			return (*this);
@@ -632,7 +653,7 @@ namespace nomango
 	public:
 		// operator[] functions
 
-		inline basic_json& operator[](size_type index)
+		inline basic_json &operator[](size_type index)
 		{
 			if (is_null())
 			{
@@ -647,14 +668,13 @@ namespace nomango
 			if (index >= value_.data.vector->size())
 			{
 				value_.data.vector->insert(value_.data.vector->end(),
-					index - value_.data.vector->size() + 1,
-					basic_json()
-				);
+										   index - value_.data.vector->size() + 1,
+										   basic_json());
 			}
 			return (*value_.data.vector)[index];
 		}
 
-		inline basic_json& operator[](size_type index) const
+		inline basic_json &operator[](size_type index) const
 		{
 			if (!is_array())
 			{
@@ -668,7 +688,7 @@ namespace nomango
 			return (*value_.data.vector)[index];
 		}
 
-		inline basic_json& operator[](const typename object_type::key_type& key)
+		inline basic_json &operator[](const typename object_type::key_type &key)
 		{
 			if (is_null())
 			{
@@ -682,7 +702,7 @@ namespace nomango
 			return (*value_.data.object)[key];
 		}
 
-		inline basic_json& operator[](const typename object_type::key_type& key) const
+		inline basic_json &operator[](const typename object_type::key_type &key) const
 		{
 			if (!is_object())
 			{
@@ -698,7 +718,7 @@ namespace nomango
 		}
 
 		template <typename _CharT>
-		inline basic_json& operator[](_CharT* key)
+		inline basic_json &operator[](_CharT *key)
 		{
 			if (is_null())
 			{
@@ -713,7 +733,7 @@ namespace nomango
 		}
 
 		template <typename _CharT>
-		inline basic_json& operator[](_CharT* key) const
+		inline basic_json &operator[](_CharT *key) const
 		{
 			if (!is_object())
 			{
@@ -740,7 +760,7 @@ namespace nomango
 	public:
 		// dumps functions
 
-		friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out, const basic_json& json)
+		friend std::basic_ostream<char_type> &operator<<(std::basic_ostream<char_type> &out, const basic_json &json)
 		{
 			using char_type = typename std::basic_ostream<char_type>::char_type;
 
@@ -764,7 +784,7 @@ namespace nomango
 		}
 
 		void dump(
-			output_adapter<char_type>* adapter,
+			output_adapter<char_type> *adapter,
 			const int indent = -1,
 			const char_type indent_char = ' ') const
 		{
@@ -781,33 +801,33 @@ namespace nomango
 	public:
 		// parse functions
 
-		friend std::basic_istream<char_type>&
-			operator>>(std::basic_istream<char_type>& in, basic_json& json)
+		friend std::basic_istream<char_type> &
+		operator>>(std::basic_istream<char_type> &in, basic_json &json)
 		{
 			stream_input_adapter<char_type> adapter(in);
 			json_parser<basic_json>(&adapter).parse(json);
 			return in;
 		}
 
-		static inline basic_json parse(const string_type& str)
+		static inline basic_json parse(const string_type &str)
 		{
 			string_input_adapter<string_type> adapter(str);
 			return parse(&adapter);
 		}
 
-		static inline basic_json parse(const char_type* str)
+		static inline basic_json parse(const char_type *str)
 		{
 			buffer_input_adapter<char_type> adapter(str);
 			return parse(&adapter);
 		}
 
-		static inline basic_json parse(std::FILE* file)
+		static inline basic_json parse(std::FILE *file)
 		{
 			file_input_adapter<char_type> adapter(file);
 			return parse(&adapter);
 		}
 
-		static inline basic_json parse(input_adapter<char_type>* adapter)
+		static inline basic_json parse(input_adapter<char_type> *adapter)
 		{
 			basic_json result;
 			json_parser<basic_json>(adapter).parse(result);
@@ -817,7 +837,7 @@ namespace nomango
 	public:
 		// compare functions
 
-		friend bool operator==(const basic_json& lhs, const basic_json& rhs)
+		friend bool operator==(const basic_json &lhs, const basic_json &rhs)
 		{
 			const auto lhs_type = lhs.type();
 			const auto rhs_type = rhs.type();
@@ -863,12 +883,12 @@ namespace nomango
 			return false;
 		}
 
-		friend bool operator!=(const basic_json& lhs, const basic_json& rhs)
+		friend bool operator!=(const basic_json &lhs, const basic_json &rhs)
 		{
 			return !(lhs == rhs);
 		}
 
-		friend bool operator<(const basic_json& lhs, const basic_json& rhs)
+		friend bool operator<(const basic_json &lhs, const basic_json &rhs)
 		{
 			const auto lhs_type = lhs.type();
 			const auto rhs_type = rhs.type();
@@ -914,17 +934,17 @@ namespace nomango
 			return false;
 		}
 
-		friend bool operator<=(const basic_json& lhs, const basic_json& rhs)
+		friend bool operator<=(const basic_json &lhs, const basic_json &rhs)
 		{
 			return !(rhs < lhs);
 		}
 
-		friend bool operator>(const basic_json& lhs, const basic_json& rhs)
+		friend bool operator>(const basic_json &lhs, const basic_json &rhs)
 		{
 			return rhs < lhs;
 		}
 
-		friend bool operator>=(const basic_json& lhs, const basic_json& rhs)
+		friend bool operator>=(const basic_json &lhs, const basic_json &rhs)
 		{
 			return !(lhs < rhs);
 		}
@@ -932,7 +952,7 @@ namespace nomango
 	private:
 		json_value<basic_json> value_;
 	};
-}
+} // namespace jsonxx
 
 #undef DECLARE_BASIC_JSON_TEMPLATE
 #undef DECLARE_BASIC_JSON_TPL_ARGS

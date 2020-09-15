@@ -1,15 +1,15 @@
-// Copyright (c) 2016-2018 JSON-cpp - Nomango
-// 
+// Copyright (c) 2018-2020 jsonxx - Nomango
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,8 +19,9 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <memory>  // std::allocator_traits
 
-namespace nomango
+namespace jsonxx
 {
 	//
 	// json value type
@@ -44,20 +45,20 @@ namespace nomango
 	template <typename _BasicJsonTy>
 	struct json_value
 	{
-		using string_type	= typename _BasicJsonTy::string_type;
-		using char_type		= typename _BasicJsonTy::char_type;
-		using integer_type	= typename _BasicJsonTy::integer_type;
-		using float_type	= typename _BasicJsonTy::float_type;
-		using boolean_type	= typename _BasicJsonTy::boolean_type;
-		using array_type	= typename _BasicJsonTy::array_type;
-		using object_type	= typename _BasicJsonTy::object_type;
+		using string_type = typename _BasicJsonTy::string_type;
+		using char_type = typename _BasicJsonTy::char_type;
+		using integer_type = typename _BasicJsonTy::integer_type;
+		using float_type = typename _BasicJsonTy::float_type;
+		using boolean_type = typename _BasicJsonTy::boolean_type;
+		using array_type = typename _BasicJsonTy::array_type;
+		using object_type = typename _BasicJsonTy::object_type;
 
 		json_type type;
 		union
 		{
-			object_type* object;
-			array_type* vector;
-			string_type* string;
+			object_type *object;
+			array_type *vector;
+			string_type *string;
 			integer_type number_integer;
 			float_type number_float;
 			boolean_type boolean;
@@ -75,26 +76,26 @@ namespace nomango
 			data.object = nullptr;
 		}
 
-		json_value(const object_type& value)
+		json_value(const object_type &value)
 		{
 			type = json_type::object;
 			data.object = create<object_type>(value);
 		}
 
-		json_value(const array_type& value)
+		json_value(const array_type &value)
 		{
 			type = json_type::array;
 			data.vector = create<array_type>(value);
 		}
 
-		json_value(const string_type& value)
+		json_value(const string_type &value)
 		{
 			type = json_type::string;
 			data.string = create<string_type>(value);
 		}
 
 		template <typename _CharT>
-		json_value(const _CharT* str)
+		json_value(const _CharT *str)
 		{
 			type = json_type::string;
 			data.string = create<string_type>(str);
@@ -147,10 +148,10 @@ namespace nomango
 			}
 		}
 
-		json_value(json_value const& other)
+		json_value(json_value const &other)
 		{
 			type = other.type;
-			
+
 			switch (other.type)
 			{
 			case json_type::object:
@@ -177,7 +178,7 @@ namespace nomango
 			}
 		}
 
-		json_value(json_value&& other)
+		json_value(json_value &&other)
 		{
 			type = other.type;
 			data = other.data;
@@ -190,7 +191,7 @@ namespace nomango
 			clear();
 		}
 
-		void swap(json_value& other)
+		void swap(json_value &other)
 		{
 			std::swap(type, other.type);
 			std::swap(data, other.data);
@@ -214,20 +215,20 @@ namespace nomango
 			}
 		}
 
-		template <typename _Ty, typename ..._Args>
-		inline _Ty* create(_Args&&... args)
+		template <typename _Ty, typename... _Args>
+		inline _Ty *create(_Args &&... args)
 		{
 			using allocator_type = typename _BasicJsonTy::template allocator_type<_Ty>;
 			using allocator_traits = std::allocator_traits<allocator_type>;
 
 			allocator_type allocator;
-			_Ty* ptr = allocator_traits::allocate(allocator, 1);
+			_Ty *ptr = allocator_traits::allocate(allocator, 1);
 			allocator_traits::construct(allocator, ptr, std::forward<_Args>(args)...);
 			return ptr;
 		}
 
 		template <typename _Ty>
-		inline void destroy(_Ty* ptr)
+		inline void destroy(_Ty *ptr)
 		{
 			using allocator_type = typename _BasicJsonTy::template allocator_type<_Ty>;
 			using allocator_traits = std::allocator_traits<allocator_type>;
@@ -237,13 +238,13 @@ namespace nomango
 			allocator_traits::deallocate(allocator, ptr, 1);
 		}
 
-		inline json_value& operator=(json_value const& other)
+		inline json_value &operator=(json_value const &other)
 		{
-			json_value{ other }.swap(*this);
+			json_value{other}.swap(*this);
 			return (*this);
 		}
 
-		inline json_value& operator=(json_value && other)
+		inline json_value &operator=(json_value &&other)
 		{
 			clear();
 			type = other.type;
@@ -262,66 +263,74 @@ namespace nomango
 	template <typename _BasicJsonTy>
 	struct json_value_getter
 	{
-		using string_type	= typename _BasicJsonTy::string_type;
-		using char_type		= typename _BasicJsonTy::char_type;
-		using integer_type	= typename _BasicJsonTy::integer_type;
-		using float_type	= typename _BasicJsonTy::float_type;
-		using boolean_type	= typename _BasicJsonTy::boolean_type;
-		using array_type	= typename _BasicJsonTy::array_type;
-		using object_type	= typename _BasicJsonTy::object_type;
+		using string_type = typename _BasicJsonTy::string_type;
+		using char_type = typename _BasicJsonTy::char_type;
+		using integer_type = typename _BasicJsonTy::integer_type;
+		using float_type = typename _BasicJsonTy::float_type;
+		using boolean_type = typename _BasicJsonTy::boolean_type;
+		using array_type = typename _BasicJsonTy::array_type;
+		using object_type = typename _BasicJsonTy::object_type;
 
-		static inline void assign(const _BasicJsonTy& json, object_type& value)
+		static inline void assign(const _BasicJsonTy &json, object_type &value)
 		{
-			if (!json.is_object()) throw json_type_error("json value type must be object");
+			if (!json.is_object())
+				throw json_type_error("json value type must be object");
 			value = *json.value_.data.object;
 		}
 
-		static inline void assign(const _BasicJsonTy& json, array_type& value)
+		static inline void assign(const _BasicJsonTy &json, array_type &value)
 		{
-			if (!json.is_array()) throw json_type_error("json value type must be array");
+			if (!json.is_array())
+				throw json_type_error("json value type must be array");
 			value = *json.value_.data.vector;
 		}
 
-		static inline void assign(const _BasicJsonTy& json, string_type& value)
+		static inline void assign(const _BasicJsonTy &json, string_type &value)
 		{
-			if (!json.is_string()) throw json_type_error("json value type must be string");
+			if (!json.is_string())
+				throw json_type_error("json value type must be string");
 			value = *json.value_.data.string;
 		}
 
-		static inline void assign(const _BasicJsonTy& json, boolean_type& value)
+		static inline void assign(const _BasicJsonTy &json, boolean_type &value)
 		{
-			if (!json.is_boolean()) throw json_type_error("json value type must be boolean");
+			if (!json.is_boolean())
+				throw json_type_error("json value type must be boolean");
 			value = json.value_.data.boolean;
 		}
 
-		static inline void assign(const _BasicJsonTy& json, integer_type& value)
+		static inline void assign(const _BasicJsonTy &json, integer_type &value)
 		{
-			if (!json.is_integer()) throw json_type_error("json value type must be integer");
+			if (!json.is_integer())
+				throw json_type_error("json value type must be integer");
 			value = json.value_.data.number_integer;
 		}
 
 		template <
 			typename _IntegerTy,
 			typename std::enable_if<std::is_integral<_IntegerTy>::value, int>::type = 0>
-		static inline void assign(const _BasicJsonTy& json, _IntegerTy& value)
+		static inline void assign(const _BasicJsonTy &json, _IntegerTy &value)
 		{
-			if (!json.is_integer()) throw json_type_error("json value type must be integer");
+			if (!json.is_integer())
+				throw json_type_error("json value type must be integer");
 			value = static_cast<_IntegerTy>(json.value_.data.number_integer);
 		}
 
-		static inline void assign(const _BasicJsonTy& json, float_type& value)
+		static inline void assign(const _BasicJsonTy &json, float_type &value)
 		{
-			if (!json.is_float()) throw json_type_error("json value type must be float");
+			if (!json.is_float())
+				throw json_type_error("json value type must be float");
 			value = json.value_.data.number_float;
 		}
 
 		template <
 			typename _FloatingTy,
 			typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-		static inline void assign(const _BasicJsonTy& json, _FloatingTy& value)
+		static inline void assign(const _BasicJsonTy &json, _FloatingTy &value)
 		{
-			if (!json.is_float()) throw json_type_error("json value type must be float");
+			if (!json.is_float())
+				throw json_type_error("json value type must be float");
 			value = static_cast<_FloatingTy>(json.value_.data.number_float);
 		}
 	};
-}
+} // namespace jsonxx

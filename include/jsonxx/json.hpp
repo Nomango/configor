@@ -1,15 +1,15 @@
-// Copyright (c) 2016-2018 JSON-cpp - Nomango
-// 
+// Copyright (c) 2018-2020 jsonxx - Nomango
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,25 +26,25 @@
 #include "json_serializer.hpp"
 #include "json_basic.hpp"
 
-namespace nomango
+namespace jsonxx
 {
-	using json = basic_json<>;
+    using json = basic_json<>;
 }
 
 namespace std
 {
-	template<>
-	struct hash<::nomango::json>
-	{
-		std::size_t operator()(const ::nomango::json& json) const
-		{
-			return hash<::nomango::json::string_type>{}(json.dump());
-		}
-	};
+    template <>
+    struct hash<::jsonxx::json>
+    {
+        std::size_t operator()(const ::jsonxx::json &json) const
+        {
+            return hash<::jsonxx::json::string_type>{}(json.dump());
+        }
+    };
 
-	template<>
-	inline void swap<::nomango::json>(::nomango::json& lhs, ::nomango::json& rhs)
-	{
-		lhs.swap(rhs);
-	}
-}
+    template <>
+    inline void swap<::jsonxx::json>(::jsonxx::json &lhs, ::jsonxx::json &rhs)
+    {
+        lhs.swap(rhs);
+    }
+} // namespace std
