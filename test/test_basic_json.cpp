@@ -56,25 +56,44 @@ protected:
     json j;
 };
 
+TEST_F(BasicJsonTest, test_type)
+{
+    ASSERT_EQ(j.is_object(), true);
+    ASSERT_EQ(j["pi"].is_float(), true);
+    ASSERT_EQ(j["happy"].is_bool(), true);
+    ASSERT_EQ(j["name"].is_string(), true);
+    ASSERT_EQ(j["nothing"].is_null(), true);
+    ASSERT_EQ(j["answer"].is_object(), true);
+    ASSERT_EQ(j["answer"]["everything"].is_number(), true);
+    ASSERT_EQ(j["list"].is_array(), true);
+}
+
+TEST_F(BasicJsonTest, test_get)
+{
+    ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
+    ASSERT_EQ(j["happy"].as_bool(), true);
+    ASSERT_EQ(j["name"].as_string(), "Nomango");
+    ASSERT_EQ(j["answer"]["everything"].as_int(), 42);
+    ASSERT_EQ(j["list"][0].as_int(), 1);
+    ASSERT_EQ(j["list"][1].as_int(), 0);
+    ASSERT_EQ(j["list"][2].as_int(), 2);
+}
+
 TEST_F(BasicJsonTest, test_dump)
 {
+    ASSERT_EQ(j.dump(), "{\"answer\":{\"everything\":42},\"happy\":true,\"list\":[1,0,2],\"name\":\"Nomango\",\"nothing\":null,\"object\":{\"currency\":\"USD\",\"value\":42.990000000000002},\"pi\":3.141}");
+    // for-each
+    for (const auto& v : j)
     {
-        // for-each
-        for (const auto& v : j)
-        {
-            (void)v.dump();
-        }
+        (void)v.dump();
     }
-
 }
 
 TEST_F(BasicJsonTest, test_iterator_dump)
 {
+    // iterator
+    for (auto iter = j.begin(); iter != j.end(); iter++)
     {
-        // iterator
-        for (auto iter = j.begin(); iter != j.end(); iter++)
-        {
-            (void)iter->dump();
-        }
+        (void)iter->dump();
     }
 }

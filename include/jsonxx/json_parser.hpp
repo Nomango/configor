@@ -360,32 +360,14 @@ namespace jsonxx
 
                     case 'u':
                     {
-                        // unicode escapes
-                        uint16_t byte = 0;
-
-                        for (const auto factor : {12, 8, 4, 0})
+                        const auto code = get_escaped_code();
+                        if (code == -1)
                         {
-                            const auto n = read_next();
-                            if (n >= L'0' && n <= L'9')
-                            {
-                                byte += ((n - L'0') << factor);
-                            }
-                            else if (n >= L'A' && n <= L'F')
-                            {
-                                byte += ((n - L'A' + 10) << factor);
-                            }
-                            else if (n >= L'a' && n <= L'f')
-                            {
-                                byte += ((n - L'a' + 10) << factor);
-                            }
-                            else
-                            {
-                                // '\u' must be followed by 4 hex digits
-                                return token_type::parse_error;
-                            }
+                            // '\u' must be followed by 4 hex digits
+                            return token_type::parse_error;
                         }
 
-                        string_buffer.push_back(char_traits::to_char_type(byte));
+                        string_buffer.push_back(char_traits::to_char_type(code));
                         break;
                     }
 
@@ -399,7 +381,7 @@ namespace jsonxx
 
                 default:
                 {
-                    if (ch > 0x1F && ch < 0x7F)
+                    if (ch > 0x1F && ch < 0xFFFF)
                     {
                         string_buffer.push_back(char_traits::to_char_type(ch));
                         break;
@@ -411,6 +393,32 @@ namespace jsonxx
                 }
                 }
             }
+        }
+
+        int32_t get_escaped_code()
+        {
+            int32_t byte = 0;
+            for (const auto factor : {12, 8, 4, 0})
+            {
+                const auto n = read_next();
+                if (n >= '0' && n <= '9')
+                {
+                    byte += ((n - '0') << factor);
+                }
+                else if (n >= 'A' && n <= 'F')
+                {
+                    byte += ((n - 'A' + 10) << factor);
+                }
+                else if (n >= 'a' && n <= 'f')
+                {
+                    byte += ((n - 'a' + 10) << factor);
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            return byte;
         }
 
         token_type scan_number()

@@ -65,7 +65,7 @@ json obj = json::object({ "user", { { "id", 1 }, { "name", "Nomango" } } });
 ```cpp
 // 判断 JSON 值类型
 bool is_null();
-bool is_boolean();
+bool is_bool();
 bool is_integer();
 bool is_float();
 bool is_array();
@@ -76,7 +76,7 @@ bool is_object();
 
 ```cpp
 // 显示转换
-auto b = j["boolean"].as_boolean();        // bool
+auto b = j["boolean"].as_bool();           // bool
 auto i = j["number"].as_integer();         // int32_t
 auto f = j["float"].as_float();            // float
 const auto& arr = j["array"].as_array();   // arr 实际是 std::vector<json> 类型

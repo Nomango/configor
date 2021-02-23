@@ -226,7 +226,7 @@ namespace jsonxx
 
 		inline bool is_string() const { return value_.type == json_type::string; }
 
-		inline bool is_boolean() const { return value_.type == json_type::boolean; }
+		inline bool is_bool() const { return value_.type == json_type::boolean; }
 
 		inline bool is_integer() const { return value_.type == json_type::number_integer; }
 
@@ -495,7 +495,7 @@ namespace jsonxx
 
 		inline bool get_value(boolean_type &val) const
 		{
-			if (is_boolean())
+			if (is_bool())
 			{
 				val = value_.data.boolean;
 				return true;
@@ -581,7 +581,7 @@ namespace jsonxx
 
 		boolean_type as_bool() const
 		{
-			if (!is_boolean())
+			if (!is_bool())
 				throw json_type_error("json value must be boolean");
 			return value_.data.boolean;
 		}

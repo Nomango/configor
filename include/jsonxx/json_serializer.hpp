@@ -335,62 +335,89 @@ namespace jsonxx
                 {
                 case '\t':
                 {
-                    out->write("\\t");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = 't';
+                    buffer_idx += 2;
                     break;
                 }
 
                 case '\r':
                 {
-                    out->write("\\r");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = 'r';
+                    buffer_idx += 2;
                     break;
                 }
 
                 case '\n':
                 {
-                    out->write("\\n");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = 'n';
+                    buffer_idx += 2;
                     break;
                 }
 
                 case '\b':
                 {
-                    out->write("\\b");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = 'b';
+                    buffer_idx += 2;
                     break;
                 }
 
                 case '\f':
                 {
-                    out->write("\\f");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = 'f';
+                    buffer_idx += 2;
                     break;
                 }
 
                 case '\"':
                 {
-                    out->write("\\\"");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = '\"';
+                    buffer_idx += 2;
                     break;
                 }
 
                 case '\\':
                 {
-                    out->write("\\\\");
+                    string_buffer[buffer_idx] = '\\';
+                    string_buffer[buffer_idx+1] = '\\';
+                    buffer_idx += 2;
                     break;
                 }
 
                 default:
                 {
-                    const auto char_byte = static_cast<uint16_t>(ch);
-                    if ((char_byte > 0x1F) && (char_byte < 0x7F))
+                    const auto code = static_cast<uint32_t>(ch);
+                    if (code <= 0x1F)
                     {
-                        out->write(ch);
+                        // escape control characters (0x00..0x1F)
+                        std::snprintf(string_buffer.data() + buffer_idx, 7, "\\u%04X", uint16_t(code));
+                        buffer_idx += 6;
                     }
                     else
                     {
-                        char_type escaped[7] = {0};
-                        std::snprintf(escaped, 7, "\\u%04x", char_byte);
-                        out->write(escaped);
+                        string_buffer[buffer_idx] = ch;
+                        buffer_idx++;
                     }
                     break;
                 }
                 }
+
+                if (string_buffer.size() - buffer_idx < 7)
+                {
+                    out->write(string_buffer.data(), buffer_idx);
+                    buffer_idx = 0;
+                }
+            }
+
+            if (buffer_idx > 0)
+            {
+                out->write(string_buffer.data(), buffer_idx);
+                buffer_idx = 0;
             }
         }
 
@@ -398,6 +425,8 @@ namespace jsonxx
         output_adapter<char_type> *out;
         char_type indent_char;
         string_type indent_string;
-        std::array<char_type, 21> number_buffer;
+        std::array<char_type, 21> number_buffer = {};
+        std::array<char, 512> string_buffer = {};
+        ptrdiff_t buffer_idx = 0;
     };
 } // namespace jsonxx

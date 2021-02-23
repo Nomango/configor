@@ -294,7 +294,7 @@ namespace jsonxx
 
 		static inline void assign(const _BasicJsonTy &json, boolean_type &value)
 		{
-			if (!json.is_boolean())
+			if (!json.is_bool())
 				throw json_type_error("json value type must be boolean");
 			value = json.value_.data.boolean;
 		}
