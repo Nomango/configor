@@ -373,6 +373,7 @@ namespace jsonxx
 
                     default:
                     {
+                        // invalid escaped char
                         return token_type::parse_error;
                     }
                     }
@@ -381,15 +382,7 @@ namespace jsonxx
 
                 default:
                 {
-                    if (ch > 0x1F && ch < 0xFFFF)
-                    {
-                        string_buffer.push_back(char_traits::to_char_type(ch));
-                        break;
-                    }
-                    else
-                    {
-                        return token_type::parse_error;
-                    }
+                    string_buffer.push_back(char_traits::to_char_type(ch));
                 }
                 }
             }
