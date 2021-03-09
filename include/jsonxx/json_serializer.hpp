@@ -20,9 +20,11 @@
 
 #pragma once
 #include <cstdio>  // snprintf_s
+#include <cassert>  // assert
 #include <type_traits>  // std::char_traits
 #include <ios>  // std::basic_ostream
 #include <array>  // std::array
+#include <algorithm>  // std::none_of
 
 namespace jsonxx
 {
@@ -312,20 +314,19 @@ namespace jsonxx
         void dump_float(float_type val)
         {
             const auto digits = std::numeric_limits<float_type>::max_digits10;
-            const auto len = ::std::snprintf(nullptr, 0, "%.*g", digits, val);
-            if (len)
+            const auto len = ::std::snprintf(number_buffer.data(), number_buffer.size(), "%.*g", digits, val);
+
+            // check len
+            assert(len > 0);
+            assert(number_buffer.size() > static_cast<std::size_t>(len));
+
+            out->write(number_buffer.data(), static_cast<std::size_t>(len));
+
+            // determine if need to append ".0"
+            if (std::none_of(number_buffer.begin(), number_buffer.begin() + len + 1, [](char c) { return c == '.'; }))
             {
-                number_buffer[0] = '\0';
-                std::snprintf(&number_buffer[0], len + 1, "%.*g", digits, val);
+                out->write(".0");
             }
-            else
-            {
-                number_buffer[0] = '0';
-                number_buffer[1] = '.';
-                number_buffer[2] = '0';
-                number_buffer[3] = '\0';
-            }
-            out->write(number_buffer.data());
         }
 
         void dump_string(const string_type &val)

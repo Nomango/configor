@@ -24,7 +24,7 @@ protected:
             {"object", {
                 {"currency", "USD"},
                 {"value", 42.99}
-            }}
+            }},
         };
     }
 
@@ -41,12 +41,12 @@ TEST_F(SerializerTest, test_write_to_file)
 
 TEST_F(SerializerTest, test_dump)
 {
-    std::string serialized_string = j.dump();
-    (void)serialized_string;
-}
+    ASSERT_NO_THROW(std::string serialized_string = j.dump());
+    ASSERT_NO_THROW(std::string serialized_string = j.dump(4, ' '));
 
-TEST_F(SerializerTest, test_pretty_dump)
-{
-    std::string serialized_string = j.dump(4, ' ');
-    (void)serialized_string;
+    // issue 7
+    ASSERT_EQ(json(0.0).dump(), "0.0");
+    ASSERT_EQ(json(1.0).dump(), "1.0");
+    ASSERT_EQ(json(1.2).dump(), "1.2");
+    ASSERT_EQ(json(1.23).dump(), "1.23");
 }
