@@ -20,8 +20,9 @@
 
 #pragma once
 #include <cstdio>  // snprintf_s
-#include <type_traits>
-#include <ios>
+#include <type_traits>  // std::char_traits
+#include <ios>  // std::basic_ostream
+#include <array>  // std::array
 
 namespace jsonxx
 {

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.4)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 project(jsonxx)
 
 # GTest
-find_package(GTEST REQUIRED)
 enable_testing()
+find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
 # Testing
@@ -18,6 +18,5 @@ set(TESTING_SOURCES
 )
 
 add_executable(${PROJECT_NAME}_test ${TESTING_SOURCES})
-add_dependencies(${PROJECT_NAME}_test GTest)
 target_link_libraries(${PROJECT_NAME}_test ${GTEST_LIBRARIES})
 add_test(${PROJECT_NAME}_test ${PROJECT_NAME}_test)
