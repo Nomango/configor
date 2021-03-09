@@ -33,6 +33,7 @@ protected:
 
 TEST_F(BasicJsonTest, test_type)
 {
+    const auto& j = this->j;
     ASSERT_EQ(j.is_object(), true);
     ASSERT_EQ(j["pi"].is_float(), true);
     ASSERT_EQ(j["happy"].is_bool(), true);
@@ -43,6 +44,8 @@ TEST_F(BasicJsonTest, test_type)
     ASSERT_EQ(j["object"]["currency"].is_string(), true);
     ASSERT_EQ(j["object"]["money"].is_float(), true);
     ASSERT_EQ(j["single_object"]["number"].is_number(), true);
+    ASSERT_THROW(j["missing"].is_null(), std::out_of_range);
+    ASSERT_EQ(this->j["missing"].is_null(), true);
 }
 
 TEST_F(BasicJsonTest, test_get)
@@ -63,6 +66,9 @@ TEST_F(BasicJsonTest, test_assign)
 
     j["list"][0] = -1;
     ASSERT_EQ(j["list"][0].as_int(), -1);
+
+    j["new_item"] = "string";
+    ASSERT_EQ(j["new_item"].as_string(), "string");
 }
 
 TEST_F(BasicJsonTest, test_dump)
@@ -82,6 +88,8 @@ TEST_F(BasicJsonTest, test_iterator)
     {
         ASSERT_EQ(iter.value(), j[iter.key()]);
     }
+    ASSERT_TRUE(j.find("pi") != j.cend());
+    ASSERT_TRUE(j.find("missing") == j.cend());
 }
 
 TEST_F(BasicJsonTest, test_object)
@@ -90,4 +98,6 @@ TEST_F(BasicJsonTest, test_object)
     ASSERT_EQ(j["object"].size(), 2);
     ASSERT_EQ(j["single_object"].size(), 1);
     ASSERT_EQ(j["list"].size(), 3);
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.size(), 0);
 }

@@ -116,7 +116,7 @@ namespace jsonxx
         using pointer = value_type *;
         using reference = value_type &;
 
-        inline iterator_impl(pointer json = nullptr) : data_(json) {}
+        inline iterator_impl(pointer json) : data_(json) {}
 
         inline reference operator*() const
         {
@@ -308,11 +308,11 @@ namespace jsonxx
         inline bool operator!=(iterator_impl const &other) const { return !(*this == other); }
         inline bool operator==(iterator_impl const &other) const
         {
-            check_data();
-            other.check_data();
-
             if (data_ != other.data_)
-                throw json_invalid_iterator("cannot compare iterators of different objects");
+                return false;
+
+            if (data_ == nullptr)
+                throw json_invalid_iterator("json data is nullptr");
 
             switch (data_->type())
             {

@@ -20,8 +20,9 @@
 
 #pragma once
 #include <cstdio>  // std::FILE
-#include <type_traits>
-#include <ios>
+#include <cctype>  // std::isdigit
+#include <type_traits>  // std::char_traits
+#include <ios>  // std::basic_istream, std::basic_streambuf
 
 namespace jsonxx
 {

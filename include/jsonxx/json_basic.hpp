@@ -331,7 +331,7 @@ namespace jsonxx
 		{
 			if (is_object())
 			{
-				const_iterator iter;
+				const_iterator iter(this);
 				iter.it_.object_iter = value_.data.object->find(std::forward<_Kty>(key));
 				return iter;
 			}
