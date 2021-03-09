@@ -606,9 +606,15 @@ namespace jsonxx
             return last_token;
         }
 
-        void parse_value(_BasicJsonTy &json)
+        void parse_value(_BasicJsonTy &json, bool read_next = true)
         {
-            switch (get_token())
+            token_type token = last_token;
+            if (read_next)
+            {
+                token = get_token();
+            }
+
+            switch (token)
             {
             case token_type::literal_true:
                 json = json_type::boolean;
@@ -640,8 +646,11 @@ namespace jsonxx
                 json = json_type::array;
                 while (true)
                 {
+                    if (get_token() == token_type::end_array)
+                        break;
+
                     json.value_.data.vector->push_back(_BasicJsonTy());
-                    parse_value(json.value_.data.vector->back());
+                    parse_value(json.value_.data.vector->back(), false);
 
                     // read ','
                     if (get_token() != token_type::value_separator)

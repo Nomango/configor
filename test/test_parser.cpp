@@ -14,6 +14,10 @@ TEST(test_parser, test_parse)
     ASSERT_EQ(j["happy"].as_bool(), true);
     ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
     ASSERT_EQ(j["name"].as_string(), "中文测试");
+
+    // issue 4
+    ASSERT_NO_THROW(json::parse("{\"empty\": []}"));
+    ASSERT_NO_THROW(json::parse("{}"));
 }
 
 TEST(test_parser, test_read_from_file)
