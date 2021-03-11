@@ -59,6 +59,41 @@ TEST_F(BasicJsonTest, test_get)
     ASSERT_EQ(j["single_object"]["number"].as_int(), 123);
 }
 
+TEST_F(BasicJsonTest, test_equal)
+{
+    ASSERT_TRUE(j["pi"] == 3.141);
+    ASSERT_TRUE(j["pi"] > 3);
+    ASSERT_TRUE(j["pi"] < 4);
+    ASSERT_TRUE(j["happy"] == true);
+    ASSERT_TRUE(j["name"] == "Nomango");
+    ASSERT_TRUE(j["list"][0] == 1);
+    ASSERT_TRUE(j["list"][0] == 1u);
+    ASSERT_TRUE(j["list"][0] == 1l);
+    ASSERT_TRUE(j["list"][0] == int64_t(1));
+    ASSERT_TRUE(j["list"][1] == 0);
+    ASSERT_TRUE(j["list"][2] == 2);
+    ASSERT_TRUE(j["list"][0] > 0);
+    ASSERT_TRUE(j["list"][0] < 2);
+    ASSERT_TRUE(j["single_object"]["number"] == 123);
+
+    ASSERT_TRUE(json(1.0) == 1);
+    ASSERT_TRUE(json(1) == 1.0);
+    ASSERT_TRUE(json(1.0) == 1.0f);
+    ASSERT_TRUE(json(1.0f) == 1.0);
+}
+
+TEST_F(BasicJsonTest, test_explicit_convert)
+{
+    ASSERT_TRUE((double)j["pi"] == 3.141);
+    ASSERT_TRUE((float)j["pi"] == 3.141f);
+    ASSERT_TRUE((bool)j["happy"] == true);
+    ASSERT_TRUE((std::string)j["name"] == "Nomango");
+    ASSERT_TRUE((int)j["list"][0].as_int() == 1);
+    ASSERT_TRUE((unsigned int)j["list"][0].as_int() == 1u);
+    ASSERT_TRUE((long)j["list"][0].as_int() == 1l);
+    ASSERT_TRUE((int64_t)j["list"][0].as_int() == int64_t(1));
+}
+
 TEST_F(BasicJsonTest, test_assign)
 {
     j["happy"] = false;

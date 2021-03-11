@@ -72,27 +72,35 @@ bool is_array();
 bool is_object();
 ```
 
-- 将 JSON 对象进行显式或隐式转换
+- JSON 对象的类型转换
 
 ```cpp
-// 显示转换
+// 显式转换
 auto b = j["boolean"].as_bool();           // bool
 auto i = j["number"].as_integer();         // int32_t
-auto f = j["float"].as_float();            // float
+auto f = j["float"].as_float();            // double
 const auto& arr = j["array"].as_array();   // arr 实际是 std::vector<json> 类型
 const auto& obj = j["user"].as_object();   // obj 实际是 std::map<std::string, json> 类型
 ```
 
 ```cpp
-// 隐式转换
-bool b = j["boolean"];
-int i = j["number"];           // int32_t 自动转换为 int
-double d = j["float"];         // float 自动转换成 double
-std::vector<json> arr = j["array"];
-std::map<std::string, json> obj = j["user"];
+// 显式转换
+bool b = (bool)j["boolean"];
+int i = (int)j["number"];
+float d = (float)j["float"];
 ```
 
 > 若 JSON 值类型与待转换类型不相同也不协变，会引发 json_type_error 异常
+
+- JSON 对象的比较操作符
+
+```cpp
+j["boolean"] == true
+j["number"] == 1
+j["number"] != 2
+j["number"] > 0
+j["float"] < 3
+```
 
 - 取值的同时判断类型
 

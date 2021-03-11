@@ -644,12 +644,6 @@ namespace jsonxx
 			return (*this);
 		}
 
-		inline basic_json &operator=(std::nullptr_t)
-		{
-			value_ = nullptr;
-			return (*this);
-		}
-
 	public:
 		// operator[] functions
 
@@ -749,10 +743,10 @@ namespace jsonxx
 		}
 
 	public:
-		// implicitly convert functions
+		// explicitly convert functions
 
 		template <typename _Ty>
-		inline operator _Ty() const
+		inline explicit operator _Ty() const
 		{
 			return get<_Ty>();
 		}
@@ -839,48 +833,7 @@ namespace jsonxx
 
 		friend bool operator==(const basic_json &lhs, const basic_json &rhs)
 		{
-			const auto lhs_type = lhs.type();
-			const auto rhs_type = rhs.type();
-
-			if (lhs_type == rhs_type)
-			{
-				switch (lhs_type)
-				{
-				case json_type::array:
-					return (*lhs.value_.data.vector == *rhs.value_.data.vector);
-
-				case json_type::object:
-					return (*lhs.value_.data.object == *rhs.value_.data.object);
-
-				case json_type::null:
-					return true;
-
-				case json_type::string:
-					return (*lhs.value_.data.string == *rhs.value_.data.string);
-
-				case json_type::boolean:
-					return (lhs.value_.data.boolean == rhs.value_.data.boolean);
-
-				case json_type::number_integer:
-					return (lhs.value_.data.number_integer == rhs.value_.data.number_integer);
-
-				case json_type::number_float:
-					return (lhs.value_.data.number_float == rhs.value_.data.number_float);
-
-				default:
-					return false;
-				}
-			}
-			else if (lhs_type == json_type::number_integer && rhs_type == json_type::number_float)
-			{
-				return (static_cast<float_type>(lhs.value_.data.number_integer) == rhs.value_.data.number_float);
-			}
-			else if (lhs_type == json_type::number_float && rhs_type == json_type::number_integer)
-			{
-				return (lhs.value_.data.number_float == static_cast<float_type>(rhs.value_.data.number_integer));
-			}
-
-			return false;
+			return lhs.value_ == rhs.value_;
 		}
 
 		friend bool operator!=(const basic_json &lhs, const basic_json &rhs)

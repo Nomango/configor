@@ -19,10 +19,21 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <cmath>  // std::fabs
+#include <limits>  // std::numeric_limits
 #include <memory>  // std::allocator_traits
 
 namespace jsonxx
 {
+	namespace detail
+	{
+		template <typename _Ty>
+		bool nearly_equal(_Ty a, _Ty b)
+		{
+			return std::fabs(a - b) < std::numeric_limits<_Ty>::epsilon();
+		}
+	}
+
 	//
 	// json value type
 	//
@@ -253,6 +264,48 @@ namespace jsonxx
 			other.type = json_type::null;
 			other.data.object = nullptr;
 			return (*this);
+		}
+
+		friend bool operator==(const json_value &lhs, const json_value &rhs)
+		{
+			if (lhs.type == rhs.type)
+			{
+				switch (lhs.type)
+				{
+				case json_type::array:
+					return (*lhs.data.vector == *rhs.data.vector);
+
+				case json_type::object:
+					return (*lhs.data.object == *rhs.data.object);
+
+				case json_type::null:
+					return true;
+
+				case json_type::string:
+					return (*lhs.data.string == *rhs.data.string);
+
+				case json_type::boolean:
+					return (lhs.data.boolean == rhs.data.boolean);
+
+				case json_type::number_integer:
+					return (lhs.data.number_integer == rhs.data.number_integer);
+
+				case json_type::number_float:
+					return detail::nearly_equal(lhs.data.number_float, rhs.data.number_float);
+
+				default:
+					return false;
+				}
+			}
+			else if (lhs.type == json_type::number_integer && rhs.type == json_type::number_float)
+			{
+				return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer), rhs.data.number_float);
+			}
+			else if (lhs.type == json_type::number_float && rhs.type == json_type::number_integer)
+			{
+				return detail::nearly_equal<float_type>(lhs.data.number_float, static_cast<float_type>(rhs.data.number_integer));
+			}
+			return false;
 		}
 	};
 
