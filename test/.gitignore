@@ -19,4 +19,8 @@ _deps
 
 # test files
 *_test
+build/
 output/
+
+# visual studio files
+packages/
