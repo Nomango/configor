@@ -125,27 +125,6 @@ for (auto iter = obj.begin(); iter != obj.end(); iter++) {
 }
 ```
 
-- JSON 解析
-
-```cpp
-// 解析字符串
-json j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
-```
-
-```cpp
-// 从文件读取 JSON
-std::ifstream ifs("sample.json");
-
-json j;
-ifs >> j;
-```
-
-```cpp
-// 从标准输入流读取 JSON
-json j;
-std::cin >> j;
-```
-
 - JSON 序列化
 
 ```cpp
@@ -171,6 +150,85 @@ ofs << std::setw(4) << j << std::endl;
 // 将 JSON 内容输出到标准输出流
 json j;
 std::cout << j;    // 可以使用 std::setw(4) 对输出内容美化
+```
+
+- JSON 反序列化
+
+```cpp
+// 解析字符串
+json j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+```
+
+```cpp
+// 从文件读取 JSON
+std::ifstream ifs("sample.json");
+
+json j;
+ifs >> j;
+```
+
+```cpp
+// 从标准输入流读取 JSON
+json j;
+std::cin >> j;
+```
+
+- JSON 与任意对象转换
+
+通过特化实现 json_bind 类，可以非侵入式的实现任意对象与 JSON 的转换。
+
+使用效果：
+
+```cpp
+// 特化实现 json_bind<MyClass> 后，即可方便将 MyClass 对象和 json 进行互相转换
+json j;
+MyClass obj;
+
+// 将 MyClass 转换为 json
+jsonxx::to_json(j, obj);
+
+// 将 json 转换为 MyClass
+jsonxx::from_json(j, obj);
+```
+
+特化实现 json_bind 的例子：
+
+```cpp
+// 自定义的“角色”类
+class Role
+{
+public:
+    Role() = default;
+
+    Role(const std::string& name, int age) : name_(name), age_(age) {}
+
+private:
+    friend json_bind<Role>;  // 声明 json_bind 友元
+
+    std::string name_;
+    int age_ = 0;
+};
+
+// 特化实现 json_bind
+// 需要实现 to_json 和 from_json 两个成员函数
+template<>
+class json_bind<Role>
+{
+public:
+    // 将 Role 转换为 json
+    void to_json(json& j, const Role& v)
+    {
+        j["name"] = v.name_;
+        j["age"] = v.age_;
+    }
+
+    // 将 json 转换为 Role
+    void from_json(Role& v, const json& j)
+    {
+        v.name_ = j["name"].as_string();
+        v.age_ = (int)j["age"];
+    }
+};
 ```
 
 ### 更多

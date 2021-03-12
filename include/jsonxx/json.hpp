@@ -24,6 +24,7 @@
 #include "json_iterator.hpp"
 #include "json_parser.hpp"
 #include "json_serializer.hpp"
+#include "json_utils.hpp"
 #include "json_basic.hpp"
 
 namespace jsonxx

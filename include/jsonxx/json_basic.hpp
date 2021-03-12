@@ -19,60 +19,16 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <cstdint>
-#include <string>
-#include <array>
-#include <vector>
-#include <map>
+#include <cstdint>  // std::int32_t
+#include <type_traits>  // std::enable_if, std::is_constructible, std::bool_constant, std::is_same, std::is_integral, std::is_floating_point
+#include <string>  // std::string
+#include <array>  // std::array
+#include <vector>  // std::vector
+#include <map>  // std::map
+#include "json_utils.hpp"
 
 namespace jsonxx
 {
-	template <
-		template <class _Kty, class _Ty, class... _Args> class _ObjectTy = std::map,
-		template <class _Kty, class... _Args> class _ArrayTy = std::vector,
-		typename _StringTy = std::string,
-		typename _IntegerTy = std::int32_t,
-		typename _FloatTy = double,
-		typename _BooleanTy = bool,
-		template <class _Ty> class _Allocator = std::allocator>
-	class basic_json;
-
-	//
-	// details of basic_json
-	//
-
-#define DECLARE_BASIC_JSON_TEMPLATE                                          \
-	template <                                                               \
-		template <class _Kty, class _Ty, class... _Args> class _ObjectTy, \
-		template <class _Kty, class... _Args> class _ArrayTy,             \
-		typename _StringTy,                                                  \
-		typename _IntegerTy,                                                 \
-		typename _FloatTy,                                                   \
-		typename _BooleanTy,                                                 \
-		template <class _Ty> class _Allocator>
-
-#define DECLARE_BASIC_JSON_TPL_ARGS \
-	_ObjectTy, _ArrayTy, _StringTy, _IntegerTy, _FloatTy, _BooleanTy, _Allocator
-
-	//
-	// is_basic_json
-	//
-
-	template <typename>
-	struct is_basic_json
-		: std::false_type
-	{
-	};
-
-	DECLARE_BASIC_JSON_TEMPLATE
-	struct is_basic_json<basic_json<DECLARE_BASIC_JSON_TPL_ARGS>>
-		: std::true_type
-	{
-	};
-
-	//
-	// basic_json
-	//
 
 	DECLARE_BASIC_JSON_TEMPLATE
 	class basic_json
@@ -111,7 +67,8 @@ namespace jsonxx
 
 		basic_json(basic_json const &other) : value_(other.value_) {}
 
-		basic_json(basic_json &&other) : value_(std::move(other.value_))
+		basic_json(basic_json &&other) noexcept
+			: value_(std::move(other.value_))
 		{
 			// invalidate payload
 			other.value_.type = json_type::null;
@@ -905,7 +862,5 @@ namespace jsonxx
 	private:
 		json_value<basic_json> value_;
 	};
-} // namespace jsonxx
 
-#undef DECLARE_BASIC_JSON_TEMPLATE
-#undef DECLARE_BASIC_JSON_TPL_ARGS
+} // namespace jsonxx

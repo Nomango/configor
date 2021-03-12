@@ -14,6 +14,7 @@ set(TESTING_SOURCES
     test_basic_json.cpp
     test_parser.cpp
     test_serializer.cpp
+    test_utils.cpp
 )
 
 add_executable(${PROJECT_NAME}_test ${TESTING_SOURCES})

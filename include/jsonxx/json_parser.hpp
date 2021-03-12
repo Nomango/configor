@@ -130,7 +130,7 @@ namespace jsonxx
     };
 
     //
-    // json_lexer & json_parser
+    // json_lexer
     //
 
     enum class token_type
@@ -573,6 +573,10 @@ namespace jsonxx
         float_type number_value;
         string_type string_buffer;
     };
+
+    //
+    // json_parser
+    //
 
     template <typename _BasicJsonTy>
     struct json_parser

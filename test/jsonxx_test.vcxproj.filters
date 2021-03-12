@@ -11,36 +11,42 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test\test_basic_json.cpp">
+    <ClCompile Include="test_basic_json.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test\test_parser.cpp">
+    <ClCompile Include="test_parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test\test_serializer.cpp">
+    <ClCompile Include="test_serializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\jsonxx\json.hpp">
+    <ClInclude Include="..\include\jsonxx\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\jsonxx\json_basic.hpp">
+    <ClInclude Include="..\include\jsonxx\json_basic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\jsonxx\json_exception.hpp">
+    <ClInclude Include="..\include\jsonxx\json_exception.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\jsonxx\json_iterator.hpp">
+    <ClInclude Include="..\include\jsonxx\json_iterator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\jsonxx\json_parser.hpp">
+    <ClInclude Include="..\include\jsonxx\json_parser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\jsonxx\json_serializer.hpp">
+    <ClInclude Include="..\include\jsonxx\json_serializer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\jsonxx\json_value.hpp">
+    <ClInclude Include="..\include\jsonxx\json_value.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
