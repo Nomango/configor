@@ -112,4 +112,80 @@ namespace jsonxx
         json_bind<_Ty, _BasicJsonTy>().from_json(value, j);
     }
 
+    //
+    // json_wrapper
+    //
+
+    template <
+        typename _Ty,
+        typename _BasicJsonTy = basic_json<>,
+        typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0,
+        typename std::enable_if<std::is_default_constructible<json_bind<_Ty, _BasicJsonTy>>::value, int>::type = 0
+    >
+    class read_json_wrapper
+    {
+    public:
+        using char_type = typename _BasicJsonTy::char_type;
+
+        read_json_wrapper(const _Ty& v) : v_(v) {}
+
+        friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out, const read_json_wrapper& wrapper)
+        {
+            _BasicJsonTy j;
+            ::jsonxx::to_json(j, wrapper.v_);
+            out << j;
+            return out;
+        }
+
+    private:
+        const _Ty& v_;
+    };
+
+    template <
+        typename _Ty,
+        typename _BasicJsonTy = basic_json<>,
+        typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0,
+        typename std::enable_if<std::is_default_constructible<json_bind<_Ty, _BasicJsonTy>>::value, int>::type = 0
+    >
+    class write_json_wrapper : public read_json_wrapper<_Ty, _BasicJsonTy>
+    {
+    public:
+        using char_type = typename _BasicJsonTy::char_type;
+
+        write_json_wrapper(_Ty& v) : read_json_wrapper(v), v_(v) {}
+
+        friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in, write_json_wrapper& wrapper)
+        {
+            _BasicJsonTy j;
+            in >> j;
+            ::jsonxx::from_json(j, wrapper.v_);
+            return in;
+        }
+
+    private:
+        _Ty& v_;
+    };
+
+    //
+    // json_wrap
+    //
+
+    template <
+        typename _Ty,
+        typename _BasicJsonTy = basic_json<>
+    >
+    inline write_json_wrapper<_Ty, _BasicJsonTy> json_wrap(_Ty& v)
+    {
+        return write_json_wrapper<_Ty, _BasicJsonTy>(v);
+    }
+
+    template <
+        typename _Ty,
+        typename _BasicJsonTy = basic_json<>
+    >
+    inline read_json_wrapper<_Ty, _BasicJsonTy> json_wrap(const _Ty& v)
+    {
+        return read_json_wrapper<_Ty, _BasicJsonTy>(v);
+    }
+
 } // namespace jsonxx

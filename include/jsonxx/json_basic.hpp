@@ -752,8 +752,7 @@ namespace jsonxx
 	public:
 		// parse functions
 
-		friend std::basic_istream<char_type> &
-		operator>>(std::basic_istream<char_type> &in, basic_json &json)
+		friend std::basic_istream<char_type> &operator>>(std::basic_istream<char_type> &in, basic_json &json)
 		{
 			stream_input_adapter<char_type> adapter(in);
 			json_parser<basic_json>(&adapter).parse(json);

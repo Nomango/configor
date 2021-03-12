@@ -173,14 +173,14 @@ json j;
 std::cin >> j;
 ```
 
-- JSON 与任意对象转换
+- JSON 与任意类型的转换
 
 通过特化实现 json_bind 类，可以非侵入式的实现任意对象与 JSON 的转换。
 
 使用效果：
 
 ```cpp
-// 特化实现 json_bind<MyClass> 后，即可方便将 MyClass 对象和 json 进行互相转换
+// 特化实现 json_bind<MyClass> 后，即可方便地将 MyClass 对象和 json 进行互相转换
 json j;
 MyClass obj;
 
@@ -229,6 +229,20 @@ public:
         v.age_ = (int)j["age"];
     }
 };
+```
+
+- 任意类型的序列化与反序列化
+
+使用 json_wrap 函数可以让任意类型实现序列化与反序列化，并与输入输出流交互
+
+```cpp
+std::stringstream s;
+
+// 把 obj 序列化，并输入到 s 流中
+s << json_wrap(obj);
+
+// 从 s 流中读取，并把 obj 反序列化
+s >> json_wrap(obj);
 ```
 
 ### 更多

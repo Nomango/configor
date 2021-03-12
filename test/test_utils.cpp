@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <jsonxx/json.hpp>
+#include <sstream>
 
 using namespace jsonxx;
 
@@ -130,16 +131,35 @@ public:
     }
 };
 
-TEST(test_to_json, test_to_json)
+class UtilsTest : public testing::Test
 {
-    Bus bus = Bus{
-        100,
-        Driver{ "driver" },
-        { Passenger{ "p1", 18 }, Passenger{ "p2", 54 } },
-    };
+protected:
+    Bus expect_bus;
+    json expect_json;
 
+    void SetUp() override
+    {
+        expect_bus = Bus{
+            100,
+            Driver{ "driver" },
+            { Passenger{ "p1", 18 }, Passenger{ "p2", 54 } },
+        };
+
+        expect_json = {
+            {"license", 100},
+            {"driver", {{"name", "driver"}} },
+            {"passengers", {
+                {{"name", "p1"}, {"age", 18}},
+                {{"name", "p2"}, {"age", 54}},
+            }},
+        };
+    }
+};
+
+TEST_F(UtilsTest, test_to_json)
+{
     json j;
-    to_json(j, bus);
+    to_json(j, expect_bus);
 
     ASSERT_TRUE(j.is_object());
     ASSERT_EQ(j.size(), 3);
@@ -153,25 +173,21 @@ TEST(test_to_json, test_to_json)
     ASSERT_EQ(j["passengers"][1]["age"], 54);
 }
 
-TEST(test_from_json, test_from_json)
+TEST_F(UtilsTest, test_from_json)
 {
-    json j = {
-        {"license", 100},
-        {"driver", {{"name", "driver"}} },
-        {"passengers", {
-            {{"name", "p1"}, {"age", 18}},
-            {{"name", "p2"}, {"age", 54}},
-        }},
-    };
+    Bus bus;
+    from_json(expect_json, bus);
+
+    ASSERT_TRUE(bus == expect_bus);
+}
+
+TEST_F(UtilsTest, test_json_wrap)
+{
+    std::stringstream s;
+    s << json_wrap(expect_bus);
+    ASSERT_EQ(s.str(), expect_json.dump());
 
     Bus bus;
-    from_json(j, bus);
-
-    Bus expect = Bus{
-        100,
-        Driver{ "driver" },
-        { Passenger{ "p1", 18 }, Passenger{ "p2", 54 } },
-    };
-
-    ASSERT_TRUE(bus == expect);
+    s >> json_wrap(bus);
+    ASSERT_TRUE(bus == expect_bus);
 }
