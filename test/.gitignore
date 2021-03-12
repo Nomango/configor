@@ -24,3 +24,4 @@ output/
 
 # visual studio files
 packages/
+*.vcxproj.user
