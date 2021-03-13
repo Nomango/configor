@@ -23,5 +23,6 @@ build/
 output/
 
 # visual studio files
+.vs/
 packages/
 *.vcxproj.user

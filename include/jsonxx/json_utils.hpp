@@ -19,6 +19,11 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <cstdint>  // std::int32_t
+#include <string>  // std::string
+#include <array>  // std::array
+#include <vector>  // std::vector
+#include <map>  // std::map
 #include <type_traits>  // std::enable_if, std::is_default_constructible
 
 namespace jsonxx
@@ -28,55 +33,54 @@ namespace jsonxx
     //
 
     template <
-		template <class _Kty, class _Ty, class... _Args> class _ObjectTy = std::map,
-		template <class _Kty, class... _Args> class _ArrayTy = std::vector,
-		typename _StringTy = std::string,
-		typename _IntegerTy = std::int32_t,
-		typename _FloatTy = double,
-		typename _BooleanTy = bool,
-		template <class _Ty> class _Allocator = std::allocator>
-	class basic_json;
+        template <class _Kty, class _Ty, class... _Args> class _ObjectTy = std::map,
+        template <class _Kty, class... _Args> class _ArrayTy = std::vector,
+        typename _StringTy = std::string,
+        typename _IntegerTy = std::int32_t,
+        typename _FloatTy = double,
+        typename _BooleanTy = bool,
+        template <class _Ty> class _Allocator = std::allocator>
+    class basic_json;
 
 #define DECLARE_BASIC_JSON_TEMPLATE                                          \
-	template <                                                               \
-		template <class _Kty, class _Ty, class... _Args> class _ObjectTy,    \
-		template <class _Kty, class... _Args> class _ArrayTy,                \
-		typename _StringTy,                                                  \
-		typename _IntegerTy,                                                 \
-		typename _FloatTy,                                                   \
-		typename _BooleanTy,                                                 \
-		template <class _Ty> class _Allocator>
+    template <                                                               \
+        template <class _Kty, class _Ty, class... _Args> class _ObjectTy,    \
+        template <class _Kty, class... _Args> class _ArrayTy,                \
+        typename _StringTy,                                                  \
+        typename _IntegerTy,                                                 \
+        typename _FloatTy,                                                   \
+        typename _BooleanTy,                                                 \
+        template <class _Ty> class _Allocator>
 
 #define DECLARE_BASIC_JSON_TPL_ARGS \
-	_ObjectTy, _ArrayTy, _StringTy, _IntegerTy, _FloatTy, _BooleanTy, _Allocator
+    _ObjectTy, _ArrayTy, _StringTy, _IntegerTy, _FloatTy, _BooleanTy, _Allocator
 
-	//
-	// is_basic_json
-	//
+    //
+    // is_basic_json
+    //
 
-	template <typename>
-	struct is_basic_json
-		: std::false_type
-	{
-	};
+    template <typename>
+    struct is_basic_json
+        : std::false_type
+    {
+    };
 
-	DECLARE_BASIC_JSON_TEMPLATE
-	struct is_basic_json<basic_json<DECLARE_BASIC_JSON_TPL_ARGS>>
-		: std::true_type
-	{
-	};
+    DECLARE_BASIC_JSON_TEMPLATE
+    struct is_basic_json<basic_json<DECLARE_BASIC_JSON_TPL_ARGS>>
+        : std::true_type
+    {
+    };
 
     //
     // json_bind
     // Implement the json_bind class in the following format:
     // 
     // template<>
-    // class json_bind<MyClass>
+    // struct json_bind<MyClass>
     // {
-    // public:
     //     void to_json(json& j, const MyClass& v) {}
     // 
-    //     void from_json(MyClass& v, const json& j) {}
+    //     void from_json(const json& j, MyClass& v) {}
     // };
     //
     template <
@@ -84,7 +88,7 @@ namespace jsonxx
         typename _BasicJsonTy = basic_json<>,
         typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0
     >
-    class json_bind;
+    struct json_bind;
 
     //
     // convert functions
@@ -109,7 +113,7 @@ namespace jsonxx
     >
     inline void from_json(const _BasicJsonTy& j, _Ty& value)
     {
-        json_bind<_Ty, _BasicJsonTy>().from_json(value, j);
+        json_bind<_Ty, _BasicJsonTy>().from_json(j, value);
     }
 
     //

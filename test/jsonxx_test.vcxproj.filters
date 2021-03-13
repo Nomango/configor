@@ -5,7 +5,7 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
+    <Filter Include="jsonxx">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
@@ -26,28 +26,28 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\jsonxx\json.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_basic.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_exception.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_iterator.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_parser.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_serializer.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_value.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_utils.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>jsonxx</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

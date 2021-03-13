@@ -218,17 +218,26 @@ public:
     // 将 Role 转换为 json
     void to_json(json& j, const Role& v)
     {
-        j["name"] = v.name_;
-        j["age"] = v.age_;
+        jsonxx::to_json(j["name"], v.name_);
+        jsonxx::to_json(j["age"], v.age_);
     }
 
     // 将 json 转换为 Role
-    void from_json(Role& v, const json& j)
+    void from_json(const json& j, Role& v)
     {
-        v.name_ = j["name"].as_string();
-        v.age_ = (int)j["age"];
+        jsonxx::from_json(j["name"], v.name_);
+        jsonxx::from_json(j["age"], v.age_);
     }
 };
+```
+
+特化实现 `json_bind<Role>` 后，会默认支持该 Role*、vector\<Role\>、map\<string, Role\> 的类型转换。
+
+例如，下面的代码是正确的：
+
+```cpp
+std::vector<Role*> role_list;
+jsonxx::to_json(j, role_list);  // 可以正确处理复合类型的转换
 ```
 
 - 任意类型的序列化与反序列化
