@@ -1,0 +1,28 @@
+# Executables
+*.exe
+*.out
+*.app
+
+# cmake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+.cmake/
+
+# test files
+*_test
+build/
+output/
+
+# visual studio files
+.vs/
+packages/
+*.vcxproj.user
