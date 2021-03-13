@@ -4,6 +4,12 @@
 
 一个为 C++11 量身打造的轻量级 JSON 通用工具，轻松完成 JSON 解析和序列化功能，并和 C++ 输入输出流交互。
 
+### 示例代码
+
+一个简单的HTTP接口伪代码实现
+
+![example](./assets/example.png)
+
 ### 使用介绍
 
 - 引入 jsonxx 头文件
@@ -194,50 +200,38 @@ jsonxx::from_json(j, obj);
 特化实现 json_bind 的例子：
 
 ```cpp
-// 自定义的“角色”类
-class Role
+// 用户类
+struct User
 {
-public:
-    Role() = default;
-
-    Role(const std::string& name, int age) : name_(name), age_(age) {}
-
-private:
-    friend json_bind<Role>;  // 声明 json_bind 友元
-
-    std::string name_;
-    int age_ = 0;
+    int user_id;
+    std::string user_name;
 };
 
-// 特化实现 json_bind
-// 需要实现 to_json 和 from_json 两个成员函数
+// 与 json 绑定
 template<>
-class json_bind<Role>
+struct json_bind<User>
 {
-public:
-    // 将 Role 转换为 json
-    void to_json(json& j, const Role& v)
+    void to_json(json& j, const User& v)
     {
-        jsonxx::to_json(j["name"], v.name_);
-        jsonxx::to_json(j["age"], v.age_);
+        jsonxx::to_json(j["user_id"], v.user_id);
+        jsonxx::to_json(j["user_name"], v.user_name);
     }
 
-    // 将 json 转换为 Role
-    void from_json(const json& j, Role& v)
+    void from_json(const json& j, User& v)
     {
-        jsonxx::from_json(j["name"], v.name_);
-        jsonxx::from_json(j["age"], v.age_);
+        jsonxx::from_json(j["user_id"], v.user_id);
+        jsonxx::from_json(j["user_name"], v.user_name);
     }
 };
 ```
 
-特化实现 `json_bind<Role>` 后，会默认支持该 Role*、vector\<Role\>、map\<string, Role\> 的类型转换。
+特化实现 `json_bind<Role>` 后，会默认支持该 User*、vector\<User\>、map\<string, User\> 的类型转换。
 
 例如，下面的代码是正确的：
 
 ```cpp
-std::vector<Role*> role_list;
-jsonxx::to_json(j, role_list);  // 可以正确处理复合类型的转换
+std::vector<User*> user_list;
+jsonxx::to_json(j, user_list);  // 可以正确处理复合类型的转换
 ```
 
 - 任意类型的序列化与反序列化
