@@ -19,6 +19,7 @@ _deps
 
 # test files
 *_test
+*_example
 build/
 output/
 

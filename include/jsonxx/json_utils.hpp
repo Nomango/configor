@@ -122,9 +122,7 @@ namespace jsonxx
 
     template <
         typename _Ty,
-        typename _BasicJsonTy = basic_json<>,
-        typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0,
-        typename std::enable_if<std::is_default_constructible<json_bind<_Ty, _BasicJsonTy>>::value, int>::type = 0
+        typename _BasicJsonTy = basic_json<>
     >
     class read_json_wrapper
     {
@@ -147,22 +145,20 @@ namespace jsonxx
 
     template <
         typename _Ty,
-        typename _BasicJsonTy = basic_json<>,
-        typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0,
-        typename std::enable_if<std::is_default_constructible<json_bind<_Ty, _BasicJsonTy>>::value, int>::type = 0
+        typename _BasicJsonTy = basic_json<>
     >
     class write_json_wrapper : public read_json_wrapper<_Ty, _BasicJsonTy>
     {
     public:
         using char_type = typename _BasicJsonTy::char_type;
 
-        write_json_wrapper(_Ty& v) : read_json_wrapper(v), v_(v) {}
+        write_json_wrapper(_Ty& v) : read_json_wrapper<_Ty, _BasicJsonTy>(v), v_(v) {}
 
-        friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in, write_json_wrapper& wrapper)
+        friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in, const write_json_wrapper& wrapper)
         {
             _BasicJsonTy j;
             in >> j;
-            ::jsonxx::from_json(j, wrapper.v_);
+            ::jsonxx::from_json(j, const_cast<_Ty&>(wrapper.v_));
             return in;
         }
 
@@ -176,7 +172,9 @@ namespace jsonxx
 
     template <
         typename _Ty,
-        typename _BasicJsonTy = basic_json<>
+        typename _BasicJsonTy = basic_json<>,
+        typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0,
+        typename std::enable_if<std::is_default_constructible<json_bind<_Ty, _BasicJsonTy>>::value, int>::type = 0
     >
     inline write_json_wrapper<_Ty, _BasicJsonTy> json_wrap(_Ty& v)
     {
@@ -185,7 +183,9 @@ namespace jsonxx
 
     template <
         typename _Ty,
-        typename _BasicJsonTy = basic_json<>
+        typename _BasicJsonTy = basic_json<>,
+        typename std::enable_if<is_basic_json<_BasicJsonTy>::value, int>::type = 0,
+        typename std::enable_if<std::is_default_constructible<json_bind<_Ty, _BasicJsonTy>>::value, int>::type = 0
     >
     inline read_json_wrapper<_Ty, _BasicJsonTy> json_wrap(const _Ty& v)
     {
