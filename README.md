@@ -4,12 +4,6 @@
 
 一个为 C++11 量身打造的轻量级 JSON 通用工具，轻松完成 JSON 解析和序列化功能，并和 C++ 输入输出流交互。
 
-### 示例代码
-
-一个简单的HTTP接口伪代码实现
-
-![example](./assets/example.png)
-
 ### 使用介绍
 
 - 引入 jsonxx 头文件
@@ -247,6 +241,56 @@ s << json_wrap(obj);
 // 从 s 流中读取，并把 obj 反序列化
 s >> json_wrap(obj);
 ```
+
+### 示例代码
+
+1. 实现自定义User类的序列化与反序列化
+
+```cpp
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <jsonxx/json.hpp>
+
+using namespace std;
+using namespace jsonxx;
+
+// 用户类
+struct User {
+	int user_id;
+	string user_name;
+};
+
+// 绑定User类到json
+template<>
+struct json_bind<User> {
+	void to_json(json& j, const User& u) {
+		jsonxx::to_json(j["user_id"], u.user_id);
+		jsonxx::to_json(j["user_name"], u.user_name);
+	}
+	void from_json(const json& j, User& u) {
+		jsonxx::from_json(j["user_id"], u.user_id);
+		jsonxx::from_json(j["user_name"], u.user_name);
+	}
+};
+
+int main(int argc, char** argv)
+{
+	stringstream s("{\"user_id\": 10001, \"user_name\": \"John\"}");
+
+	// 解析json内容，并反序列化到user对象
+	User user;
+	s >> json_wrap(user);
+
+	// 序列化user对象并输出
+	std::cout << json_wrap(user) << std::endl; // {"user_id":10001,"user_name":"John"}
+	return 0;
+}
+```
+
+2. 一个HTTP接口的伪代码
+
+![example](./assets/example.png)
 
 ### 更多
 
