@@ -1,5 +1,6 @@
 // Copyright (c) 2021 Nomango
 
+#include <memory>
 #include <jsonxx/json.hpp>
 
 using namespace jsonxx;
@@ -26,7 +27,7 @@ struct UserInfo
 	vector<UserRole> role_list;
 };
 
-extern UserInfo QueryUser(int user_id);
+extern std::shared_ptr<UserInfo> QueryUser(int user_id);
 
 // °ó¶¨json
 template <>

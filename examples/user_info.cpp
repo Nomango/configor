@@ -2,18 +2,20 @@
 
 #include "user_info.h"
 
-UserInfo QueryUser(int user_id)
+std::shared_ptr<UserInfo> QueryUser(int user_id)
 {
 	if (user_id != 10001)
 	{
-		return UserInfo{};
+		return nullptr;
 	}
-	return UserInfo{
+	auto ptr = std::make_shared<UserInfo>();
+	*ptr = UserInfo{
 		10001,
 		"John",
 		{
-			{100, {"READ"}},
-			{101, {"DELETE", "MODIFY"}},
+			UserRole{100, {"READ"}},
+			UserRole{101, {"DELETE", "MODIFY"}},
 		},
 	};
+	return ptr;
 }

@@ -14,7 +14,7 @@ struct Request
 
 struct Response
 {
-	UserInfo* user_info;
+	std::shared_ptr<UserInfo> user_info;
 };
 
 template <>
@@ -57,10 +57,10 @@ public:
 		req >> json_wrap(req_body);
 
 		// 读取用户信息
-		UserInfo user_info = QueryUser(req_body.user_id);
+		auto user_info = QueryUser(req_body.user_id);
 
 		// 响应请求，可以直接序列化到输出流中
-		Response resp_body = { &user_info };
+		Response resp_body = { user_info };
 		resp << std::setw(4) << json_wrap(resp_body);
 	}
 };

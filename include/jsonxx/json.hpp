@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <memory>  // std::unique_ptr, std::shared_ptr, std::make_unique, std::make_shared
 #include "json_exception.hpp"
 #include "json_value.hpp"
 #include "json_iterator.hpp"
@@ -35,6 +36,7 @@ namespace jsonxx
     // Implements
     //
 
+#if defined(JSONXX_ENABLE_RAW_POINTER)
     template <typename _Ty>
     struct json_bind<_Ty*>
     {
@@ -61,6 +63,71 @@ namespace jsonxx
                 if (v == nullptr)
                 {
                     v = new _Ty;
+                }
+                ::jsonxx::from_json(j, *v);
+            }
+        }
+    };
+#endif
+
+    template <typename _Ty>
+    struct json_bind<std::unique_ptr<_Ty>>
+    {
+        void to_json(json& j, std::unique_ptr<_Ty> const& v)
+        {
+            if (v != nullptr)
+            {
+                ::jsonxx::to_json(j, *v);
+            }
+            else
+            {
+                j = nullptr;
+            }
+        }
+
+        void from_json(const json& j, std::unique_ptr<_Ty>& v)
+        {
+            if (j.is_null())
+            {
+                v = nullptr;
+            }
+            else
+            {
+                if (v == nullptr)
+                {
+                    v.reset(new _Ty);
+                }
+                ::jsonxx::from_json(j, *v);
+            }
+        }
+    };
+
+    template <typename _Ty>
+    struct json_bind<std::shared_ptr<_Ty>>
+    {
+        void to_json(json& j, std::shared_ptr<_Ty> const& v)
+        {
+            if (v != nullptr)
+            {
+                ::jsonxx::to_json(j, *v);
+            }
+            else
+            {
+                j = nullptr;
+            }
+        }
+
+        void from_json(const json& j, std::shared_ptr<_Ty>& v)
+        {
+            if (j.is_null())
+            {
+                v = nullptr;
+            }
+            else
+            {
+                if (v == nullptr)
+                {
+                    v = std::make_shared<_Ty>();
                 }
                 ::jsonxx::from_json(j, *v);
             }

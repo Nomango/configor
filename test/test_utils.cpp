@@ -1,5 +1,6 @@
 // Copyright (c) 2019 Nomango
 
+#define JSONXX_ENABLE_RAW_POINTER
 #include <gtest/gtest.h>
 #include <jsonxx/json.hpp>
 #include <sstream>
@@ -39,29 +40,32 @@ public:
     }
 };
 
+using PassengerPtr = std::shared_ptr<Passenger>;
+using DriverPtr = std::unique_ptr<Driver>;
+
 class Bus
 {
     friend json_bind<Bus>;
 
     int license_ = 0;
-    Driver* driver_ = nullptr;
-    std::vector<Passenger*> passengers_;
-    std::map<std::string, Passenger*> olders_;
+    DriverPtr driver_ = nullptr;
+    std::vector<PassengerPtr> passengers_;
+    std::map<std::string, PassengerPtr> olders_;
 
 public:
     Bus() = default;
-    Bus(int license, Driver* driver, const std::vector<Passenger*>& passengers, const std::map<std::string, Passenger*>& olders)
-        : license_(license), driver_(driver), passengers_(passengers), olders_(olders)
+    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers, const std::map<std::string, PassengerPtr>& olders)
+        : license_(license), driver_(std::move(driver)), passengers_(passengers), olders_(olders)
     {
     }
 
     bool operator==(const Bus& rhs) const
     {
-        using pair = std::pair<const std::string, Passenger* const>;
+        using pair = std::pair<const std::string, PassengerPtr const>;
         return license_ == rhs.license_
             && *driver_ == *rhs.driver_
             && passengers_.size() == rhs.passengers_.size()
-            && std::equal(passengers_.cbegin(), passengers_.cend(), rhs.passengers_.cbegin(), [](const Passenger* p1, const Passenger* p2) { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
+            && std::equal(passengers_.cbegin(), passengers_.cend(), rhs.passengers_.cbegin(), [](const PassengerPtr& p1, const PassengerPtr& p2) { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
             && olders_.size() == rhs.olders_.size()
             && std::equal(olders_.cbegin(), olders_.cend(), rhs.olders_.cbegin(), [](const pair& p1, const pair& p2) { return p1.first == p2.first && *p1.second == *p2.second; })
             ;
@@ -128,9 +132,9 @@ protected:
     {
         expect_bus = Bus{
             100,
-            new Driver{ "driver" },
-            { new Passenger{ "p1", 18 }, new Passenger{ "p2", 54 }, nullptr },
-            { {"p2", new Passenger{ "p2", 54 }} },
+            std::unique_ptr<Driver>(new Driver("driver")),
+            { std::make_shared<Passenger>("p1", 18), std::make_shared<Passenger>("p2", 54), nullptr },
+            { {"p2", std::make_shared<Passenger>("p2", 54)} },
         };
 
         expect_json = {
@@ -186,4 +190,21 @@ TEST_F(UtilsTest, test_json_wrap)
     Bus bus;
     s >> json_wrap(bus);
     ASSERT_TRUE(bus == expect_bus);
+}
+
+TEST(test_utils, test_raw_pointer)
+{
+    Passenger* p1 = new Passenger("test", 18);
+
+    json j;
+    ASSERT_NO_THROW(to_json(j, p1));
+
+    Passenger* p2 = nullptr;
+    ASSERT_NO_THROW(from_json(j, p2));
+
+    ASSERT_TRUE(p2 != nullptr);
+    ASSERT_TRUE(*p1 == *p2);
+
+    delete p1;
+    delete p2;
 }
