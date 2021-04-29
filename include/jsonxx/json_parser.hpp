@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <cassert>  // assert
 #include <cstdio>  // std::FILE
 #include <cctype>  // std::isdigit
 #include <type_traits>  // std::char_traits

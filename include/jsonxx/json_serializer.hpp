@@ -154,8 +154,9 @@ namespace jsonxx
                         out->write(indent_string.c_str(), new_indent);
                         out->write('\"');
                         out->write(iter->first.c_str());
-                        out->write("\": ");
-                        dump(iter->second, true, indent_step, new_indent);
+                        out->write("\":");
+                        out->write(indent_string.c_str(), 1);
+                        dump(iter->second, pretty_print, escape_utf8, indent_step, new_indent);
 
                         // not last element
                         if (i != size - 1)
@@ -177,7 +178,7 @@ namespace jsonxx
                         out->write('\"');
                         out->write(iter->first.c_str());
                         out->write("\":");
-                        dump(iter->second, false, indent_step, current_indent);
+                        dump(iter->second, pretty_print, escape_utf8, indent_step, current_indent);
 
                         // not last element
                         if (i != size - 1)
@@ -215,7 +216,7 @@ namespace jsonxx
                     for (std::size_t i = 0; i < size; ++i, ++iter)
                     {
                         out->write(indent_string.c_str(), new_indent);
-                        dump(*iter, true, indent_step, new_indent);
+                        dump(*iter, pretty_print, escape_utf8, indent_step, new_indent);
 
                         // not last element
                         if (i != size - 1)
@@ -234,7 +235,7 @@ namespace jsonxx
                     const auto size = vector.size();
                     for (std::size_t i = 0; i < size; ++i, ++iter)
                     {
-                        dump(*iter, false, indent_step, current_indent);
+                        dump(*iter, pretty_print, escape_utf8, indent_step, current_indent);
                         // not last element
                         if (i != size - 1)
                             out->write(',');

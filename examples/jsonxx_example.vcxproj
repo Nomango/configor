@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <RootNamespace>jsonxx</RootNamespace>
+    <RootNamespace>jsonxx_example</RootNamespace>
     <ProjectGuid>{0B479F31-DCC9-4DA0-BFF5-9AC7D0663105}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <ConfigurationType>Application</ConfigurationType>
