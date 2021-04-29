@@ -2,8 +2,9 @@
 
 #include <gtest/gtest.h>
 #include <jsonxx/json.hpp>
-#include <sstream>
-#include <iomanip>
+#include <cmath>  // std::acos
+#include <sstream>  // std::stringstream
+#include <iomanip>  // std::setw, std::fill
 
 using namespace jsonxx;
 
@@ -76,4 +77,19 @@ TEST(test_serializer, test_dump_intend)
     ASSERT_EQ(j.dump(), "[{\"num\":1},true]");
     ASSERT_EQ(j.dump(4), "[\n    {\n        \"num\": 1\n    },\n    true\n]");
     ASSERT_EQ(j.dump(2, '$'), "[\n$${\n$$$$\"num\":$1\n$$},\n$$true\n]");
+}
+
+TEST(test_serializer, test_dump_minimal_float)
+{
+    // issue 11
+    const double pi = std::acos(-1.0);
+    const double minimal_float = pi / 1000000.0;
+
+    json j = minimal_float;
+    ASSERT_EQ(j.dump(), "3.1415926535897933e-06");
+
+#define PRECISION(DIG) 1e-##DIG
+
+    j = json::parse(j.dump());
+    ASSERT_NEAR(j.as_float(), minimal_float, PRECISION(DBL_DIG));
 }

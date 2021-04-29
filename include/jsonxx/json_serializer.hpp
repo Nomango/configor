@@ -318,11 +318,14 @@ namespace jsonxx
 
         void dump_float(float_type val)
         {
-            const auto digits = std::numeric_limits<float_type>::max_digits10;
-            const auto len = std::snprintf(number_buffer.data(), number_buffer.size(), "%.*g", digits, val);
+            static constexpr auto digits = std::numeric_limits<float_type>::max_digits10;
 
+            const auto len = std::snprintf(number_buffer.data(), number_buffer.size(), "%.*g", digits, val);
             // check len
-            assert(len > 0);
+            if (len < 0)
+            {
+                throw json_serialize_error("dump_float failed");
+            }
             assert(number_buffer.size() > static_cast<std::size_t>(len));
 
             out->write(number_buffer.data(), static_cast<std::size_t>(len));
@@ -520,7 +523,7 @@ namespace jsonxx
         output_adapter<char_type> *out;
         char_type indent_char;
         string_type indent_string;
-        std::array<char_type, 21> number_buffer = {};
+        std::array<char_type, 32> number_buffer = {};
         std::array<char, 512> string_buffer = {};
         ptrdiff_t buffer_idx = 0;
     };
