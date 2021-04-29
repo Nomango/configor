@@ -23,6 +23,7 @@
 #include <cctype>  // std::isdigit
 #include <type_traits>  // std::char_traits
 #include <ios>  // std::basic_istream, std::basic_streambuf
+#include "json_exception.hpp"
 
 namespace jsonxx
 {

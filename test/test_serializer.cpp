@@ -50,3 +50,11 @@ TEST_F(SerializerTest, test_dump)
     ASSERT_EQ(json(1.2).dump(), "1.2");
     ASSERT_EQ(json(1.23).dump(), "1.23");
 }
+
+TEST(test_serializer, test_dump_escaped)
+{
+    // issue 8
+    json j = "我是地球🌍";
+    ASSERT_EQ(j.dump(-1, ' ', false), "\"我是地球🌍\"");
+    ASSERT_EQ(j.dump(-1, ' ', true), "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\"");
+}

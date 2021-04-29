@@ -715,32 +715,34 @@ namespace jsonxx
             out.width(0);
 
             stream_output_adapter<char_type> adapter(out);
-            json_serializer<basic_json>(&adapter, out.fill()).dump(json, pretty_print, static_cast<unsigned int>(indentation));
+            json_serializer<basic_json>(&adapter, out.fill()).dump(json, pretty_print, false, static_cast<unsigned int>(indentation));
             return out;
         }
 
         string_type dump(
             const int indent = -1,
-            const char_type indent_char = ' ') const
+            const char_type indent_char = ' ',
+            const bool escape_utf8 = false) const
         {
             string_type result;
             string_output_adapter<string_type> adapter(result);
-            dump(&adapter, indent, indent_char);
+            dump(&adapter, indent, indent_char, escape_utf8);
             return result;
         }
 
         void dump(
             output_adapter<char_type> *adapter,
             const int indent = -1,
-            const char_type indent_char = ' ') const
+            const char_type indent_char = ' ',
+            const bool escape_utf8 = false) const
         {
             if (indent >= 0)
             {
-                json_serializer<basic_json>(adapter, indent_char).dump(*this, true, static_cast<unsigned int>(indent));
+                json_serializer<basic_json>(adapter, indent_char).dump(*this, true, escape_utf8, static_cast<unsigned int>(indent));
             }
             else
             {
-                json_serializer<basic_json>(adapter, indent_char).dump(*this, false, 0);
+                json_serializer<basic_json>(adapter, indent_char).dump(*this, false, escape_utf8, 0);
             }
         }
 

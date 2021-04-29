@@ -25,6 +25,7 @@
 #include <ios>  // std::basic_ostream
 #include <array>  // std::array
 #include <algorithm>  // std::none_of
+#include "json_exception.hpp"
 
 namespace jsonxx
 {
@@ -109,6 +110,8 @@ namespace jsonxx
         using boolean_type = typename _BasicJsonTy::boolean_type;
         using array_type = typename _BasicJsonTy::array_type;
         using object_type = typename _BasicJsonTy::object_type;
+        using char_traits = std::char_traits<char_type>;
+        using char_int_type = typename char_traits::int_type;
 
         json_serializer(output_adapter<char_type> *out, const char_type indent_char)
             : out(out), indent_char(indent_char), indent_string(32, indent_char)
@@ -118,6 +121,7 @@ namespace jsonxx
         void dump(
             const _BasicJsonTy &json,
             const bool pretty_print,
+            const bool escape_utf8,
             const unsigned int indent_step,
             const unsigned int current_indent = 0)
         {
@@ -245,7 +249,7 @@ namespace jsonxx
             case json_type::string:
             {
                 out->write('\"');
-                dump_string(*json.value_.data.string);
+                dump_string(*json.value_.data.string, escape_utf8);
                 out->write('\"');
                 return;
             }
@@ -329,11 +333,13 @@ namespace jsonxx
             }
         }
 
-        void dump_string(const string_type &val)
+        void dump_string(const string_type &val, const bool escape_utf8)
         {
-            for (const auto &ch : val)
+            size_t i = 0;
+            uint32_t code = 0;
+            while (read_one_char(val, escape_utf8, i, code))
             {
-                switch (ch)
+                switch (code)
                 {
                 case '\t':
                 {
@@ -393,23 +399,33 @@ namespace jsonxx
 
                 default:
                 {
-                    const auto code = static_cast<uint32_t>(ch);
-                    if (code <= 0x1F)
+                    if (code <= 0x1F || (escape_utf8 && (code >= 0x7F)))
                     {
-                        // escape control characters (0x00..0x1F)
-                        std::snprintf(string_buffer.data() + buffer_idx, 7, "\\u%04X", uint16_t(code));
-                        buffer_idx += 6;
+                        if (code <= 0xFFFF)
+                        {
+                            // escape control characters (0x00..0x1F)
+                            std::snprintf(string_buffer.data() + buffer_idx, 7, "\\u%04X", uint16_t(code));
+                            buffer_idx += 6;
+                        }
+                        else
+                        {
+                            std::snprintf(string_buffer.data() + buffer_idx, 13, "\\u%04X\\u%04X",
+                                            static_cast<std::uint16_t>(0xD7C0u + (code >> 10u)),
+                                            static_cast<std::uint16_t>(0xDC00u + (code & 0x3FFu)));
+                            buffer_idx += 12;
+                        }
                     }
                     else
                     {
-                        string_buffer[buffer_idx] = ch;
+                        // copy byte to buffer
+                        string_buffer[buffer_idx] = char_traits::to_char_type(static_cast<char_int_type>(code));
                         buffer_idx++;
                     }
                     break;
                 }
                 }
 
-                if (string_buffer.size() - buffer_idx < 7)
+                if (string_buffer.size() - buffer_idx < 13)
                 {
                     out->write(string_buffer.data(), buffer_idx);
                     buffer_idx = 0;
@@ -421,6 +437,82 @@ namespace jsonxx
                 out->write(string_buffer.data(), buffer_idx);
                 buffer_idx = 0;
             }
+        }
+
+        bool read_one_char(const string_type &val, const bool escape_utf8, size_t& i, uint32_t& code, uint8_t state = 0)
+        {
+            static const uint8_t STATE_ACCEPT = 0;
+            static const uint8_t STATE_REJECT = 0;
+            static const std::array<std::uint8_t, 400> utf8d =
+            {
+                {
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 00..1F
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 20..3F
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 40..5F
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 60..7F
+                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, // 80..9F
+                    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, // A0..BF
+                    8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // C0..DF
+                    0xA, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x4, 0x3, 0x3, // E0..EF
+                    0xB, 0x6, 0x6, 0x6, 0x5, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, // F0..FF
+                    0x0, 0x1, 0x2, 0x3, 0x5, 0x8, 0x7, 0x1, 0x1, 0x1, 0x4, 0x6, 0x1, 0x1, 0x1, 0x1, // s0..s0
+                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, // s1..s2
+                    1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, // s3..s4
+                    1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, // s5..s6
+                    1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 // s7..s8
+                }
+            };
+
+            if (i >= val.size())
+            {
+                if (state != STATE_ACCEPT)
+                {
+                    throw json_serialize_error("string was incomplete");
+                }
+                return false;
+            }
+
+            // read one byte
+            const auto byte = static_cast<uint8_t>(val.at(i));
+            i++;
+
+            if (!escape_utf8)
+            {
+                // code point will not be escaped
+                code = static_cast<uint32_t>(byte);
+                return true;
+            }
+
+            assert(byte < utf8d.size());
+            const std::uint8_t type = utf8d[byte];
+
+            if (state == STATE_ACCEPT)
+            {
+                code = static_cast<uint32_t>((0xFFu >> type) & (byte));
+            }
+            else
+            {
+                code = static_cast<uint32_t>((byte & 0x3fu) | (code << 6u));
+            }
+
+            std::size_t index = 256u + static_cast<size_t>(state) * 16u + static_cast<size_t>(type);
+            assert(index < utf8d.size());
+            state = utf8d[index];
+
+            if (state == STATE_ACCEPT)
+            {
+                return true;
+            }
+            else if (state == STATE_REJECT)
+            {
+                throw json_serialize_error("unexpected utf-8 character");
+            }
+            else
+            {
+                // found yet incomplete multi-byte code point
+                return read_one_char(val, escape_utf8, i, code, state);
+            }
+            return true;
         }
 
     private:

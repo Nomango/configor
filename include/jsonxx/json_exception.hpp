@@ -64,4 +64,11 @@ namespace jsonxx
     public:
         json_parse_error(const char *message) : json_exception(message) {}
     };
+
+    class json_serialize_error
+        : public json_exception
+    {
+    public:
+        json_serialize_error(const char *message) : json_exception(message) {}
+    };
 } // namespace jsonxx
