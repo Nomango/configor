@@ -1,0 +1,8 @@
+{
+    "cmake.configureOnOpen": true,
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.debugConfig": {
+        "cwd": "${workspaceFolder}",
+    },
+    "C_Cpp.default.cppStandard": "c++11",
+}

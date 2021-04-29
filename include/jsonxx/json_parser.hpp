@@ -170,6 +170,7 @@ namespace jsonxx
         using array_type = typename _BasicJsonTy::array_type;
         using object_type = typename _BasicJsonTy::object_type;
         using char_traits = std::char_traits<char_type>;
+        using char_int_type = typename char_traits::int_type;
 
         json_lexer(input_adapter<char_type> *adapter) : adapter(adapter)
         {
@@ -177,7 +178,7 @@ namespace jsonxx
             read_next();
         }
 
-        typename char_traits::int_type read_next()
+        char_int_type read_next()
         {
             current = adapter->get_char();
             return current;
@@ -253,6 +254,33 @@ namespace jsonxx
             read_next();
 
             return result;
+        }
+
+        int32_t read_escaped_code()
+        {
+            int32_t code = 0;
+            for (const auto factor : {12, 8, 4, 0})
+            {
+                const auto ch = read_next();
+                if (ch >= '0' && ch <= '9')
+                {
+                    code += ((ch - '0') << factor);
+                }
+                else if (ch >= 'A' && ch <= 'F')
+                {
+                    code += ((ch - 'A' + 10) << factor);
+                }
+                else if (ch >= 'a' && ch <= 'f')
+                {
+                    code += ((ch - 'a' + 10) << factor);
+                }
+                else
+                {
+                    // '\u' must be followed by 4 hex digits
+                    return -1;
+                }
+            }
+            return code;
         }
 
         token_type scan_literal(const char_type *text, token_type result)
@@ -335,40 +363,104 @@ namespace jsonxx
                     switch (read_next())
                     {
                     case '\"':
-                        string_buffer.push_back('\"');
+                        add_char('\"');
                         break;
                     case '\\':
-                        string_buffer.push_back('\\');
+                        add_char('\\');
                         break;
                     case '/':
-                        string_buffer.push_back('/');
+                        add_char('/');
                         break;
                     case 'b':
-                        string_buffer.push_back('\b');
+                        add_char('\b');
                         break;
                     case 'f':
-                        string_buffer.push_back('\f');
+                        add_char('\f');
                         break;
                     case 'n':
-                        string_buffer.push_back('\n');
+                        add_char('\n');
                         break;
                     case 'r':
-                        string_buffer.push_back('\r');
+                        add_char('\r');
                         break;
                     case 't':
-                        string_buffer.push_back('\t');
+                        add_char('\t');
                         break;
 
                     case 'u':
                     {
-                        const auto code = get_escaped_code();
+                        auto code = read_escaped_code();
                         if (code == -1)
                         {
-                            // '\u' must be followed by 4 hex digits
                             return token_type::parse_error;
                         }
 
-                        string_buffer.push_back(char_traits::to_char_type(code));
+                        // check if code point is a high surrogate
+                        if (0xD800 <= code && code <= 0xDBFF)
+                        {
+                            if (read_next() != '\\' || read_next() != 'u')
+                            {
+                                // surrogate U+D800..U+DBFF must be followed by U+DC00..U+DFFF
+                                return token_type::parse_error;
+                            }
+
+                            const auto high_surrogate = code;
+                            const auto low_surrogate = read_escaped_code();
+                            if (low_surrogate == -1)
+                            {
+                                return token_type::parse_error;
+                            }
+
+                            // check if low_surrogate is a low surrogate
+                            if (0xDC00 <= low_surrogate && low_surrogate <= 0xDFFF)
+                            {
+                                // overwrite codepoint
+                                code = static_cast<int32_t>(
+                                                // high surrogate occupies the most significant 22 bits
+                                                (static_cast<uint32_t>(high_surrogate) << 10u)
+                                                // low surrogate occupies the least significant 15 bits
+                                                + static_cast<uint32_t>(low_surrogate)
+                                                // there is still the 0xD800, 0xDC00 and 0x10000 noise
+                                                // in the result so we have to subtract with:
+                                                // (0xD800 << 10) + DC00 - 0x10000 = 0x35FDC00
+                                                - 0x35FDC00u);
+                            }
+                            else
+                            {
+                                // surrogate U+D800..U+DBFF must be followed by U+DC00..U+DFFF
+                                return token_type::parse_error;
+                            }
+                        }
+
+                        assert(0x00 <= code && code <= 0x10FFFF);
+
+                        // translate codepoint into bytes
+                        if (code < 0x80)
+                        {
+                            // 1-byte characters: 0xxxxxxx (ASCII)
+                            add_char(static_cast<char_int_type>(code));
+                        }
+                        else if (code <= 0x7FF)
+                        {
+                            // 2-byte characters: 110xxxxx 10xxxxxx
+                            add_char(static_cast<char_int_type>(0xC0u | (static_cast<uint32_t>(code) >> 6u)));
+                            add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
+                        }
+                        else if (code <= 0xFFFF)
+                        {
+                            // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
+                            add_char(static_cast<char_int_type>(0xE0u | (static_cast<uint32_t>(code) >> 12u)));
+                            add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 6u) & 0x3Fu)));
+                            add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
+                        }
+                        else
+                        {
+                            // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+                            add_char(static_cast<char_int_type>(0xF0u | (static_cast<uint32_t>(code) >> 18u)));
+                            add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 12u) & 0x3Fu)));
+                            add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 6u) & 0x3Fu)));
+                            add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
+                        }
                         break;
                     }
 
@@ -383,36 +475,10 @@ namespace jsonxx
 
                 default:
                 {
-                    string_buffer.push_back(char_traits::to_char_type(ch));
+                    add_char(ch);
                 }
                 }
             }
-        }
-
-        int32_t get_escaped_code()
-        {
-            int32_t byte = 0;
-            for (const auto factor : {12, 8, 4, 0})
-            {
-                const auto n = read_next();
-                if (n >= '0' && n <= '9')
-                {
-                    byte += ((n - '0') << factor);
-                }
-                else if (n >= 'A' && n <= 'F')
-                {
-                    byte += ((n - 'A' + 10) << factor);
-                }
-                else if (n >= 'a' && n <= 'f')
-                {
-                    byte += ((n - 'a' + 10) << factor);
-                }
-                else
-                {
-                    return -1;
-                }
-            }
-            return byte;
         }
 
         token_type scan_number()
@@ -532,10 +598,10 @@ namespace jsonxx
                     read_next();
                 }
 
-                unsigned int exponent = static_cast<unsigned int>(current - '0');
+                uint32_t exponent = static_cast<uint32_t>(current - '0');
                 while (std::isdigit(read_next()))
                 {
-                    exponent = (exponent * 10) + static_cast<unsigned int>(current - '0');
+                    exponent = (exponent * 10) + static_cast<uint32_t>(current - '0');
                 }
 
                 float_type power = 1;
@@ -565,9 +631,14 @@ namespace jsonxx
             return string_buffer;
         }
 
+        void add_char(const char_int_type ch)
+        {
+            string_buffer.push_back(char_traits::to_char_type(ch));
+        }
+
     private:
         input_adapter<char_type> *adapter;
-        typename char_traits::int_type current;
+        char_int_type current;
 
         bool is_negative;
         float_type number_value;

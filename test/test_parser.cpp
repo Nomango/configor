@@ -20,14 +20,21 @@ TEST(test_parser, test_parse)
     ASSERT_NO_THROW(json::parse("{}"));
 }
 
+TEST(test_parser, test_parse_surrogate)
+{
+    // issue 8
+    auto j = json::parse("\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\"");
+    ASSERT_EQ(j.as_string(), "我是地球🌍");
+}
+
 TEST(test_parser, test_read_from_file)
 {
     std::array<std::string, 5> files = {
-        "data/json.org/1.json",
-        "data/json.org/2.json",
-        "data/json.org/3.json",
-        "data/json.org/4.json",
-        "data/json.org/5.json",
+        "test/data/json.org/1.json",
+        "test/data/json.org/2.json",
+        "test/data/json.org/3.json",
+        "test/data/json.org/4.json",
+        "test/data/json.org/5.json",
     };
 
     std::function<void(json&)> tests[] = {

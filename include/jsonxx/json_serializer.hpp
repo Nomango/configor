@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <cstdio>  // snprintf_s
+#include <cstdio>  // snprintf
 #include <cassert>  // assert
 #include <type_traits>  // std::char_traits
 #include <ios>  // std::basic_ostream
@@ -314,7 +314,7 @@ namespace jsonxx
         void dump_float(float_type val)
         {
             const auto digits = std::numeric_limits<float_type>::max_digits10;
-            const auto len = ::std::snprintf(number_buffer.data(), number_buffer.size(), "%.*g", digits, val);
+            const auto len = std::snprintf(number_buffer.data(), number_buffer.size(), "%.*g", digits, val);
 
             // check len
             assert(len > 0);
