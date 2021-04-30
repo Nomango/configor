@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <jsonxx/json.hpp>
 #include <cmath>  // std::acos
+#include <cfloat>  // DBL_DIG
 #include <sstream>  // std::stringstream
 #include <iomanip>  // std::setw, std::fill
 
@@ -88,7 +89,8 @@ TEST(test_serializer, test_dump_minimal_float)
     json j = minimal_float;
     ASSERT_EQ(j.dump(), "3.1415926535897933e-06");
 
-#define PRECISION(DIG) 1e-##DIG
+#define COMBINE(A, B) A##B
+#define PRECISION(DIG) COMBINE(1e-, DIG)
 
     j = json::parse(j.dump());
     ASSERT_NEAR(j.as_float(), minimal_float, PRECISION(DBL_DIG));
