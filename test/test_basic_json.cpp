@@ -136,3 +136,13 @@ TEST_F(BasicJsonTest, test_object)
     ASSERT_NO_THROW(j.clear());
     ASSERT_EQ(j.size(), 0);
 }
+
+TEST(test_basic_json, test_int64)
+{
+    // issue 12
+    using json64 = jsonxx::basic_json<std::map, std::vector, std::string, std::int64_t, double, bool>;
+
+    int64_t max64 = std::numeric_limits<int64_t>::max();
+    json64 j = max64;
+    ASSERT_EQ(j.as_int(), max64);
+}
