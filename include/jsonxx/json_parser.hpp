@@ -23,6 +23,7 @@
 #include <cstdio>  // std::FILE
 #include <cctype>  // std::isdigit
 #include <type_traits>  // std::char_traits
+#include <initializer_list>  // std::initializer_list
 #include <ios>  // std::basic_istream, std::basic_streambuf
 #include "json_exception.hpp"
 
@@ -161,6 +162,84 @@ namespace jsonxx
         end_of_input
     };
 
+    namespace detail
+    {
+        template <typename _StrTy>
+        struct unicode_parser;
+
+        template <>
+        struct unicode_parser<std::string>
+        {
+            using string_type = std::string;
+            using char_type = typename string_type::value_type;
+            using char_traits = std::char_traits<char_type>;
+            using char_int_type = typename char_traits::int_type;
+
+            string_type& buffer;
+
+            unicode_parser(string_type& buffer) : buffer(buffer) {};
+
+            inline void add_char(const char_int_type ch)
+            {
+                buffer.push_back(char_traits::to_char_type(ch));
+            }
+
+            inline void add_code(uint32_t code)
+            {
+                // translate codepoint into bytes
+                if (code < 0x80)
+                {
+                    // 1-byte characters: 0xxxxxxx (ASCII)
+                    add_char(static_cast<char_int_type>(code));
+                }
+                else if (code <= 0x7FF)
+                {
+                    // 2-byte characters: 110xxxxx 10xxxxxx
+                    add_char(static_cast<char_int_type>(0xC0u | (code >> 6u)));
+                    add_char(static_cast<char_int_type>(0x80u | (code & 0x3Fu)));
+                }
+                else if (code <= 0xFFFF)
+                {
+                    // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
+                    add_char(static_cast<char_int_type>(0xE0u | (static_cast<uint32_t>(code) >> 12u)));
+                    add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 6u) & 0x3Fu)));
+                    add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
+                }
+                else
+                {
+                    // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+                    add_char(static_cast<char_int_type>(0xF0u | (static_cast<uint32_t>(code) >> 18u)));
+                    add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 12u) & 0x3Fu)));
+                    add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 6u) & 0x3Fu)));
+                    add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
+                }
+            }
+        };
+
+        template <>
+        struct unicode_parser<std::wstring>
+        {
+            using string_type = std::wstring;
+            using char_type = typename string_type::value_type;
+            using char_traits = std::char_traits<char_type>;
+            using char_int_type = typename char_traits::int_type;
+
+            string_type& buffer;
+
+            unicode_parser(string_type& buffer) : buffer(buffer) {};
+
+            inline void add_char(const char_int_type ch)
+            {
+                buffer.push_back(char_traits::to_char_type(ch));
+            }
+
+            inline void add_code(uint32_t code)
+            {
+                add_char(static_cast<char_int_type>(code));
+            }
+        };
+    }
+
     template <typename _BasicJsonTy>
     struct json_lexer
     {
@@ -221,11 +300,11 @@ namespace jsonxx
                 break;
 
             case 't':
-                return scan_literal("true", token_type::literal_true);
+                return scan_literal({'t', 'r', 'u', 'e'}, token_type::literal_true);
             case 'f':
-                return scan_literal("false", token_type::literal_false);
+                return scan_literal({'f', 'a', 'l', 's', 'e'}, token_type::literal_false);
             case 'n':
-                return scan_literal("null", token_type::literal_null);
+                return scan_literal({'n', 'u', 'l', 'l'}, token_type::literal_null);
 
             case '\"':
                 return scan_string();
@@ -285,11 +364,11 @@ namespace jsonxx
             return code;
         }
 
-        token_type scan_literal(const char_type *text, token_type result)
+        token_type scan_literal(std::initializer_list<char_type> text, token_type result)
         {
-            for (std::size_t i = 0; text[i] != '\0'; ++i)
+            for (const auto ch : text)
             {
-                if (text[i] != char_traits::to_char_type(current))
+                if (ch != char_traits::to_char_type(current))
                 {
                     return token_type::parse_error;
                 }
@@ -392,7 +471,7 @@ namespace jsonxx
                     case 'u':
                     {
                         auto code = read_escaped_code();
-                        if (code == -1)
+                        if (code < 0)
                         {
                             return token_type::parse_error;
                         }
@@ -408,7 +487,7 @@ namespace jsonxx
 
                             const auto high_surrogate = code;
                             const auto low_surrogate = read_escaped_code();
-                            if (low_surrogate == -1)
+                            if (low_surrogate < 0)
                             {
                                 return token_type::parse_error;
                             }
@@ -436,33 +515,8 @@ namespace jsonxx
 
                         assert(0x00 <= code && code <= 0x10FFFF);
 
-                        // translate codepoint into bytes
-                        if (code < 0x80)
-                        {
-                            // 1-byte characters: 0xxxxxxx (ASCII)
-                            add_char(static_cast<char_int_type>(code));
-                        }
-                        else if (code <= 0x7FF)
-                        {
-                            // 2-byte characters: 110xxxxx 10xxxxxx
-                            add_char(static_cast<char_int_type>(0xC0u | (static_cast<uint32_t>(code) >> 6u)));
-                            add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
-                        }
-                        else if (code <= 0xFFFF)
-                        {
-                            // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
-                            add_char(static_cast<char_int_type>(0xE0u | (static_cast<uint32_t>(code) >> 12u)));
-                            add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 6u) & 0x3Fu)));
-                            add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
-                        }
-                        else
-                        {
-                            // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-                            add_char(static_cast<char_int_type>(0xF0u | (static_cast<uint32_t>(code) >> 18u)));
-                            add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 12u) & 0x3Fu)));
-                            add_char(static_cast<char_int_type>(0x80u | ((static_cast<uint32_t>(code) >> 6u) & 0x3Fu)));
-                            add_char(static_cast<char_int_type>(0x80u | (static_cast<uint32_t>(code) & 0x3Fu)));
-                        }
+                        detail::unicode_parser<string_type> up(this->string_buffer);
+                        up.add_code(static_cast<uint32_t>(code));
                         break;
                     }
 

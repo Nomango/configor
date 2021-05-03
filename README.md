@@ -173,6 +173,17 @@ json j;
 std::cin >> j;
 ```
 
+- 宽字符支持
+
+jsonxx 对宽字符 wchar_t 类型进行了支持，使用 `jsonw` 代替 `json` 即可使用宽字符版本。
+
+示例代码：
+
+```cpp
+jsonw j = jsonw::parse(L"{ \"name\": \"中文测试\" }");
+std::wstring str = j[L"name"].as_string();  // L"中文测试"
+```
+
 - JSON 与任意类型的转换
 
 通过特化实现 json_bind 类，可以非侵入式的实现任意对象与 JSON 的转换。
@@ -219,7 +230,7 @@ struct json_bind<User>
 };
 ```
 
-特化实现 `json_bind<Role>` 后，会默认支持该 User*、vector\<User\>、map\<string, User\> 的类型转换。
+特化实现 `json_bind<Role>` 后，会默认支持 User的智能指针、vector\<User\>、map\<string, User\> 的类型转换。
 
 例如，下面的代码是正确的：
 
