@@ -31,7 +31,9 @@
 namespace jsonxx
 {
     using json = basic_json<>;
-    using jsonw = basic_json<std::map, std::vector, std::wstring>;
+    using json64 = basic_json<std::map, std::vector, std::string, int64_t>;
+    using wjson = basic_json<std::map, std::vector, std::wstring>;
+    using wjson64 = basic_json<std::map, std::vector, std::wstring, int64_t>;
 
     //
     // Implements

@@ -173,14 +173,21 @@ json j;
 std::cin >> j;
 ```
 
-- 宽字符支持
+- 宽字符与int64支持
 
-jsonxx 对宽字符 wchar_t 类型进行了支持，使用 `jsonw` 代替 `json` 即可使用宽字符版本。
-
-示例代码：
+jsonxx 对宽字符 `wchar_t` 类型和 `int64` 进行了支持，通过不同的别名使用不同的类型支持。
 
 ```cpp
-jsonw j = jsonw::parse(L"{ \"name\": \"中文测试\" }");
+json     // char + int32_t
+json64   // char + int64_t
+wjson    // wchar_t + int32_t
+wjson64  // wchar_t + int64_t
+```
+
+宽字符版本示例代码：
+
+```cpp
+wjson j = wjson::parse(L"{ \"name\": \"中文测试\" }");
 std::wstring str = j[L"name"].as_string();  // L"中文测试"
 ```
 

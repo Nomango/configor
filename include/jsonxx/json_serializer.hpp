@@ -191,7 +191,7 @@ namespace jsonxx
             {
             }
 
-            bool read_code(size_t& i, uint32_t& code)
+            bool get_code(size_t& i, uint32_t& code)
             {
                 static const uint8_t STATE_ACCEPT = 0;
                 static const uint8_t STATE_REJECT = 0;
@@ -262,7 +262,7 @@ namespace jsonxx
                 else
                 {
                     // found yet incomplete multi-byte code point
-                    return this->read_code(i, code);
+                    return this->get_code(i, code);
                 }
                 return true;
             }
@@ -280,7 +280,7 @@ namespace jsonxx
             {
             }
 
-            bool read_code(size_t& i, uint32_t& code)
+            bool get_code(size_t& i, uint32_t& code)
             {
                 if (i >= val.size())
                 {
@@ -532,7 +532,7 @@ namespace jsonxx
             size_t i = 0;
             uint32_t code = 0;
             detail::unicode_serializer<string_type> us(val, escape_utf8);
-            while (us.read_code(i, code))
+            while (us.get_code(i, code))
             {
                 switch (code)
                 {
