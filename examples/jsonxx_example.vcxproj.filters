@@ -52,5 +52,8 @@
     <ClInclude Include="user_info.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_unicode.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

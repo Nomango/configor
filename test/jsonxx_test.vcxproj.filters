@@ -23,6 +23,9 @@
     <ClCompile Include="test_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_wchar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\jsonxx\json.hpp">
@@ -47,6 +50,9 @@
       <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_utils.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_unicode.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
   </ItemGroup>

@@ -25,9 +25,10 @@
 #include <type_traits>  // std::char_traits
 #include <ios>  // std::basic_ostream
 #include <array>  // std::array
+#include <vector>  // std::vector
 #include <algorithm>  // std::none_of
 #include <initializer_list>  // std::initializer_list
-#include "json_exception.hpp"
+#include "json_unicode.hpp"
 
 namespace jsonxx
 {
@@ -97,202 +98,6 @@ namespace jsonxx
     // json_serializer
     //
 
-    namespace detail
-    {
-        template <typename _CharTy>
-        struct snprintf_t
-        {
-        };
-
-        template <>
-        struct snprintf_t<char>
-        {
-            using char_type = char;
-
-            template <typename _FloatTy>
-            static inline size_t one_float(char_type* str, size_t size, _FloatTy val)
-            {
-                static constexpr auto digits = std::numeric_limits<_FloatTy>::max_digits10;
-                return internal_snprintf(str, size, "%.*g", digits, val);
-            }
-
-            static inline size_t one_unicode(char_type* str, uint16_t code)
-            {
-                return internal_snprintf(str, 7, "\\u%04X", code);
-            }
-
-            static inline size_t two_unicodes(char_type* str, uint16_t code1, uint16_t code2)
-            {
-                return internal_snprintf(str, 13, "\\u%04X\\u%04X", code1, code2);
-            }
-
-            template <typename... _Args>
-            static inline size_t internal_snprintf(char_type* str, size_t size, const char_type* format, _Args&&... args)
-            {
-                const auto len = std::snprintf(str, size, format, std::forward<_Args>(args)...);
-                // check len
-                if (len < 0)
-                {
-                    throw json_serialize_error("snprintf failed");
-                }
-                return static_cast<size_t>(len);
-            }
-        };
-
-        template <>
-        struct snprintf_t<wchar_t>
-        {
-            using char_type = wchar_t;
-
-            template <typename _FloatTy>
-            static inline size_t one_float(char_type* str, size_t size, _FloatTy val)
-            {
-                static constexpr auto digits = std::numeric_limits<_FloatTy>::max_digits10;
-                return internal_snprintf(str, size, L"%.*g", digits, val);
-            }
-
-            static inline size_t one_unicode(char_type* str, uint16_t code)
-            {
-                return internal_snprintf(str, 7, L"\\u%04X", code);
-            }
-
-            static inline size_t two_unicodes(char_type* str, uint16_t code1, uint16_t code2)
-            {
-                return internal_snprintf(str, 13, L"\\u%04X\\u%04X", code1, code2);
-            }
-
-            template <typename... _Args>
-            static inline size_t internal_snprintf(char_type* str, size_t size, const char_type* format, _Args&&... args)
-            {
-                const auto len = std::swprintf(str, size, format, std::forward<_Args>(args)...);
-                // check len
-                if (len < 0)
-                {
-                    throw json_serialize_error("snprintf failed");
-                }
-                return static_cast<size_t>(len);
-            }
-        };
-
-        template <typename _StrTy>
-        struct unicode_serializer;
-
-        template <>
-        struct unicode_serializer<std::string>
-        {
-            using string_type = std::string;
-
-            const string_type &val;
-            const bool escape_utf8;
-            uint8_t state = 0;
-
-            unicode_serializer(const string_type &val, const bool escape_utf8)
-                : val(val), escape_utf8(escape_utf8)
-            {
-            }
-
-            bool get_code(size_t& i, uint32_t& code)
-            {
-                static const uint8_t STATE_ACCEPT = 0;
-                static const uint8_t STATE_REJECT = 0;
-                static const std::array<std::uint8_t, 400> utf8d =
-                {
-                    {
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 00..1F
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 20..3F
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 40..5F
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 60..7F
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, // 80..9F
-                        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, // A0..BF
-                        8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // C0..DF
-                        0xA, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x4, 0x3, 0x3, // E0..EF
-                        0xB, 0x6, 0x6, 0x6, 0x5, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, // F0..FF
-                        0x0, 0x1, 0x2, 0x3, 0x5, 0x8, 0x7, 0x1, 0x1, 0x1, 0x4, 0x6, 0x1, 0x1, 0x1, 0x1, // s0..s0
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, // s1..s2
-                        1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, // s3..s4
-                        1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, // s5..s6
-                        1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 // s7..s8
-                    }
-                };
-
-                if (i >= val.size())
-                {
-                    if (state != STATE_ACCEPT)
-                    {
-                        throw json_serialize_error("string was incomplete");
-                    }
-                    return false;
-                }
-
-                // read one byte
-                const auto byte = static_cast<uint8_t>(val.at(i));
-                i++;
-
-                if (!escape_utf8)
-                {
-                    // code point will not be escaped
-                    code = static_cast<uint32_t>(byte);
-                    return true;
-                }
-
-                assert(static_cast<size_t>(byte) < utf8d.size());
-                const std::uint8_t type = utf8d[byte];
-
-                if (state == STATE_ACCEPT)
-                {
-                    code = static_cast<uint32_t>((0xFFu >> type) & (byte));
-                }
-                else
-                {
-                    code = static_cast<uint32_t>((byte & 0x3fu) | (code << 6u));
-                }
-
-                std::size_t index = 256u + static_cast<size_t>(state) * 16u + static_cast<size_t>(type);
-                assert(index < utf8d.size());
-                state = utf8d[index];
-
-                if (state == STATE_ACCEPT)
-                {
-                    return true;
-                }
-                else if (state == STATE_REJECT)
-                {
-                    throw json_serialize_error("unexpected utf-8 character");
-                }
-                else
-                {
-                    // found yet incomplete multi-byte code point
-                    return this->get_code(i, code);
-                }
-                return true;
-            }
-        };
-
-        template <>
-        struct unicode_serializer<std::wstring>
-        {
-            using string_type = std::wstring;
-
-            const string_type &val;
-
-            unicode_serializer(const string_type &val, const bool escape_utf8)
-                : val(val)
-            {
-            }
-
-            bool get_code(size_t& i, uint32_t& code)
-            {
-                if (i >= val.size())
-                {
-                    return false;
-                }
-                code = static_cast<uint32_t>(val.at(i));
-                i++;
-                return true;
-            }
-        };
-    }
-
     template <typename _BasicJsonTy>
     struct json_serializer
     {
@@ -314,7 +119,7 @@ namespace jsonxx
         void dump(
             const _BasicJsonTy &json,
             const bool pretty_print,
-            const bool escape_utf8,
+            const bool escape_unicode,
             const unsigned int indent_step,
             const unsigned int current_indent = 0)
         {
@@ -349,7 +154,7 @@ namespace jsonxx
                         output(iter->first.c_str());
                         output({'\"', ':'});
                         output(indent_string.c_str(), 1);
-                        dump(iter->second, pretty_print, escape_utf8, indent_step, new_indent);
+                        dump(iter->second, pretty_print, escape_unicode, indent_step, new_indent);
 
                         // not last element
                         if (i != size - 1)
@@ -373,7 +178,7 @@ namespace jsonxx
                         output('\"');
                         output(iter->first.c_str());
                         output({'\"', ':'});
-                        dump(iter->second, pretty_print, escape_utf8, indent_step, current_indent);
+                        dump(iter->second, pretty_print, escape_unicode, indent_step, current_indent);
 
                         // not last element
                         if (i != size - 1)
@@ -411,7 +216,7 @@ namespace jsonxx
                     for (std::size_t i = 0; i < size; ++i, ++iter)
                     {
                         output(indent_string.c_str(), new_indent);
-                        dump(*iter, pretty_print, escape_utf8, indent_step, new_indent);
+                        dump(*iter, pretty_print, escape_unicode, indent_step, new_indent);
 
                         // not last element
                         if (i != size - 1)
@@ -432,7 +237,7 @@ namespace jsonxx
                     const auto size = vector.size();
                     for (std::size_t i = 0; i < size; ++i, ++iter)
                     {
-                        dump(*iter, pretty_print, escape_utf8, indent_step, current_indent);
+                        dump(*iter, pretty_print, escape_unicode, indent_step, current_indent);
                         // not last element
                         if (i != size - 1)
                             output(',');
@@ -447,7 +252,7 @@ namespace jsonxx
             case json_type::string:
             {
                 output('\"');
-                dump_string(*json.value_.data.string, escape_utf8);
+                dump_string(*json.value_.data.string, escape_unicode);
                 output('\"');
                 return;
             }
@@ -527,12 +332,12 @@ namespace jsonxx
             }
         }
 
-        void dump_string(const string_type &val, const bool escape_utf8)
+        void dump_string(const string_type &val, const bool escape_unicode)
         {
             size_t i = 0;
             uint32_t code = 0;
-            detail::unicode_serializer<string_type> us(val, escape_utf8);
-            while (us.get_code(i, code))
+            detail::unicode_reader<string_type> ur(val, escape_unicode);
+            while (ur.get_code(i, code))
             {
                 switch (code)
                 {
@@ -594,28 +399,33 @@ namespace jsonxx
 
                 default:
                 {
-                    if (code <= 0x1F || (escape_utf8 && (code >= 0x7F)))
+                    // escape control characters
+                    // and non-ASCII characters (if `escape_unicode` is true)
+                    const bool need_escape = code <= 0x1F || (escape_unicode && code >= 0x7F);
+                    if (!need_escape)
                     {
+                        // ASCII or BMP (U+0000...U+007F)
+                        string_buffer[buffer_idx] = char_traits::to_char_type(static_cast<char_int_type>(code));
+                        buffer_idx++;
+                    }
+                    else
+                    {
+                        using snprintf = detail::snprintf_t<char_type>;
                         if (code <= 0xFFFF)
                         {
-                            // escape control characters (0x00..0x1F)
-                            detail::snprintf_t<char_type>::one_unicode(string_buffer.data() + buffer_idx,
-                                                                static_cast<uint16_t>(code));
+                            // BMP: U+007F...U+FFFF
+                            snprintf::one_uint16(string_buffer.data() + buffer_idx, static_cast<uint16_t>(code));
                             buffer_idx += 6;
                         }
                         else
                         {
-                            detail::snprintf_t<char_type>::two_unicodes(string_buffer.data() + buffer_idx,
-                                                                static_cast<uint16_t>(0xD7C0u + (code >> 10u)),
-                                                                static_cast<uint16_t>(0xDC00u + (code & 0x3FFu)));
+                            // supplementary planes: U+10000...U+10FFFF
+                            code = code - JSONXX_UNICODE_SUR_BASE;
+                            const auto lead_surrogate = static_cast<uint16_t>(JSONXX_UNICODE_SUR_LEAD_BEGIN + (code >> JSONXX_UNICODE_SUR_BITS));
+                            const auto trail_surrogate = static_cast<uint16_t>(JSONXX_UNICODE_SUR_TRAIL_BEGIN + (code & JSONXX_UNICODE_SUR_MAX));
+                            snprintf::two_uint16(string_buffer.data() + buffer_idx, lead_surrogate, trail_surrogate);
                             buffer_idx += 12;
                         }
-                    }
-                    else
-                    {
-                        // copy byte to buffer
-                        string_buffer[buffer_idx] = char_traits::to_char_type(static_cast<char_int_type>(code));
-                        buffer_idx++;
                     }
                     break;
                 }
@@ -651,9 +461,9 @@ namespace jsonxx
             out->write(str, static_cast<std::size_t>(size));
         }
 
-        void output(const char_type *str, unsigned int size)
+        void output(const char_type *str, size_t size)
         {
-            out->write(str, static_cast<std::size_t>(size));
+            out->write(str, size);
         }
 
     private:
@@ -662,6 +472,6 @@ namespace jsonxx
         string_type indent_string;
         std::array<char_type, 32> number_buffer = {};
         std::array<char_type, 512> string_buffer = {};
-        ptrdiff_t buffer_idx = 0;
+        size_t buffer_idx = 0;
     };
 } // namespace jsonxx
