@@ -45,21 +45,21 @@ struct json_bind<Response>
 	}
 };
 
-// »ñÈ¡ÓÃ»§ĞÅÏ¢½Ó¿Ú
+// è·å–ç”¨æˆ·ä¿¡æ¯æ¥å£
 class GetUserInfoHandler
 {
 public:
-	// POSTÇëÇó
+	// POSTè¯·æ±‚
 	void POST(istringstream& req, ostringstream& resp)
 	{
-		// ½âÎöÇëÇó£¬¿ÉÒÔÖ±½Ó·´ĞòÁĞ»¯µ½ Request ½á¹¹ÌåÖĞ
+		// è§£æè¯·æ±‚ï¼Œå¯ä»¥ç›´æ¥ååºåˆ—åŒ–åˆ° Request ç»“æ„ä½“ä¸­
 		Request req_body;
 		req >> json_wrap(req_body);
 
-		// ¶ÁÈ¡ÓÃ»§ĞÅÏ¢
+		// è¯»å–ç”¨æˆ·ä¿¡æ¯
 		auto user_info = QueryUser(req_body.user_id);
 
-		// ÏìÓ¦ÇëÇó£¬¿ÉÒÔÖ±½ÓĞòÁĞ»¯µ½Êä³öÁ÷ÖĞ
+		// å“åº”è¯·æ±‚ï¼Œå¯ä»¥ç›´æ¥åºåˆ—åŒ–åˆ°è¾“å‡ºæµä¸­
 		Response resp_body = { user_info };
 		resp << std::setw(4) << json_wrap(resp_body);
 	}

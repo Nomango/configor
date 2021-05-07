@@ -7,29 +7,29 @@ using namespace jsonxx;
 using std::vector;
 using std::string;
 
-// ÓÃ»§½ÇÉ«
+// ç”¨æˆ·è§’è‰²
 struct UserRole
 {
-	// ½ÇÉ«±àºÅ
+	// è§’è‰²ç¼–å·
 	int code;
-	// È¨ÏŞÁĞ±í
+	// æƒé™åˆ—è¡¨
 	vector<string> permission_list;
 };
 
-// ÓÃ»§ĞÅÏ¢
+// ç”¨æˆ·ä¿¡æ¯
 struct UserInfo
 {
-	// ÓÃ»§id
+	// ç”¨æˆ·id
 	int user_id;
-	// ÓÃ»§Ãû
+	// ç”¨æˆ·å
 	string user_name;
-	// ½ÇÉ«ÁĞ±í
+	// è§’è‰²åˆ—è¡¨
 	vector<UserRole> role_list;
 };
 
 extern std::shared_ptr<UserInfo> QueryUser(int user_id);
 
-// °ó¶¨json
+// ç»‘å®šjson
 template <>
 struct json_bind<UserRole>
 {
