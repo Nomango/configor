@@ -76,7 +76,7 @@ namespace jsonxx
     // Implement the json_bind class in the following format:
     // 
     // template<>
-    // struct json_bind<MyClass>
+    // struct jsonxx::json_bind<MyClass>
     // {
     //     void to_json(json& j, const MyClass& v) {}
     // 

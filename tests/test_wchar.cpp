@@ -11,7 +11,7 @@ using namespace jsonxx;
 #define U32(STR) COMBINE(U, STR)
 
 #define RAW_STR "我是地球🌍"
-#define QUOTA_STR "\"我是地球🌍\""
+#define QUOTE_STR "\"我是地球🌍\""
 #define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
 
 class WCharTest : public testing::Test
@@ -70,8 +70,8 @@ TEST(test_parser_w, test_parse_surrogate)
 TEST(test_serializer_w, test_dump_escaped)
 {
     wjson j = WIDE(RAW_STR);
-    ASSERT_EQ(j.dump(), WIDE(QUOTA_STR));
-    ASSERT_EQ(j.dump(-1, ' ', false), WIDE(QUOTA_STR));
+    ASSERT_EQ(j.dump(), WIDE(QUOTE_STR));
+    ASSERT_EQ(j.dump(-1, ' ', false), WIDE(QUOTE_STR));
     ASSERT_EQ(j.dump(-1, ' ', true), WIDE(ESCAPED_STR));
 }
 
@@ -90,12 +90,12 @@ TEST(test_parser_u16_u32, test_parse_surrogate)
 TEST(test_serializer_u16_u32, test_dump_escaped)
 {
     u32json j32 = U32(RAW_STR);
-    ASSERT_EQ(j32.dump(), U32(QUOTA_STR));
-    ASSERT_EQ(j32.dump(-1, ' ', false), U32(QUOTA_STR));
+    ASSERT_EQ(j32.dump(), U32(QUOTE_STR));
+    ASSERT_EQ(j32.dump(-1, ' ', false), U32(QUOTE_STR));
     ASSERT_TRUE(j32.dump(-1, ' ', true) == U32(ESCAPED_STR));
 
     u16json j16 = U16(RAW_STR);
-    ASSERT_EQ(j16.dump(), U16(QUOTA_STR));
-    ASSERT_EQ(j16.dump(-1, ' ', false), U16(QUOTA_STR));
+    ASSERT_EQ(j16.dump(), U16(QUOTE_STR));
+    ASSERT_EQ(j16.dump(-1, ' ', false), U16(QUOTE_STR));
     ASSERT_TRUE(j16.dump(-1, ' ', true) == U16(ESCAPED_STR));
 }

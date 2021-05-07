@@ -18,7 +18,7 @@ struct Response
 };
 
 template <>
-struct json_bind<Request>
+struct jsonxx::json_bind<Request>
 {
 	void to_json(json& j, const Request& v)
 	{
@@ -32,7 +32,7 @@ struct json_bind<Request>
 };
 
 template <>
-struct json_bind<Response>
+struct jsonxx::json_bind<Response>
 {
 	void to_json(json& j, const Response& v)
 	{

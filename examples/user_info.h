@@ -31,7 +31,7 @@ extern std::shared_ptr<UserInfo> QueryUser(int user_id);
 
 // 绑定json
 template <>
-struct json_bind<UserRole>
+struct jsonxx::json_bind<UserRole>
 {
 	void to_json(json& j, const UserRole& v)
 	{
@@ -47,7 +47,7 @@ struct json_bind<UserRole>
 };
 
 template <>
-struct json_bind<UserInfo>
+struct jsonxx::json_bind<UserInfo>
 {
 	void to_json(json& j, const UserInfo& v)
 	{

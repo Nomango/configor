@@ -149,6 +149,7 @@ namespace jsonxx
             }
         }
 
+        template <typename std::enable_if<std::is_default_constructible<_Ty>::value, int>::type = 0>
         void from_json(const json& j, std::vector<_Ty>& v)
         {
             v.resize(j.size());
@@ -171,11 +172,12 @@ namespace jsonxx
             }
         }
 
+        template <typename std::enable_if<std::is_default_constructible<_Ty>::value, int>::type = 0>
         void from_json(const json& j, std::map<std::string, _Ty>& v)
         {
             for (auto iter = j.cbegin(); iter != j.cend(); iter++)
             {
-                _Ty item = _Ty();
+                _Ty item;
                 ::jsonxx::from_json(iter.value(), item);
                 v.insert(std::make_pair(iter.key(), item));
             }

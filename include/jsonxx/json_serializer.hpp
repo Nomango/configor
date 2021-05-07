@@ -23,7 +23,7 @@
 #include <cwchar>  // swprintf
 #include <cassert>  // assert
 #include <type_traits>  // std::char_traits
-#include <ios>  // std::basic_ostream
+#include <ios>  // std::basic_ostream, std::streamsize
 #include <array>  // std::array
 #include <vector>  // std::vector
 #include <algorithm>  // std::none_of
@@ -75,7 +75,7 @@ namespace jsonxx
         : public output_adapter<_CharTy>
     {
         using char_type = _CharTy;
-        using size_type = typename std::streamsize;
+        using size_type = std::streamsize;
         using char_traits = std::char_traits<char_type>;
 
         stream_output_adapter(std::basic_ostream<char_type> &stream) : stream_(stream) {}

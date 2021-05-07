@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.31105.61
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jsonxx_example", "examples\jsonxx_example.vcxproj", "{0B479F31-DCC9-4DA0-BFF5-9AC7D0663105}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jsonxx_test", "test\jsonxx_test.vcxproj", "{B2DBE279-2672-4A63-A6F7-A849AE236186}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jsonxx_test", "tests\jsonxx_test.vcxproj", "{B2DBE279-2672-4A63-A6F7-A849AE236186}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

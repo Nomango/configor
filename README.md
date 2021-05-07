@@ -242,7 +242,7 @@ struct User
 
 // 与 json 绑定
 template<>
-struct json_bind<User>
+struct jsonxx::json_bind<User>
 {
     void to_json(json& j, const User& v)
     {
@@ -302,7 +302,7 @@ struct User {
 
 // 绑定User类到json
 template<>
-struct json_bind<User> {
+struct jsonxx::json_bind<User> {
 	void to_json(json& j, const User& u) {
 		jsonxx::to_json(j["user_id"], u.user_id);
 		jsonxx::to_json(j["user_name"], u.user_name);
@@ -338,6 +338,15 @@ int main(int argc, char** argv)
 实际上 json::parse() 和 json::dump() 函数也是通过自定义的 `string_output_adapter` 和 `string_input_adapter` 实现对字符串内容的输入和输出。
 
 详细内容请参考 json_parser.hpp 和 json_serializer.hpp
+
+### 计划
+
+[x] wchar_t、char16_t、char32_t 支持
+[ ] 拆分 json 和 json_value
+[ ] 支持注释
+[ ] 支持 json 和自定义类型的隐式转换（has_to_json限定）
+[ ] optional 返回值的支持（作为模板参数并允许替换）
+[ ] 代码规范
 
 ### 鸣谢
 
