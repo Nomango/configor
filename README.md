@@ -58,7 +58,10 @@ json obj2 = {
     { "boolean", false },
     { "string", "中文测试" },
     { "array", { 1, 2, true, 1.4 } },
-    { "object", { "key", "value" } }
+    { "object", {
+        { "key", "value" },
+        { "key2", "value2" },
+    },
 };
 ```
 
