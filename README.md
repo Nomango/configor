@@ -4,6 +4,15 @@
 
 一个为 C++11 量身打造的轻量级 JSON 通用工具，轻松完成 JSON 解析和序列化功能，并和 C++ 输入输出流交互。
 
+### 功能
+
+- 仅头文件，低接入成本
+- STL-like，低学习成本
+- 与标准库 io 交互
+- 非侵入式的序列化与反序列化
+- Unicode与多编码支持（包括wchar_t、char16_t、char32_t）
+- 可扩展的输入输出方式
+
 ### 使用介绍
 
 - 引入 jsonxx 头文件
@@ -191,6 +200,15 @@ wjson j = wjson::parse(L"{ \"name\": \"中文测试\" }");
 std::wstring str = j[L"name"].as_string();  // L"中文测试"
 ```
 
+同时支持 char16_t 和 char32_t 类型，需要用户手动创建类型：
+
+```cpp
+// char32_t
+using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
+// char16_t
+using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
+```
+
 - JSON 与任意类型的转换
 
 通过特化实现 json_bind 类，可以非侵入式的实现任意对象与 JSON 的转换。
@@ -242,7 +260,7 @@ struct json_bind<User>
 例如，下面的代码是正确的：
 
 ```cpp
-std::vector<User*> user_list;
+std::vector<std::shared_ptr<User>> user_list;
 jsonxx::to_json(j, user_list);  // 可以正确处理复合类型的转换
 ```
 
