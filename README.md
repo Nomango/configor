@@ -2,6 +2,10 @@
 
 # jsonxx
 
+[![codecov](https://codecov.io/gh/Nomango/jsonxx/branch/master/graph/badge.svg?token=OO71U89I5N)](https://codecov.io/gh/Nomango/jsonxx)
+[![GitHub release](https://img.shields.io/github/release/nomango/jsonxx)](https://github.com/Nomango/Kiwano/releases/latest)
+[![GitHub license](https://img.shields.io/github/license/nomango/jsonxx)](https://github.com/Nomango/Kiwano/blob/master/LICENSE)
+
 一个为 C++11 量身打造的轻量级 JSON 通用工具，轻松完成 JSON 解析和序列化功能，并和 C++ 输入输出流交互。
 
 ### 功能
