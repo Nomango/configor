@@ -30,11 +30,11 @@ TEST(test_parser, test_parse_surrogate)
 TEST(test_parser, test_read_from_file)
 {
     std::array<std::string, 5> files = {
-        "test/data/json.org/1.json",
-        "test/data/json.org/2.json",
-        "test/data/json.org/3.json",
-        "test/data/json.org/4.json",
-        "test/data/json.org/5.json",
+        "tests/data/json.org/1.json",
+        "tests/data/json.org/2.json",
+        "tests/data/json.org/3.json",
+        "tests/data/json.org/4.json",
+        "tests/data/json.org/5.json",
     };
 
     std::function<void(json&)> tests[] = {

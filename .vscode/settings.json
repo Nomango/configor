@@ -4,5 +4,8 @@
     "cmake.debugConfig": {
         "cwd": "${workspaceFolder}",
     },
+    "cmake.configureArgs": [
+        "-DENABLE_COVERAGE=ON",
+    ],
     "C_Cpp.default.cppStandard": "c++11",
 }

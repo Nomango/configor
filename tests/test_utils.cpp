@@ -73,7 +73,7 @@ public:
 };
 
 template<>
-struct json_bind<Driver>
+struct jsonxx::json_bind<Driver>
 {
     void to_json(json& j, const Driver& v)
     {
@@ -87,7 +87,7 @@ struct json_bind<Driver>
 };
 
 template<>
-struct json_bind<Passenger>
+struct jsonxx::json_bind<Passenger>
 {
     void to_json(json& j, const Passenger& v)
     {
@@ -103,7 +103,7 @@ struct json_bind<Passenger>
 };
 
 template<>
-struct json_bind<Bus>
+struct jsonxx::json_bind<Bus>
 {
     void to_json(json& j, const Bus& v)
     {
