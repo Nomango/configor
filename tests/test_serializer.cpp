@@ -67,7 +67,7 @@ TEST(test_serializer, test_dump_escaped)
 TEST(test_serializer, test_dump_intend)
 {
     json j;
-    j[0] = json::object({ "num", 1 });
+    j[0] = json::object({ { "num", 1 } });
     j[1] = true;
 
     ASSERT_EQ(j.dump(), "[{\"num\":1},true]");

@@ -11,6 +11,10 @@ target_link_libraries(${PROJECT_NAME}_test ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRA
 add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test WORKING_DIRECTORY ${PROJECT_ROOT_DIR})
 
 # Code Coverage Configuration
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/cmake" ${CMAKE_MODULE_PATH})
-find_package(codecov)
-add_coverage(${PROJECT_NAME}_test)
+option(ENABLE_COVERAGE "Enable coverage build." OFF)
+if(ENABLE_COVERAGE)
+    message("Build with coverage infos.")
+    set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/cmake" ${CMAKE_MODULE_PATH})
+    find_package(codecov)
+    add_coverage(${PROJECT_NAME}_test)
+endif()

@@ -5,7 +5,7 @@
         "cwd": "${workspaceFolder}",
     },
     "cmake.configureArgs": [
-        "-DENABLE_COVERAGE=ON",
+        "-DENABLE_COVERAGE=OFF",
     ],
     "C_Cpp.default.cppStandard": "c++11",
 }

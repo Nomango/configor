@@ -26,6 +26,8 @@
 
 namespace jsonxx
 {
+namespace detail
+{
 //
 // iterator for basic_json
 //
@@ -129,15 +131,53 @@ private:
 };
 
 template <typename _BasicJsonTy>
-struct internal_iterator
+struct iterator_value
 {
-    typename _BasicJsonTy::array_type::iterator  array_iter;
-    typename _BasicJsonTy::object_type::iterator object_iter;
-    primitive_iterator                           original_iter = 0;  // for other types
+    using value_type  = _BasicJsonTy;
+    using object_type = typename _BasicJsonTy::object_type;
+    using key_type    = typename object_type::key_type;
+
+    explicit iterator_value(value_type* value)
+        : key_(&dummy_key_)
+        , value_(value)
+    {
+    }
+
+    explicit iterator_value(const key_type& key, value_type* value)
+        : key_(&key)
+        , value_(value)
+    {
+    }
+
+    inline const key_type& key() const
+    {
+        if (key_ == &dummy_key_)
+            throw json_invalid_iterator("cannot use key() with non-object type");
+        return *key_;
+    }
+
+    inline value_type& value() const
+    {
+        return *value_;
+    }
+
+    inline operator value_type&() const
+    {
+        return *value_;
+    }
+
+private:
+    static key_type dummy_key_;
+
+    const key_type* key_;
+    value_type*     value_;
 };
 
 template <typename _BasicJsonTy>
-struct iterator_impl
+typename iterator_value<_BasicJsonTy>::key_type iterator_value<_BasicJsonTy>::dummy_key_;
+
+template <typename _BasicJsonTy>
+struct iterator
 {
     friend _BasicJsonTy;
 
@@ -152,11 +192,12 @@ struct iterator_impl
     using value_type        = _BasicJsonTy;
     using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
-    using pointer           = value_type*;
-    using reference         = value_type&;
+    using pointer           = iterator_value<value_type>*;
+    using reference         = iterator_value<value_type>&;
 
-    inline iterator_impl(pointer json)
+    inline explicit iterator(value_type* json)
         : data_(json)
+        , it_value_(json)
     {
     }
 
@@ -164,46 +205,207 @@ struct iterator_impl
     {
         check_data();
         check_iterator();
+
         switch (data_->type())
         {
         case json_type::object:
-            return (it_.object_iter->second);
+            it_value_ = iterator_value<value_type>(object_it_->first, &(object_it_->second));
+            break;
         case json_type::array:
-            return (*it_.array_iter);
+            it_value_ = iterator_value<value_type>(&(*array_it_));
+            break;
         default:
-            return *data_;
+            it_value_ = iterator_value<value_type>(data_);
+            break;
         }
+        return it_value_;
     }
 
     inline pointer operator->() const
     {
+        return &(operator*());
+    }
+
+    inline iterator operator++(int)
+    {
+        iterator old = (*this);
+        ++(*this);
+        return old;
+    }
+
+    inline iterator& operator++()
+    {
         check_data();
-        check_iterator();
+
         switch (data_->type())
         {
         case json_type::object:
-            return &(it_.object_iter->second);
+        {
+            std::advance(object_it_, 1);
+            break;
+        }
         case json_type::array:
-            return &(*it_.array_iter);
+        {
+            std::advance(array_it_, 1);
+            break;
+        }
+        case json_type::null:
+        {
+            // DO NOTHING
+            break;
+        }
         default:
-            return data_;
+        {
+            ++original_it_;
+            break;
+        }
+        }
+        return *this;
+    }
+
+    inline iterator operator--(int)
+    {
+        iterator old = (*this);
+        --(*this);
+        return old;
+    }
+
+    inline iterator& operator--()
+    {
+        check_data();
+
+        switch (data_->type())
+        {
+        case json_type::object:
+        {
+            std::advance(object_it_, -1);
+            break;
+        }
+        case json_type::array:
+        {
+            std::advance(array_it_, -1);
+            break;
+        }
+        case json_type::null:
+        {
+            // DO NOTHING
+            break;
+        }
+        default:
+        {
+            --original_it_;
+            break;
+        }
+        }
+        return *this;
+    }
+
+    inline const iterator operator-(difference_type off) const
+    {
+        return operator+(-off);
+    }
+    inline const iterator operator+(difference_type off) const
+    {
+        iterator ret(*this);
+        ret += off;
+        return ret;
+    }
+
+    inline iterator& operator-=(difference_type off)
+    {
+        return operator+=(-off);
+    }
+    inline iterator& operator+=(difference_type off)
+    {
+        check_data();
+
+        switch (data_->type())
+        {
+        case json_type::object:
+        {
+            throw json_invalid_iterator("cannot use offsets with object type");
+            break;
+        }
+        case json_type::array:
+        {
+            std::advance(array_it_, off);
+            break;
+        }
+        case json_type::null:
+        {
+            // DO NOTHING
+            break;
+        }
+        default:
+        {
+            original_it_ += off;
+            break;
+        }
+        }
+        return *this;
+    }
+
+    inline bool operator!=(iterator const& other) const
+    {
+        return !(*this == other);
+    }
+    inline bool operator==(iterator const& other) const
+    {
+        if (data_ == nullptr)
+            return false;
+
+        if (data_ != other.data_)
+            return false;
+
+        switch (data_->type())
+        {
+        case json_type::object:
+        {
+            return object_it_ == other.object_it_;
+        }
+        case json_type::array:
+        {
+            return array_it_ == other.array_it_;
+        }
+        default:
+        {
+            return original_it_ == other.original_it_;
+        }
         }
     }
 
-    inline const typename object_type::key_type& key() const
+    inline bool operator>(iterator const& other) const
+    {
+        return other.operator<(*this);
+    }
+    inline bool operator>=(iterator const& other) const
+    {
+        return !operator<(other);
+    }
+    inline bool operator<=(iterator const& other) const
+    {
+        return !other.operator<(*this);
+    }
+    inline bool operator<(iterator const& other) const
     {
         check_data();
-        check_iterator();
-        if (!data_->is_object())
-            throw json_invalid_iterator("cannot use key() with non-object type");
-        return it_.object_iter->first;
+        other.check_data();
+
+        if (data_ != other.data_)
+            throw json_invalid_iterator("cannot compare iterators of different objects");
+
+        switch (data_->type())
+        {
+        case json_type::object:
+            throw json_invalid_iterator("cannot compare iterators with object type");
+        case json_type::array:
+            return array_it_ < other.array_it_;
+        default:
+            return original_it_ < other.original_it_;
+        }
     }
 
-    inline reference value() const
-    {
-        return operator*();
-    }
-
+private:
     inline void set_begin()
     {
         check_data();
@@ -212,17 +414,22 @@ struct iterator_impl
         {
         case json_type::object:
         {
-            it_.object_iter = data_->value_.data.object->begin();
+            object_it_ = data_->value_.data.object->begin();
             break;
         }
         case json_type::array:
         {
-            it_.array_iter = data_->value_.data.vector->begin();
+            array_it_ = data_->value_.data.vector->begin();
+            break;
+        }
+        case json_type::null:
+        {
+            // DO NOTHING
             break;
         }
         default:
         {
-            it_.original_iter.set_begin();
+            original_it_.set_begin();
             break;
         }
         }
@@ -236,184 +443,27 @@ struct iterator_impl
         {
         case json_type::object:
         {
-            it_.object_iter = data_->value_.data.object->end();
+            object_it_ = data_->value_.data.object->end();
             break;
         }
         case json_type::array:
         {
-            it_.array_iter = data_->value_.data.vector->end();
+            array_it_ = data_->value_.data.vector->end();
+            break;
+        }
+        case json_type::null:
+        {
+            // DO NOTHING
             break;
         }
         default:
         {
-            it_.original_iter.set_end();
+            original_it_.set_end();
             break;
         }
         }
     }
 
-    inline iterator_impl operator++(int)
-    {
-        iterator_impl old = (*this);
-        ++(*this);
-        return old;
-    }
-    inline iterator_impl& operator++()
-    {
-        check_data();
-
-        switch (data_->type())
-        {
-        case json_type::object:
-        {
-            std::advance(it_.object_iter, 1);
-            break;
-        }
-        case json_type::array:
-        {
-            std::advance(it_.array_iter, 1);
-            break;
-        }
-        default:
-        {
-            ++it_.original_iter;
-            break;
-        }
-        }
-        return *this;
-    }
-
-    inline iterator_impl operator--(int)
-    {
-        iterator_impl old = (*this);
-        --(*this);
-        return old;
-    }
-    inline iterator_impl& operator--()
-    {
-        check_data();
-
-        switch (data_->type())
-        {
-        case json_type::object:
-        {
-            std::advance(it_.object_iter, -1);
-            break;
-        }
-        case json_type::array:
-        {
-            std::advance(it_.array_iter, -1);
-            break;
-        }
-        default:
-        {
-            --it_.original_iter;
-            break;
-        }
-        }
-    }
-
-    inline const iterator_impl operator-(difference_type off) const
-    {
-        return operator+(-off);
-    }
-    inline const iterator_impl operator+(difference_type off) const
-    {
-        iterator_impl ret(*this);
-        ret += off;
-        return ret;
-    }
-
-    inline iterator_impl& operator-=(difference_type off)
-    {
-        return operator+=(-off);
-    }
-    inline iterator_impl& operator+=(difference_type off)
-    {
-        check_data();
-
-        switch (data_->type())
-        {
-        case json_type::object:
-        {
-            throw json_invalid_iterator("cannot use offsets with object type");
-            break;
-        }
-        case json_type::array:
-        {
-            std::advance(it_.array_iter, off);
-            break;
-        }
-        default:
-        {
-            it_.original_iter += off;
-            break;
-        }
-        }
-        return *this;
-    }
-
-    inline bool operator!=(iterator_impl const& other) const
-    {
-        return !(*this == other);
-    }
-    inline bool operator==(iterator_impl const& other) const
-    {
-        if (data_ != other.data_)
-            return false;
-
-        if (data_ == nullptr)
-            throw json_invalid_iterator("json data is nullptr");
-
-        switch (data_->type())
-        {
-        case json_type::object:
-        {
-            return it_.object_iter == other.it_.object_iter;
-        }
-        case json_type::array:
-        {
-            return it_.array_iter == other.it_.array_iter;
-        }
-        default:
-        {
-            return it_.original_iter == other.it_.original_iter;
-        }
-        }
-    }
-
-    inline bool operator>(iterator_impl const& other) const
-    {
-        return other.operator<(*this);
-    }
-    inline bool operator>=(iterator_impl const& other) const
-    {
-        return !operator<(other);
-    }
-    inline bool operator<=(iterator_impl const& other) const
-    {
-        return !other.operator<(*this);
-    }
-    inline bool operator<(iterator_impl const& other) const
-    {
-        check_data();
-        other.check_data();
-
-        if (data_ != other.data_)
-            throw json_invalid_iterator("cannot compare iterators of different objects");
-
-        switch (data_->type())
-        {
-        case json_type::object:
-            throw json_invalid_iterator("cannot compare iterators with object type");
-        case json_type::array:
-            return it_.array_iter < other.it_.array_iter;
-        default:
-            return it_.original_iter < other.it_.original_iter;
-        }
-    }
-
-private:
     inline void check_data() const
     {
         if (data_ == nullptr)
@@ -427,19 +477,23 @@ private:
         switch (data_->type())
         {
         case json_type::object:
-            if (it_.object_iter == data_->value_.data.object->end())
+            if (object_it_ == data_->value_.data.object->end())
             {
                 throw std::out_of_range("iterator out of range");
             }
             break;
         case json_type::array:
-            if (it_.array_iter == data_->value_.data.vector->end())
+            if (array_it_ == data_->value_.data.vector->end())
             {
                 throw std::out_of_range("iterator out of range");
             }
             break;
+        case json_type::null:
+        {
+            throw std::out_of_range("iterator out of range");
+        }
         default:
-            if (it_.original_iter == 1)
+            if (original_it_ != 0)
             {
                 throw std::out_of_range("iterator out of range");
             }
@@ -448,7 +502,14 @@ private:
     }
 
 private:
-    pointer                         data_;
-    internal_iterator<_BasicJsonTy> it_;
+    value_type* data_;
+
+    mutable iterator_value<value_type> it_value_;
+
+    typename _BasicJsonTy::array_type::iterator  array_it_;
+    typename _BasicJsonTy::object_type::iterator object_it_;
+    primitive_iterator                           original_it_ = 0;  // for other types
 };
+
+}  // namespace detail
 }  // namespace jsonxx
