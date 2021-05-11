@@ -15,7 +15,10 @@ class Driver
 
 public:
     Driver() = default;
-    Driver(const std::string& name) : name_(name) {}
+    Driver(const std::string& name)
+        : name_(name)
+    {
+    }
 
     bool operator==(const Driver& rhs) const
     {
@@ -28,11 +31,15 @@ class Passenger
     friend json_bind<Passenger>;
 
     std::string name_;
-    int age_ = 0;
+    int         age_ = 0;
 
 public:
     Passenger() = default;
-    Passenger(const std::string& name, int age) : name_(name), age_(age) {}
+    Passenger(const std::string& name, int age)
+        : name_(name)
+        , age_(age)
+    {
+    }
 
     bool operator==(const Passenger& rhs) const
     {
@@ -41,38 +48,43 @@ public:
 };
 
 using PassengerPtr = std::shared_ptr<Passenger>;
-using DriverPtr = std::unique_ptr<Driver>;
+using DriverPtr    = std::unique_ptr<Driver>;
 
 class Bus
 {
     friend json_bind<Bus>;
 
-    int license_ = 0;
-    DriverPtr driver_ = nullptr;
-    std::vector<PassengerPtr> passengers_;
+    int                                 license_ = 0;
+    DriverPtr                           driver_  = nullptr;
+    std::vector<PassengerPtr>           passengers_;
     std::map<std::string, PassengerPtr> olders_;
 
 public:
     Bus() = default;
-    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers, const std::map<std::string, PassengerPtr>& olders)
-        : license_(license), driver_(std::move(driver)), passengers_(passengers), olders_(olders)
+    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers,
+        const std::map<std::string, PassengerPtr>& olders)
+        : license_(license)
+        , driver_(std::move(driver))
+        , passengers_(passengers)
+        , olders_(olders)
     {
     }
 
     bool operator==(const Bus& rhs) const
     {
         using pair = std::pair<const std::string, PassengerPtr const>;
-        return license_ == rhs.license_
-            && *driver_ == *rhs.driver_
-            && passengers_.size() == rhs.passengers_.size()
-            && std::equal(passengers_.cbegin(), passengers_.cend(), rhs.passengers_.cbegin(), [](const PassengerPtr& p1, const PassengerPtr& p2) { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
-            && olders_.size() == rhs.olders_.size()
-            && std::equal(olders_.cbegin(), olders_.cend(), rhs.olders_.cbegin(), [](const pair& p1, const pair& p2) { return p1.first == p2.first && *p1.second == *p2.second; })
-            ;
+        return license_ == rhs.license_ && *driver_ == *rhs.driver_ && passengers_.size() == rhs.passengers_.size()
+               && std::equal(
+                   passengers_.cbegin(), passengers_.cend(), rhs.passengers_.cbegin(),
+                   [](const PassengerPtr& p1, const PassengerPtr& p2) { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
+               && olders_.size() == rhs.olders_.size()
+               && std::equal(
+                   olders_.cbegin(), olders_.cend(), rhs.olders_.cbegin(),
+                   [](const pair& p1, const pair& p2) { return p1.first == p2.first && *p1.second == *p2.second; });
     }
 };
 
-template<>
+template <>
 struct jsonxx::json_bind<Driver>
 {
     void to_json(json& j, const Driver& v)
@@ -86,23 +98,23 @@ struct jsonxx::json_bind<Driver>
     }
 };
 
-template<>
+template <>
 struct jsonxx::json_bind<Passenger>
 {
     void to_json(json& j, const Passenger& v)
     {
         j["name"] = v.name_;
-        j["age"] = v.age_;
+        j["age"]  = v.age_;
     }
 
     void from_json(const json& j, Passenger& v)
     {
         v.name_ = j["name"].as_string();
-        v.age_ = (int)j["age"];
+        v.age_  = (int)j["age"];
     }
 };
 
-template<>
+template <>
 struct jsonxx::json_bind<Bus>
 {
     void to_json(json& j, const Bus& v)
@@ -125,7 +137,7 @@ struct jsonxx::json_bind<Bus>
 class UtilsTest : public testing::Test
 {
 protected:
-    Bus expect_bus;
+    Bus  expect_bus;
     json expect_json;
 
     void SetUp() override
@@ -134,20 +146,22 @@ protected:
             100,
             std::unique_ptr<Driver>(new Driver("driver")),
             { std::make_shared<Passenger>("p1", 18), std::make_shared<Passenger>("p2", 54), nullptr },
-            { {"p2", std::make_shared<Passenger>("p2", 54)} },
+            { { "p2", std::make_shared<Passenger>("p2", 54) } },
         };
 
         expect_json = {
-            {"license", 100},
-            {"driver", {{"name", "driver"}} },
-            {"passengers", {
-                {{"name", "p1"}, {"age", 18}},
-                {{"name", "p2"}, {"age", 54}},
-                nullptr,
-            }},
-            {"olders", {
-                {"p2", {{"name", "p2"}, {"age", 54}} },
-            }},
+            { "license", 100 },
+            { "driver", { { "name", "driver" } } },
+            { "passengers",
+              {
+                  { { "name", "p1" }, { "age", 18 } },
+                  { { "name", "p2" }, { "age", 54 } },
+                  nullptr,
+              } },
+            { "olders",
+              {
+                  { "p2", { { "name", "p2" }, { "age", 54 } } },
+              } },
         };
     }
 };

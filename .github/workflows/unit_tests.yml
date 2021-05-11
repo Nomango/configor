@@ -1,6 +1,10 @@
 name: unit_tests
 
-on: [ push ]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   unit_test_on_gcc:
