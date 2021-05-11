@@ -20,18 +20,13 @@ protected:
     void SetUp() override
     {
         j = {
-            {WIDE("pi"), 3.141},
-            {WIDE("happy"), true},
-            {WIDE("name"), WIDE("Nomango")},
-            {WIDE("nothing"), nullptr},
-            {WIDE("answer"), {
-                {WIDE("everything"), 42}
-            }},
-            {WIDE("list"), {1, 0, 2}},
-            {WIDE("object"), {
-                {WIDE("currency"), WIDE("USD")},
-                {WIDE("value"), 42.99}
-            }},
+            { WIDE("pi"), 3.141 },
+            { WIDE("happy"), true },
+            { WIDE("name"), WIDE("Nomango") },
+            { WIDE("nothing"), nullptr },
+            { WIDE("answer"), { { WIDE("everything"), 42 } } },
+            { WIDE("list"), { 1, 0, 2 } },
+            { WIDE("object"), { { WIDE("currency"), WIDE("USD") }, { WIDE("value"), 42.99 } } },
         };
     }
 

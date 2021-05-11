@@ -1,11 +1,11 @@
 // Copyright (c) 2019 Nomango
 
-#include <gtest/gtest.h>
-#include <jsonxx/json.hpp>
-#include <cmath>  // std::acos
 #include <cfloat>  // DBL_DIG
-#include <sstream>  // std::stringstream
+#include <cmath>   // std::acos
+#include <gtest/gtest.h>
 #include <iomanip>  // std::setw, std::fill
+#include <jsonxx/json.hpp>
+#include <sstream>  // std::stringstream
 
 using namespace jsonxx;
 
@@ -15,18 +15,13 @@ protected:
     void SetUp() override
     {
         j = {
-            {"pi", 3.141},
-            {"happy", true},
-            {"name", "Nomango"},
-            {"nothing", nullptr},
-            {"answer", {
-                {"everything", 42}
-            }},
-            {"list", {1, 0, 2}},
-            {"object", {
-                {"currency", "USD"},
-                {"value", 42.99}
-            }},
+            { "pi", 3.141 },
+            { "happy", true },
+            { "name", "Nomango" },
+            { "nothing", nullptr },
+            { "answer", { { "everything", 42 } } },
+            { "list", { 1, 0, 2 } },
+            { "object", { { "currency", "USD" }, { "value", 42.99 } } },
         };
     }
 
@@ -72,7 +67,7 @@ TEST(test_serializer, test_dump_escaped)
 TEST(test_serializer, test_dump_intend)
 {
     json j;
-    j[0] = json::object({"num", 1});
+    j[0] = json::object({ "num", 1 });
     j[1] = true;
 
     ASSERT_EQ(j.dump(), "[{\"num\":1},true]");
@@ -83,7 +78,7 @@ TEST(test_serializer, test_dump_intend)
 TEST(test_serializer, test_dump_minimal_float)
 {
     // issue 11
-    const double pi = std::acos(-1.0);
+    const double pi            = std::acos(-1.0);
     const double minimal_float = pi / 1000000.0;
 
     json j = minimal_float;

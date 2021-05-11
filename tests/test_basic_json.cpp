@@ -1,8 +1,8 @@
 // Copyright (c) 2019 Nomango
 
 #include <gtest/gtest.h>
-#include <jsonxx/json.hpp>
 #include <iostream>
+#include <jsonxx/json.hpp>
 
 using namespace jsonxx;
 
@@ -11,21 +11,21 @@ class BasicJsonTest : public testing::Test
 protected:
     void SetUp() override
     {
-        j = {
-            {"pi", 3.141},
-            {"happy", true},
-            {"name", "Nomango"},
-            {"chinese", "中文测试"},
-            {"nothing", nullptr},
-            {"list", {1, 0, 2}},
-            {"object", {
-                {"currency", "USD"},
-                {"money", 42.99},
-            }},
-            {"single_object", {
-                {"number", 123},
-            }}
-        };
+        j = { { "pi", 3.141 },
+              { "happy", true },
+              { "name", "Nomango" },
+              { "chinese", "中文测试" },
+              { "nothing", nullptr },
+              { "list", { 1, 0, 2 } },
+              { "object",
+                {
+                    { "currency", "USD" },
+                    { "money", 42.99 },
+                } },
+              { "single_object",
+                {
+                    { "number", 123 },
+                } } };
     }
 
     json j;
@@ -141,6 +141,6 @@ TEST(test_basic_json, test_int64)
 {
     // issue 12
     int64_t max64 = std::numeric_limits<int64_t>::max();
-    json64 j = max64;
+    json64  j     = max64;
     ASSERT_EQ(j.as_int(), max64);
 }
