@@ -2,6 +2,7 @@
 
 # jsonxx
 
+[![Github status](https://github.com/Nomango/jsonxx/actions/workflows/unit_tests.yml/badge.svg?branch=master)](https://github.com/Nomango/jsonxx/actions)
 [![codecov](https://codecov.io/gh/Nomango/jsonxx/branch/master/graph/badge.svg?token=OO71U89I5N)](https://codecov.io/gh/Nomango/jsonxx)
 [![GitHub release](https://img.shields.io/github/release/nomango/jsonxx)](https://github.com/Nomango/jsonxx/releases/latest)
 [![GitHub license](https://img.shields.io/github/license/nomango/jsonxx)](https://github.com/Nomango/jsonxx/blob/master/LICENSE)
@@ -73,7 +74,7 @@ json obj2 = {
 
 ```cpp
 json arr = json::array({ 1 });
-json obj = json::object({ "user", { { "id", 1 }, { "name", "Nomango" } } });
+json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
 ```
 
 - 判断 JSON 对象的值类型

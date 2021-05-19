@@ -1,7 +1,6 @@
 // Copyright (c) 2019 Nomango
 
 #include <gtest/gtest.h>
-#include <iostream>
 #include <jsonxx/json.hpp>
 
 using namespace jsonxx;
@@ -117,22 +116,93 @@ TEST_F(BasicJsonTest, test_dump)
     ASSERT_EQ(j["single_object"].dump(), "{\"number\":123}");
 }
 
-TEST_F(BasicJsonTest, test_iterator)
+TEST(test_basic_json, test_object)
 {
-    for (auto iter = j.begin(); iter != j.end(); iter++)
-    {
-        ASSERT_EQ(iter.value(), j[iter.key()]);
-    }
-    ASSERT_TRUE(j.find("pi") != j.cend());
-    ASSERT_TRUE(j.find("missing") == j.cend());
+    ASSERT_NO_THROW(json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } }));
+
+    // not an object
+    ASSERT_DEATH(json::object({ {"1", 1}, {""} }), ".*");
+    ASSERT_DEATH(json::object({ {1, ""} }), ".*");
+
+    json j = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
+    json j2 = j;
+    ASSERT_TRUE(j == j2);
+
+    ASSERT_THROW(j[0], json_invalid_key);
+    ASSERT_THROW(const_cast<const json&>(j)[0], json_invalid_key);
+    ASSERT_THROW(const_cast<const json&>(j)["missing"], std::out_of_range);
 }
 
-TEST_F(BasicJsonTest, test_object)
+TEST(test_basic_json, test_array)
 {
-    ASSERT_EQ(j.size(), 8);
-    ASSERT_EQ(j["object"].size(), 2);
-    ASSERT_EQ(j["single_object"].size(), 1);
-    ASSERT_EQ(j["list"].size(), 3);
+    ASSERT_NO_THROW(json::array({ 1, 2, 3 }));
+
+    json j;
+    ASSERT_NO_THROW(j = json::array({ { "user", { { "id", 1 }, { "name", "Nomango" } } } }));
+    ASSERT_EQ(j.is_array(), true);
+    ASSERT_EQ(j.size(), 1);
+    ASSERT_EQ(j[0].is_array(), true);
+
+    ASSERT_THROW(j["test"], json_invalid_key);
+    ASSERT_THROW(const_cast<const json&>(j)["test"], json_invalid_key);
+    ASSERT_THROW(const_cast<const json&>(j)[1], std::out_of_range);
+}
+
+TEST(test_basic_json, test_method_size)
+{
+    json j;
+    // string
+    j = "string";
+    ASSERT_EQ(j.size(), 1);
+    // integer
+    j = 100;
+    ASSERT_EQ(j.size(), 1);
+    // floating
+    j = 100.0;
+    ASSERT_EQ(j.size(), 1);
+    // boolean
+    j = true;
+    ASSERT_EQ(j.size(), 1);
+    // null
+    j = nullptr;
+    ASSERT_EQ(j.size(), 0);
+    // array
+    j = json::array({ 1, 2, 3 });
+    ASSERT_EQ(j.size(), 3);
+    // object
+    j = json::object({ { "1", 1 }, { "2", 2 } });
+    ASSERT_EQ(j.size(), 2);
+}
+
+TEST(test_basic_json, test_method_clear)
+{
+    json j;
+    // string
+    j = "string";
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.as_string(), "");
+    // integer
+    j = 100;
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.as_int(), 0);
+    // floating
+    j = 100.0;
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.as_float(), 0);
+    // boolean
+    j = true;
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.as_bool(), false);
+    // null
+    j = nullptr;
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.is_null(), true);
+    // array
+    j = json::array({ 1, 2, 3 });
+    ASSERT_NO_THROW(j.clear());
+    ASSERT_EQ(j.size(), 0);
+    // object
+    j = json::object({ { "1", 1 }, { "2", 2 } });
     ASSERT_NO_THROW(j.clear());
     ASSERT_EQ(j.size(), 0);
 }

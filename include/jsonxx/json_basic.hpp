@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "json_config.hpp"
 #include "json_iterator.hpp"
 #include "json_parser.hpp"
 #include "json_serializer.hpp"
@@ -33,8 +34,8 @@ namespace jsonxx
 DECLARE_BASIC_JSON_TEMPLATE
 class basic_json
 {
-    friend struct iterator_impl<basic_json>;
-    friend struct iterator_impl<const basic_json>;
+    friend struct detail::iterator<basic_json>;
+    friend struct detail::iterator<const basic_json>;
     friend struct json_serializer<basic_json>;
     friend struct json_parser<basic_json>;
     friend struct json_value_getter<basic_json>;
@@ -54,8 +55,8 @@ public:
                                   allocator_type<std::pair<const string_type, basic_json>>>;
     using initializer_list = std::initializer_list<basic_json>;
 
-    using iterator               = iterator_impl<basic_json>;
-    using const_iterator         = iterator_impl<const basic_json>;
+    using iterator               = detail::iterator<basic_json>;
+    using const_iterator         = detail::iterator<const basic_json>;
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -132,14 +133,20 @@ public:
     {
     }
 
-    basic_json(initializer_list const& init_list)
+    basic_json(initializer_list const& init_list, json_type exact_type = json_type::null)
     {
         bool is_an_object = std::all_of(init_list.begin(), init_list.end(), [](const basic_json& json) {
             return (json.is_array() && json.size() == 2 && json[0].is_string());
         });
 
-        if (is_an_object)
+        if (exact_type != json_type::object && exact_type != json_type::array)
         {
+            exact_type = is_an_object ? json_type::object : json_type::array;
+        }
+
+        if (exact_type == json_type::object)
+        {
+            JSONXX_ASSERT(is_an_object);
             value_ = json_type::object;
 
             std::for_each(init_list.begin(), init_list.end(), [this](const basic_json& json) {
@@ -157,28 +164,12 @@ public:
 
     static inline basic_json object(initializer_list const& init_list)
     {
-        if (init_list.size() != 2 || !(*init_list.begin()).is_string())
-        {
-            throw json_type_error("cannot create object from initializer_list");
-        }
-
-        basic_json json;
-        json.value_ = json_type::object;
-        json.value_.data.object->emplace(*((*init_list.begin()).value_.data.string), *(init_list.begin() + 1));
-        return json;
+        return basic_json(init_list, json_type::object);
     }
 
     static inline basic_json array(initializer_list const& init_list)
     {
-        basic_json json;
-        json.value_ = json_type::array;
-
-        if (init_list.size())
-        {
-            json.value_.data.vector->reserve(init_list.size());
-            json.value_.data.vector->assign(init_list.begin(), init_list.end());
-        }
-        return json;
+        return basic_json(init_list, json_type::array);
     }
 
     inline bool is_object() const
@@ -347,7 +338,7 @@ public:
         if (is_object())
         {
             const_iterator iter(this);
-            iter.it_.object_iter = value_.data.object->find(std::forward<_Kty>(key));
+            iter.object_it_ = value_.data.object->find(std::forward<_Kty>(key));
             return iter;
         }
         return cend();

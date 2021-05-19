@@ -172,9 +172,9 @@ struct json_bind<std::map<std::string, _Ty>>
     {
         for (auto iter = j.cbegin(); iter != j.cend(); iter++)
         {
-            _Ty item;
-            ::jsonxx::from_json(iter.value(), item);
-            v.insert(std::make_pair(iter.key(), item));
+            _Ty item{};
+            ::jsonxx::from_json(iter->value(), item);
+            v.insert(std::make_pair(iter->key(), item));
         }
     }
 };

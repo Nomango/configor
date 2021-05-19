@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]  # [ ubuntu-latest, macos-latest ]
-        build_type: [ Release ]
+        build_type: [ Debug ]
 
     env:
       COVERAGE_DIR: ${{github.workspace}}/coverage
@@ -92,7 +92,7 @@ jobs:
 
     strategy:
       matrix:
-        configuration: [ Release ]
+        configuration: [ Debug ]
         platform: [ x86, x64 ]
 
     steps:

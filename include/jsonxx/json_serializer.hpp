@@ -19,12 +19,12 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "json_config.hpp"
 #include "json_unicode.hpp"
 #include "json_value.hpp"
 
 #include <algorithm>         // std::none_of
 #include <array>             // std::array
-#include <cassert>           // assert
 #include <cstdio>            // snprintf
 #include <cwchar>            // swprintf
 #include <initializer_list>  // std::initializer_list
@@ -325,7 +325,7 @@ struct json_serializer
     void dump_float(float_type val)
     {
         const auto len = detail::snprintf_t<char_type>::one_float(number_buffer.data(), number_buffer.size(), val);
-        assert(number_buffer.size() > len);
+        JSONXX_ASSERT(number_buffer.size() > len);
 
         output(number_buffer.data(), len);
 

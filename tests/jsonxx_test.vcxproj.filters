@@ -26,6 +26,9 @@
     <ClCompile Include="test_wchar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_iterator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\jsonxx\json.hpp">

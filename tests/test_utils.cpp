@@ -206,6 +206,18 @@ TEST_F(UtilsTest, test_json_wrap)
     ASSERT_TRUE(bus == expect_bus);
 }
 
+TEST(test_utils, test_nullptr)
+{
+    json                       j;
+    std::unique_ptr<Passenger> pnull = nullptr;
+    ASSERT_NO_THROW(to_json(j, pnull));
+    ASSERT_TRUE(j.is_null());
+
+    auto pnotnull = std::unique_ptr<Passenger>(new Passenger);
+    ASSERT_NO_THROW(from_json(j, pnotnull));
+    ASSERT_TRUE(pnotnull == nullptr);
+}
+
 TEST(test_utils, test_raw_pointer)
 {
     Passenger* p1 = new Passenger("test", 18);
@@ -218,6 +230,15 @@ TEST(test_utils, test_raw_pointer)
 
     ASSERT_TRUE(p2 != nullptr);
     ASSERT_TRUE(*p1 == *p2);
+
+    // test nullptr
+    Passenger* pnull = nullptr;
+    ASSERT_NO_THROW(to_json(j, pnull));
+    ASSERT_TRUE(j.is_null());
+
+    Passenger* pnotnull = p1;
+    ASSERT_NO_THROW(from_json(j, pnotnull));
+    ASSERT_TRUE(pnotnull == nullptr);
 
     delete p1;
     delete p2;
