@@ -52,10 +52,66 @@ TEST_F(BasicJsonTest, test_get)
     ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
     ASSERT_EQ(j["happy"].as_bool(), true);
     ASSERT_EQ(j["name"].as_string(), "Nomango");
-    ASSERT_EQ(j["list"][0].as_int(), 1);
-    ASSERT_EQ(j["list"][1].as_int(), 0);
-    ASSERT_EQ(j["list"][2].as_int(), 2);
-    ASSERT_EQ(j["single_object"]["number"].as_int(), 123);
+    ASSERT_EQ(j["list"][0].as_integer(), 1);
+    ASSERT_EQ(j["list"][1].as_integer(), 0);
+    ASSERT_EQ(j["list"][2].as_integer(), 2);
+    ASSERT_EQ(j["single_object"]["number"].as_integer(), 123);
+}
+
+TEST_F(BasicJsonTest, test_numeric_type)
+{
+#define TEST_NUMERIC_GET_VALUE(j, NUMERIC_TYPE, EXPECT_VALUE) \
+    { \
+        NUMERIC_TYPE tmp = {}; \
+        bool ret = j.get_value(tmp); \
+        ASSERT_TRUE(ret); \
+        ASSERT_EQ(tmp, EXPECT_VALUE); \
+    }
+
+#define TEST_NUMERIC_COMPATIBLE(NUMERIC_TYPE) \
+    { \
+        auto i = NUMERIC_TYPE(1); \
+        json j = i; \
+        ASSERT_TRUE(j.is_number()); \
+        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(i)); \
+        ASSERT_EQ(j.as_float(), static_cast<double>(i)); \
+        TEST_NUMERIC_GET_VALUE(j, NUMERIC_TYPE, i); \
+        TEST_NUMERIC_GET_VALUE(j, int8_t, i); \
+        TEST_NUMERIC_GET_VALUE(j, int16_t, i); \
+        TEST_NUMERIC_GET_VALUE(j, int32_t, i); \
+        TEST_NUMERIC_GET_VALUE(j, float, i); \
+        TEST_NUMERIC_GET_VALUE(j, double, i); \
+    }
+
+    TEST_NUMERIC_COMPATIBLE(int8_t);
+    TEST_NUMERIC_COMPATIBLE(int16_t);
+    TEST_NUMERIC_COMPATIBLE(int32_t);
+    TEST_NUMERIC_COMPATIBLE(float);
+    TEST_NUMERIC_COMPATIBLE(double);
+
+    // int to float
+    {
+        json j = 1;
+        ASSERT_DOUBLE_EQ(j.as_float(), 1.0);
+        j = 2;
+        ASSERT_DOUBLE_EQ(j.as_float(), 2.0);
+
+        const int32_t imax = std::numeric_limits<int32_t>::max();
+        j = imax;
+        ASSERT_DOUBLE_EQ(j.as_float(), static_cast<double>(imax));
+    }
+
+    // float to int
+    {
+        json j = 0.0;
+        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(0.0));
+        j = 1.0;
+        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(1.0));
+        j = 1.49;
+        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(1.49));
+        j = 1.51;
+        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(1.51));
+    }
 }
 
 TEST_F(BasicJsonTest, test_equal)
@@ -87,10 +143,10 @@ TEST_F(BasicJsonTest, test_explicit_convert)
     ASSERT_TRUE((float)j["pi"] == 3.141f);
     ASSERT_TRUE((bool)j["happy"] == true);
     ASSERT_TRUE((std::string)j["name"] == "Nomango");
-    ASSERT_TRUE((int)j["list"][0].as_int() == 1);
-    ASSERT_TRUE((unsigned int)j["list"][0].as_int() == 1u);
-    ASSERT_TRUE((long)j["list"][0].as_int() == 1l);
-    ASSERT_TRUE((int64_t)j["list"][0].as_int() == int64_t(1));
+    ASSERT_TRUE((int)j["list"][0].as_integer() == 1);
+    ASSERT_TRUE((unsigned int)j["list"][0].as_integer() == 1u);
+    ASSERT_TRUE((long)j["list"][0].as_integer() == 1l);
+    ASSERT_TRUE((int64_t)j["list"][0].as_integer() == int64_t(1));
 }
 
 TEST_F(BasicJsonTest, test_assign)
@@ -99,7 +155,7 @@ TEST_F(BasicJsonTest, test_assign)
     ASSERT_EQ(j["happy"].as_bool(), false);
 
     j["list"][0] = -1;
-    ASSERT_EQ(j["list"][0].as_int(), -1);
+    ASSERT_EQ(j["list"][0].as_integer(), -1);
 
     j["new_item"] = "string";
     ASSERT_EQ(j["new_item"].as_string(), "string");
@@ -184,7 +240,7 @@ TEST(test_basic_json, test_method_clear)
     // integer
     j = 100;
     ASSERT_NO_THROW(j.clear());
-    ASSERT_EQ(j.as_int(), 0);
+    ASSERT_EQ(j.as_integer(), 0);
     // floating
     j = 100.0;
     ASSERT_NO_THROW(j.clear());
@@ -212,5 +268,5 @@ TEST(test_basic_json, test_int64)
     // issue 12
     int64_t max64 = std::numeric_limits<int64_t>::max();
     json64  j     = max64;
-    ASSERT_EQ(j.as_int(), max64);
+    ASSERT_EQ(j.as_integer(), max64);
 }
