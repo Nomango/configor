@@ -510,6 +510,11 @@ public:
             val = value_.data.number_integer;
             return true;
         }
+        if (is_float())
+        {
+            val = static_cast<integer_type>(value_.data.number_float);
+            return true;
+        }
         return false;
     }
 
@@ -518,6 +523,11 @@ public:
         if (is_float())
         {
             val = value_.data.number_float;
+            return true;
+        }
+        if (is_integer())
+        {
+            val = static_cast<float_type>(value_.data.number_integer);
             return true;
         }
         return false;
@@ -531,6 +541,11 @@ public:
             val = static_cast<_IntegerUTy>(value_.data.number_integer);
             return true;
         }
+        if (is_float())
+        {
+            val = static_cast<_IntegerUTy>(value_.data.number_float);
+            return true;
+        }
         return false;
     }
 
@@ -540,6 +555,11 @@ public:
         if (is_float())
         {
             val = static_cast<_FloatingTy>(value_.data.number_float);
+            return true;
+        }
+        if (is_integer())
+        {
+            val = static_cast<_FloatingTy>(value_.data.number_integer);
             return true;
         }
         return false;
@@ -582,17 +602,21 @@ public:
         return value_.data.boolean;
     }
 
-    integer_type as_int() const
+    integer_type as_integer() const
     {
-        if (!is_integer())
+        if (!is_number())
             throw json_type_error("json value must be integer");
+        if (is_float())
+            return static_cast<integer_type>(value_.data.number_float);
         return value_.data.number_integer;
     }
 
     float_type as_float() const
     {
-        if (!is_float())
+        if (!is_number())
             throw json_type_error("json value must be float");
+        if (is_integer())
+            return static_cast<float_type>(value_.data.number_integer);
         return value_.data.number_float;
     }
 
