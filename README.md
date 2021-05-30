@@ -346,12 +346,12 @@ int main(int argc, char** argv)
 
 ### 计划
 
-[x] wchar_t、char16_t、char32_t 支持
-[ ] 单测覆盖率达到 85% 以上
-[ ] 拆分 json 和 json_value
-[ ] 支持注释
-[ ] 支持 json 和自定义类型的隐式转换（has_to_json限定）
-[ ] optional 返回值的支持（作为模板参数并允许替换）
+- [x] wchar_t、char16_t、char32_t 支持
+- [x] 单测覆盖率达到 85% 以上
+- [ ] 拆分 json 和 json_value
+- [ ] 支持注释
+- [ ] 支持 json 和自定义类型的隐式转换（has_to_json限定）
+- [ ] optional 返回值的支持（作为模板参数并允许替换）
 
 ### 鸣谢
 
