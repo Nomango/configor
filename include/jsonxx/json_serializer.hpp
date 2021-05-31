@@ -26,7 +26,7 @@
 #include <algorithm>         // std::none_of
 #include <array>             // std::array
 #include <initializer_list>  // std::initializer_list
-#include <iomanip>           // std::fill, std::setw, std::setprecision
+#include <iomanip>           // std::fill, std::setw, std::setprecision, std::right, std::noshowbase
 #include <ios>               // std::streamsize, std::hex, std::dec
 #include <ostream>           // std::basic_ostream
 #include <streambuf>         // std::basic_streambuf
@@ -143,6 +143,23 @@ private:
 // json_serializer
 //
 
+namespace detail
+{
+
+template <typename _BasicJsonTy>
+struct serializer_args
+{
+    using char_type  = typename _BasicJsonTy::char_type;
+    using float_type = typename _BasicJsonTy::float_type;
+
+    int       precision      = std::numeric_limits<float_type>::digits10 + 1;
+    int       indent         = -1;
+    char_type indent_char    = ' ';
+    bool      escape_unicode = false;
+};
+
+}  // namespace detail
+
 template <typename _BasicJsonTy>
 struct json_serializer
 {
@@ -155,19 +172,22 @@ struct json_serializer
     using object_type   = typename _BasicJsonTy::object_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
+    using args          = detail::serializer_args<_BasicJsonTy>;
 
-    json_serializer(output_adapter<char_type>* adapter, const char_type indent_char_)
+    json_serializer(output_adapter<char_type>* adapter, const args& args)
         : buf_(adapter)
         , out_(&buf_)
-        , indent_char_(indent_char_)
-        , indent_string_(32, indent_char_)
+        , args_(args)
+        , indent_string_(32, args_.indent_char)
     {
-        out_ << std::setprecision(std::numeric_limits<float_type>::digits10 + 1);
+        out_ << std::setprecision(args_.precision);
+        out_ << std::right;
+        out_ << std::noshowbase;
     }
 
-    void dump(const _BasicJsonTy& json, const bool pretty_print, const bool escape_unicode,
-              const unsigned int indent_step, const unsigned int current_indent = 0)
+    void dump(const _BasicJsonTy& json, const int current_indent = 0)
     {
+        const bool pretty_print = (args_.indent > 0);
         switch (json.type())
         {
         case json_type::object:
@@ -184,10 +204,10 @@ struct json_serializer
             {
                 out_ << '{' << '\n';
 
-                const auto new_indent = current_indent + indent_step;
+                const auto new_indent = static_cast<size_t>(current_indent + args_.indent);
                 if (indent_string_.size() < new_indent)
                 {
-                    indent_string_.resize(indent_string_.size() * 2, indent_char_);
+                    indent_string_.resize(indent_string_.size() * 2, args_.indent_char);
                 }
 
                 auto       iter = object.cbegin();
@@ -197,7 +217,7 @@ struct json_serializer
                     out_.write(indent_string_.c_str(), new_indent);
                     out_ << '\"' << iter->first << '\"' << ':';
                     out_.write(indent_string_.c_str(), 1);
-                    dump(iter->second, pretty_print, escape_unicode, indent_step, new_indent);
+                    dump(iter->second, new_indent);
 
                     // not last element
                     if (i != size - 1)
@@ -219,7 +239,7 @@ struct json_serializer
                 for (std::size_t i = 0; i < size; ++i, ++iter)
                 {
                     out_ << '\"' << iter->first << '\"' << ':';
-                    dump(iter->second, pretty_print, escape_unicode, indent_step, current_indent);
+                    dump(iter->second, current_indent);
 
                     // not last element
                     if (i != size - 1)
@@ -246,10 +266,10 @@ struct json_serializer
             {
                 out_ << '[' << '\n';
 
-                const auto new_indent = current_indent + indent_step;
+                const auto new_indent = static_cast<size_t>(current_indent + args_.indent);
                 if (indent_string_.size() < new_indent)
                 {
-                    indent_string_.resize(indent_string_.size() * 2, indent_char_);
+                    indent_string_.resize(indent_string_.size() * 2, args_.indent_char);
                 }
 
                 auto       iter = vector.cbegin();
@@ -257,7 +277,7 @@ struct json_serializer
                 for (std::size_t i = 0; i < size; ++i, ++iter)
                 {
                     out_.write(indent_string_.c_str(), new_indent);
-                    dump(*iter, pretty_print, escape_unicode, indent_step, new_indent);
+                    dump(*iter, new_indent);
 
                     // not last element
                     if (i != size - 1)
@@ -278,7 +298,7 @@ struct json_serializer
                 const auto size = vector.size();
                 for (std::size_t i = 0; i < size; ++i, ++iter)
                 {
-                    dump(*iter, pretty_print, escape_unicode, indent_step, current_indent);
+                    dump(*iter, current_indent);
                     // not last element
                     if (i != size - 1)
                         out_ << ',';
@@ -293,7 +313,7 @@ struct json_serializer
         case json_type::string:
         {
             out_ << '\"';
-            dump_string(*json.value_.data.string, escape_unicode);
+            dump_string(*json.value_.data.string);
             out_ << '\"';
             return;
         }
@@ -331,11 +351,12 @@ struct json_serializer
         }
     }
 
-    void dump_string(const string_type& val, const bool escape_unicode)
+    void dump_string(const string_type& val)
     {
-        size_t                              i    = 0;
-        uint32_t                            code = 0;
-        detail::unicode_reader<string_type> ur(val, escape_unicode);
+        size_t   i    = 0;
+        uint32_t code = 0;
+
+        detail::unicode_reader<string_type> ur(val, args_.escape_unicode);
         while (ur.get_code(i, code))
         {
             switch (code)
@@ -386,7 +407,7 @@ struct json_serializer
             {
                 // escape control characters
                 // and non-ASCII characters (if `escape_unicode` is true)
-                const bool need_escape = code <= 0x1F || (escape_unicode && code >= 0x7F);
+                const bool need_escape = code <= 0x1F || (args_.escape_unicode && code >= 0x7F);
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
@@ -424,7 +445,8 @@ struct json_serializer
 private:
     detail::output_streambuf<char_type> buf_;
     std::basic_ostream<char_type>       out_;
-    char_type                           indent_char_;
+    const args&                         args_;
     string_type                         indent_string_;
 };
+
 }  // namespace jsonxx

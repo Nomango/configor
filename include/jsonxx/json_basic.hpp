@@ -60,6 +60,8 @@ public:
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
+    using dump_args = detail::serializer_args<basic_json>;
+
 public:
     basic_json() {}
 
@@ -135,9 +137,9 @@ public:
 
     basic_json(initializer_list const& init_list, json_type exact_type = json_type::null)
     {
-        bool is_an_object = std::all_of(init_list.begin(), init_list.end(), [](const basic_json& json) {
-            return (json.is_array() && json.size() == 2 && json[0].is_string());
-        });
+        bool is_an_object = std::all_of(init_list.begin(), init_list.end(),
+                                        [](const basic_json& json)
+                                        { return (json.is_array() && json.size() == 2 && json[0].is_string()); });
 
         if (exact_type != json_type::object && exact_type != json_type::array)
         {
@@ -149,10 +151,11 @@ public:
             JSONXX_ASSERT(is_an_object);
             value_ = json_type::object;
 
-            std::for_each(init_list.begin(), init_list.end(), [this](const basic_json& json) {
-                value_.data.object->emplace(*((*json.value_.data.vector)[0].value_.data.string),
-                                            (*json.value_.data.vector)[1]);
-            });
+            std::for_each(init_list.begin(), init_list.end(),
+                          [this](const basic_json& json) {
+                              value_.data.object->emplace(*((*json.value_.data.vector)[0].value_.data.string),
+                                                          (*json.value_.data.vector)[1]);
+                          });
         }
         else
         {
@@ -772,40 +775,42 @@ public:
 public:
     // dumps functions
 
-    friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out, const basic_json& json)
+    friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out, const basic_json& j)
     {
         using char_type = typename std::basic_ostream<char_type>::char_type;
 
-        const bool pretty_print = (out.width() > 0);
-        const auto indentation  = (pretty_print ? out.width() : 0);
+        dump_args args;
+        args.indent      = static_cast<int>(out.width());
+        args.indent_char = out.fill();
+        args.precision   = static_cast<int>(out.precision());
+
         out.width(0);
 
         stream_output_adapter<char_type> adapter(out);
-        json_serializer<basic_json>(&adapter, out.fill())
-            .dump(json, pretty_print, false, static_cast<unsigned int>(indentation));
+        j.dump(&adapter, args);
         return out;
     }
 
-    string_type dump(const int indent = -1, const char_type indent_char = ' ', const bool escape_utf8 = false) const
+    string_type dump(const int indent = -1, const char_type indent_char = ' ', const bool escape_unicode = false) const
+    {
+        dump_args args;
+        args.indent         = indent;
+        args.indent_char    = indent_char;
+        args.escape_unicode = escape_unicode;
+        return this->dump(args);
+    }
+
+    string_type dump(const dump_args& args) const
     {
         string_type                        result;
         string_output_adapter<string_type> adapter(result);
-        dump(&adapter, indent, indent_char, escape_utf8);
+        this->dump(&adapter, args);
         return result;
     }
 
-    void dump(output_adapter<char_type>* adapter, const int indent = -1, const char_type indent_char = ' ',
-              const bool escape_utf8 = false) const
+    void dump(output_adapter<char_type>* adapter, const dump_args& args = dump_args()) const
     {
-        if (indent >= 0)
-        {
-            json_serializer<basic_json>(adapter, indent_char)
-                .dump(*this, true, escape_utf8, static_cast<unsigned int>(indent));
-        }
-        else
-        {
-            json_serializer<basic_json>(adapter, indent_char).dump(*this, false, escape_utf8, 0);
-        }
+        json_serializer<basic_json>(adapter, args).dump(*this);
     }
 
 public:

@@ -75,6 +75,10 @@ TEST(test_serializer, test_dump_minimal_float)
     json j = minimal_float;
     ASSERT_EQ(j.dump(), "3.141592653589793e-06");
 
+    json::dump_args args;
+    args.precision = 6;
+    ASSERT_EQ(j.dump(args), "3.14159e-06");
+
 #define COMBINE(A, B) A##B
 #define PRECISION(DIG) COMBINE(1e-, DIG)
 
