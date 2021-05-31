@@ -112,8 +112,8 @@
     <ClCompile Include="test_iterator.cpp" />
     <ClCompile Include="test_parser.cpp" />
     <ClCompile Include="test_serializer.cpp" />
+    <ClCompile Include="test_unicode.cpp" />
     <ClCompile Include="test_utils.cpp" />
-    <ClCompile Include="test_wchar.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\jsonxx\json.hpp" />

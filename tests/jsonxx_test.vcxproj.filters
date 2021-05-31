@@ -23,10 +23,10 @@
     <ClCompile Include="test_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test_wchar.cpp">
+    <ClCompile Include="test_iterator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test_iterator.cpp">
+    <ClCompile Include="test_unicode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

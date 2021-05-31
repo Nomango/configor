@@ -12,7 +12,29 @@ using namespace jsonxx;
 
 #define RAW_STR "我是地球🌍"
 #define QUOTE_STR "\"我是地球🌍\""
-#define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
+#define ESCAPED_STR "\"\\u6211\\u662f\\u5730\\u7403\\ud83c\\udf0d\""
+
+TEST(test_unicode, test_parse_surrogate)
+{
+    auto j = json::parse(ESCAPED_STR);
+    ASSERT_EQ(j.as_string(), RAW_STR);
+
+    auto wj = wjson::parse(WIDE(ESCAPED_STR));
+    ASSERT_EQ(wj.as_string(), WIDE(RAW_STR));
+}
+
+TEST(test_unicode, test_dump_escaped)
+{
+    json j = RAW_STR;
+    ASSERT_EQ(j.dump(), QUOTE_STR);
+    ASSERT_EQ(j.dump(-1, ' ', false), QUOTE_STR);
+    ASSERT_EQ(j.dump(-1, ' ', true), ESCAPED_STR);
+
+    wjson wj = WIDE(RAW_STR);
+    ASSERT_EQ(wj.dump(), WIDE(QUOTE_STR));
+    ASSERT_EQ(wj.dump(-1, ' ', false), WIDE(QUOTE_STR));
+    ASSERT_EQ(wj.dump(-1, ' ', true), WIDE(ESCAPED_STR));
+}
 
 class WCharTest : public testing::Test
 {
@@ -48,49 +70,10 @@ TEST_F(WCharTest, test_write_to_stream)
     ASSERT_EQ(ss.str(), j.dump(2, '.'));
 }
 
-TEST(test_parser_w, test_parse)
+TEST(test_unicode, test_parse_w)
 {
     auto j = wjson::parse(L"{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }");
     ASSERT_EQ(j[L"happy"].as_bool(), true);
     ASSERT_DOUBLE_EQ(j[L"pi"].as_float(), 3.141);
     ASSERT_EQ(j[L"name"].as_string(), L"中文测试");
-}
-
-TEST(test_parser_w, test_parse_surrogate)
-{
-    auto j = wjson::parse(WIDE(ESCAPED_STR));
-    ASSERT_EQ(j.as_string(), WIDE(RAW_STR));
-}
-
-TEST(test_serializer_w, test_dump_escaped)
-{
-    wjson j = WIDE(RAW_STR);
-    ASSERT_EQ(j.dump(), WIDE(QUOTE_STR));
-    ASSERT_EQ(j.dump(-1, ' ', false), WIDE(QUOTE_STR));
-    ASSERT_EQ(j.dump(-1, ' ', true), WIDE(ESCAPED_STR));
-}
-
-using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
-using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
-
-TEST(test_parser_u16_u32, test_parse_surrogate)
-{
-    auto j32 = u32json::parse(U32(ESCAPED_STR));
-    ASSERT_EQ(j32.as_string(), U32(RAW_STR));
-
-    auto j16 = u16json::parse(U16(ESCAPED_STR));
-    ASSERT_EQ(j16.as_string(), U16(RAW_STR));
-}
-
-TEST(test_serializer_u16_u32, test_dump_escaped)
-{
-    u32json j32 = U32(RAW_STR);
-    ASSERT_EQ(j32.dump(), U32(QUOTE_STR));
-    ASSERT_EQ(j32.dump(-1, ' ', false), U32(QUOTE_STR));
-    ASSERT_TRUE(j32.dump(-1, ' ', true) == U32(ESCAPED_STR));
-
-    u16json j16 = U16(RAW_STR);
-    ASSERT_EQ(j16.dump(), U16(QUOTE_STR));
-    ASSERT_EQ(j16.dump(-1, ' ', false), U16(QUOTE_STR));
-    ASSERT_TRUE(j16.dump(-1, ' ', true) == U16(ESCAPED_STR));
 }

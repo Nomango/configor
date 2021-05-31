@@ -40,31 +40,14 @@ namespace jsonxx
 {
 namespace detail
 {
-namespace
+
+inline uint32_t merge_surrogates(uint32_t lead_surrogate, uint32_t trail_surrogate)
 {
-uint32_t merge_surrogates(uint32_t lead_surrogate, uint32_t trail_surrogate)
-{
-    uint32_t code = 0;
-    code          = ((lead_surrogate - JSONXX_UNICODE_SUR_LEAD_BEGIN) << JSONXX_UNICODE_SUR_BITS);
+    uint32_t code = ((lead_surrogate - JSONXX_UNICODE_SUR_LEAD_BEGIN) << JSONXX_UNICODE_SUR_BITS);
     code += (trail_surrogate - JSONXX_UNICODE_SUR_TRAIL_BEGIN);
     code += JSONXX_UNICODE_SUR_BASE;
     return code;
 }
-
-inline void copy_simple_str_to_16(const char* str, char16_t* output, size_t len)
-{
-    for (size_t i = 0; i < len; i++)
-        output[i] = static_cast<char16_t>(str[i]);
-    output[len] = u'\0';
-}
-
-inline void copy_simple_str_to_32(const char* str, char32_t* output, size_t len)
-{
-    for (size_t i = 0; i < len; i++)
-        output[i] = static_cast<char32_t>(str[i]);
-    output[len] = U'\0';
-}
-}  // namespace
 
 //
 // unicode_reader
@@ -502,154 +485,6 @@ struct unicode_writer<std::u32string>
     inline void add_surrogates(uint32_t lead_surrogate, uint32_t trail_surrogate)
     {
         add_code(merge_surrogates(lead_surrogate, trail_surrogate));
-    }
-};
-
-//
-// snprintf_t for unicode
-//
-
-template <typename _CharTy>
-struct snprintf_t;
-
-template <>
-struct snprintf_t<char>
-{
-    using char_type = char;
-
-    template <typename _FloatTy>
-    static inline size_t one_float(char_type* str, size_t size, _FloatTy val)
-    {
-        static constexpr auto digits = std::numeric_limits<_FloatTy>::max_digits10;
-        return internal_snprintf(str, size, "%.*g", digits, val);
-    }
-
-    static inline size_t one_uint16(char_type* str, uint16_t code)
-    {
-        return internal_snprintf(str, 7, "\\u%04X", code);
-    }
-
-    static inline size_t two_uint16(char_type* str, uint16_t code1, uint16_t code2)
-    {
-        return internal_snprintf(str, 13, "\\u%04X\\u%04X", code1, code2);
-    }
-
-    template <typename... _Args>
-    static inline size_t internal_snprintf(char_type* str, size_t size, const char_type* format, _Args&&... args)
-    {
-        const auto len = std::snprintf(str, size, format, std::forward<_Args>(args)...);
-        // check len
-        if (len < 0)
-        {
-            throw json_serialize_error("snprintf failed");
-        }
-        return static_cast<size_t>(len);
-    }
-};
-
-template <>
-struct snprintf_t<wchar_t>
-{
-    using char_type = wchar_t;
-
-    template <typename _FloatTy>
-    static inline size_t one_float(char_type* str, size_t size, _FloatTy val)
-    {
-        static constexpr auto digits = std::numeric_limits<_FloatTy>::max_digits10;
-        return internal_snprintf(str, size, L"%.*g", digits, val);
-    }
-
-    static inline size_t one_uint16(char_type* str, uint16_t code)
-    {
-        return internal_snprintf(str, 7, L"\\u%04X", code);
-    }
-
-    static inline size_t two_uint16(char_type* str, uint16_t code1, uint16_t code2)
-    {
-        return internal_snprintf(str, 13, L"\\u%04X\\u%04X", code1, code2);
-    }
-
-    template <typename... _Args>
-    static inline size_t internal_snprintf(char_type* str, size_t size, const char_type* format, _Args&&... args)
-    {
-        const auto len = std::swprintf(str, size, format, std::forward<_Args>(args)...);
-        // check len
-        if (len < 0)
-        {
-            throw json_serialize_error("snprintf failed");
-        }
-        return static_cast<size_t>(len);
-    }
-};
-
-template <>
-struct snprintf_t<char16_t>
-{
-    using char_type = char16_t;
-
-    template <typename _FloatTy>
-    static inline size_t one_float(char_type* str, size_t size, _FloatTy val)
-    {
-        static constexpr auto digits = std::numeric_limits<_FloatTy>::max_digits10;
-        return internal_snprintf(str, size, "%.*g", digits, val);
-    }
-
-    static inline size_t one_uint16(char_type* str, uint16_t code)
-    {
-        return internal_snprintf(str, 7, "\\u%04X", code);
-    }
-
-    static inline size_t two_uint16(char_type* str, uint16_t code1, uint16_t code2)
-    {
-        return internal_snprintf(str, 13, "\\u%04X\\u%04X", code1, code2);
-    }
-
-    template <typename... _Args>
-    static inline size_t internal_snprintf(char_type* str, size_t size, const char* format, _Args&&... args)
-    {
-        std::vector<char> buffer = {};
-        buffer.resize(size);
-
-        const auto len = std::snprintf(buffer.data(), size, format, std::forward<_Args>(args)...);
-        // copy buffer
-        copy_simple_str_to_16(buffer.data(), str, len);
-        return len;
-    }
-};
-
-template <>
-struct snprintf_t<char32_t>
-{
-    using char_type = char32_t;
-
-    template <typename _FloatTy>
-    static inline size_t one_float(char_type* str, size_t size, _FloatTy val)
-    {
-        static constexpr auto digits = std::numeric_limits<_FloatTy>::max_digits10;
-        return internal_snprintf(str, size, "%.*g", digits, val);
-    }
-
-    static inline size_t one_uint16(char_type* str, uint16_t code)
-    {
-        return internal_snprintf(str, 7, "\\u%04X", code);
-    }
-
-    static inline size_t two_uint16(char_type* str, uint16_t code1, uint16_t code2)
-    {
-        return internal_snprintf(str, 13, "\\u%04X\\u%04X", code1, code2);
-    }
-
-    template <typename... _Args>
-    static inline size_t internal_snprintf(char_type* str, size_t size, const char* format, _Args&&... args)
-    {
-        std::vector<char> buffer = {};
-        buffer.resize(size);
-
-        const auto len = jsonxx::detail::snprintf_t<char>::internal_snprintf(buffer.data(), size, format,
-                                                                             std::forward<_Args>(args)...);
-        // copy buffer
-        copy_simple_str_to_32(buffer.data(), str, len);
-        return len;
     }
 };
 
