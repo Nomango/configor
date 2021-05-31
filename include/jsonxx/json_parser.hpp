@@ -25,7 +25,8 @@
 #include <cctype>            // std::isdigit
 #include <cstdio>            // std::FILE
 #include <initializer_list>  // std::initializer_list
-#include <ios>               // std::basic_istream, std::basic_streambuf
+#include <istream>           // std::basic_istream
+#include <streambuf>         // std::basic_streambuf
 #include <type_traits>       // std::char_traits
 
 namespace jsonxx
@@ -37,25 +38,27 @@ namespace jsonxx
 template <typename _CharTy>
 struct input_adapter
 {
-    using char_type   = _CharTy;
-    using char_traits = std::char_traits<char_type>;
+    using char_type     = _CharTy;
+    using char_traits   = std::char_traits<char_type>;
+    using char_int_type = typename char_traits::int_type;
 
-    virtual typename char_traits::int_type get_char() = 0;
-    virtual ~input_adapter()                          = default;
+    virtual char_int_type get_char() = 0;
+    virtual ~input_adapter()         = default;
 };
 
 template <typename _CharTy>
 struct file_input_adapter : public input_adapter<_CharTy>
 {
-    using char_type   = typename input_adapter<_CharTy>::char_type;
-    using char_traits = typename input_adapter<_CharTy>::char_traits;
+    using char_type     = typename input_adapter<_CharTy>::char_type;
+    using char_traits   = typename input_adapter<_CharTy>::char_traits;
+    using char_int_type = typename char_traits::int_type;
 
     file_input_adapter(std::FILE* file)
         : file(file)
     {
     }
 
-    virtual typename char_traits::int_type get_char() override
+    virtual char_int_type get_char() override
     {
         return std::fgetc(file);
     }
@@ -67,8 +70,9 @@ private:
 template <typename _CharTy>
 struct stream_input_adapter : public input_adapter<_CharTy>
 {
-    using char_type   = typename input_adapter<_CharTy>::char_type;
-    using char_traits = typename input_adapter<_CharTy>::char_traits;
+    using char_type     = typename input_adapter<_CharTy>::char_type;
+    using char_traits   = typename input_adapter<_CharTy>::char_traits;
+    using char_int_type = typename char_traits::int_type;
 
     stream_input_adapter(std::basic_istream<char_type>& stream)
         : stream(stream)
@@ -76,7 +80,7 @@ struct stream_input_adapter : public input_adapter<_CharTy>
     {
     }
 
-    virtual typename char_traits::int_type get_char() override
+    virtual char_int_type get_char() override
     {
         auto ch = streambuf.sbumpc();
         if (ch == EOF)
@@ -99,8 +103,9 @@ private:
 template <typename _StringTy>
 struct string_input_adapter : public input_adapter<typename _StringTy::value_type>
 {
-    using char_type   = typename input_adapter<typename _StringTy::value_type>::char_type;
-    using char_traits = typename input_adapter<typename _StringTy::value_type>::char_traits;
+    using char_type     = typename input_adapter<typename _StringTy::value_type>::char_type;
+    using char_traits   = typename input_adapter<typename _StringTy::value_type>::char_traits;
+    using char_int_type = typename char_traits::int_type;
 
     string_input_adapter(const _StringTy& str)
         : str(str)
@@ -108,7 +113,7 @@ struct string_input_adapter : public input_adapter<typename _StringTy::value_typ
     {
     }
 
-    virtual typename char_traits::int_type get_char() override
+    virtual char_int_type get_char() override
     {
         if (index == str.size())
             return char_traits::eof();
@@ -123,8 +128,9 @@ private:
 template <typename _CharTy>
 struct buffer_input_adapter : public input_adapter<_CharTy>
 {
-    using char_type   = typename input_adapter<_CharTy>::char_type;
-    using char_traits = typename input_adapter<_CharTy>::char_traits;
+    using char_type     = typename input_adapter<_CharTy>::char_type;
+    using char_traits   = typename input_adapter<_CharTy>::char_traits;
+    using char_int_type = typename char_traits::int_type;
 
     buffer_input_adapter(const _CharTy* str)
         : str(str)
@@ -132,7 +138,7 @@ struct buffer_input_adapter : public input_adapter<_CharTy>
     {
     }
 
-    virtual typename char_traits::int_type get_char() override
+    virtual char_int_type get_char() override
     {
         if (str[index] == '\0')
             return char_traits::eof();
@@ -186,7 +192,7 @@ struct json_lexer
     using char_int_type = typename char_traits::int_type;
 
     json_lexer(input_adapter<char_type>* adapter)
-        : adapter(adapter)
+        : adapter_(adapter)
     {
         // read first char
         read_next();
@@ -194,13 +200,13 @@ struct json_lexer
 
     char_int_type read_next()
     {
-        current = adapter->get_char();
-        return current;
+        current_ = adapter_->get_char();
+        return current_;
     }
 
     void skip_spaces()
     {
-        while (current == ' ' || current == '\t' || current == '\n' || current == '\r')
+        while (current_ == ' ' || current_ == '\t' || current_ == '\n' || current_ == '\r')
         {
             read_next();
         }
@@ -211,7 +217,7 @@ struct json_lexer
         skip_spaces();
 
         token_type result = token_type::uninitialized;
-        switch (current)
+        switch (current_)
         {
         case '[':
             result = token_type::begin_array;
@@ -264,7 +270,7 @@ struct json_lexer
             throw json_parse_error("unexpected character");
         }
 
-        // skip current char
+        // skip current_ char
         read_next();
 
         return result;
@@ -274,7 +280,7 @@ struct json_lexer
     {
         for (const auto ch : text)
         {
-            if (ch != char_traits::to_char_type(current))
+            if (ch != char_traits::to_char_type(current_))
             {
                 throw json_parse_error("unexpected literal");
             }
@@ -285,10 +291,10 @@ struct json_lexer
 
     token_type scan_string()
     {
-        if (current != '\"')
+        if (current_ != '\"')
             throw json_parse_error("string must start with '\"'");
 
-        string_buffer.clear();
+        string_buffer_.clear();
 
         while (true)
         {
@@ -392,12 +398,12 @@ struct json_lexer
                             throw json_parse_error("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
                         }
 
-                        detail::unicode_writer<string_type> uw(this->string_buffer);
+                        detail::unicode_writer<string_type> uw(this->string_buffer_);
                         uw.add_surrogates(lead_surrogate, trail_surrogate);
                     }
                     else
                     {
-                        detail::unicode_writer<string_type> uw(this->string_buffer);
+                        detail::unicode_writer<string_type> uw(this->string_buffer_);
                         uw.add_code(code);
                     }
                     break;
@@ -421,17 +427,17 @@ struct json_lexer
 
     token_type scan_number()
     {
-        is_negative  = false;
-        number_value = static_cast<float_type>(0.0);
+        is_negative_  = false;
+        number_value_ = static_cast<float_type>(0.0);
 
-        if (current == '-')
+        if (current_ == '-')
         {
-            is_negative = true;
+            is_negative_ = true;
             read_next();
             return scan_integer();
         }
 
-        if (current == '0')
+        if (current_ == '0')
         {
             if (read_next() == '.')
                 return scan_float();
@@ -443,10 +449,10 @@ struct json_lexer
 
     token_type scan_integer()
     {
-        if (!std::isdigit(current))
+        if (!std::isdigit(current_))
             throw json_parse_error("invalid integer");
 
-        number_value = static_cast<float_type>(current - '0');
+        number_value_ = static_cast<float_type>(current_ - '0');
 
         while (true)
         {
@@ -458,7 +464,7 @@ struct json_lexer
                 return scan_exponent();
 
             if (std::isdigit(ch))
-                number_value = number_value * 10 + (ch - '0');
+                number_value_ = number_value_ * 10 + (ch - '0');
             else
                 break;
         }
@@ -467,14 +473,14 @@ struct json_lexer
 
     token_type scan_float()
     {
-        if (current != '.')
+        if (current_ != '.')
             throw json_parse_error("float number must start with '.'");
 
         if (!std::isdigit(read_next()))
             throw json_parse_error("invalid float number");
 
         float_type fraction = static_cast<float_type>(0.1);
-        number_value += static_cast<float_type>(static_cast<uint32_t>(current - '0')) * fraction;
+        number_value_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
 
         while (true)
         {
@@ -485,7 +491,7 @@ struct json_lexer
             if (std::isdigit(ch))
             {
                 fraction *= static_cast<float_type>(0.1);
-                number_value += static_cast<float_type>(static_cast<uint32_t>(current - '0')) * fraction;
+                number_value_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
             }
             else
                 break;
@@ -495,31 +501,31 @@ struct json_lexer
 
     token_type scan_exponent()
     {
-        if (current != 'e' && current != 'E')
+        if (current_ != 'e' && current_ != 'E')
             throw json_parse_error("exponent number must contains 'e' or 'E'");
 
-        // skip current char
+        // skip current_ char
         read_next();
 
-        const bool invalid = (std::isdigit(current) && current != '0') || (current == '-') || (current == '+');
+        const bool invalid = (std::isdigit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
         if (!invalid)
             throw json_parse_error("invalid exponent number");
 
         float_type base = 10;
-        if (current == '+')
+        if (current_ == '+')
         {
             read_next();
         }
-        else if (current == '-')
+        else if (current_ == '-')
         {
             base = static_cast<float_type>(0.1);
             read_next();
         }
 
-        uint32_t exponent = static_cast<uint32_t>(current - '0');
+        uint32_t exponent = static_cast<uint32_t>(current_ - '0');
         while (std::isdigit(read_next()))
         {
-            exponent = (exponent * 10) + static_cast<uint32_t>(current - '0');
+            exponent = (exponent * 10) + static_cast<uint32_t>(current_ - '0');
         }
 
         float_type power = 1;
@@ -527,24 +533,24 @@ struct json_lexer
             if (exponent & 1)
                 power *= base;
 
-        number_value *= power;
+        number_value_ *= power;
         return token_type::value_float;
     }
 
     integer_type token_to_integer() const
     {
-        integer_type integer = static_cast<integer_type>(number_value);
-        return is_negative ? -integer : integer;
+        integer_type integer = static_cast<integer_type>(number_value_);
+        return is_negative_ ? -integer : integer;
     }
 
     float_type token_to_float() const
     {
-        return is_negative ? -number_value : number_value;
+        return is_negative_ ? -number_value_ : number_value_;
     }
 
     string_type token_to_string() const
     {
-        return string_buffer;
+        return string_buffer_;
     }
 
     uint32_t read_one_escaped_code()
@@ -575,16 +581,16 @@ struct json_lexer
 
     void add_char(const char_int_type ch)
     {
-        string_buffer.push_back(char_traits::to_char_type(ch));
+        string_buffer_.push_back(char_traits::to_char_type(ch));
     }
 
 private:
-    input_adapter<char_type>* adapter;
-    char_int_type             current;
+    bool        is_negative_;
+    float_type  number_value_;
+    string_type string_buffer_;
 
-    bool        is_negative;
-    float_type  number_value;
-    string_type string_buffer;
+    input_adapter<char_type>* adapter_;
+    char_int_type             current_;
 };
 
 //
