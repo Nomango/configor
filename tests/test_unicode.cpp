@@ -12,7 +12,7 @@ using namespace jsonxx;
 
 #define RAW_STR "我是地球🌍"
 #define QUOTE_STR "\"我是地球🌍\""
-#define ESCAPED_STR "\"\\u6211\\u662f\\u5730\\u7403\\ud83c\\udf0d\""
+#define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
 
 TEST(test_unicode, test_parse_surrogate)
 {

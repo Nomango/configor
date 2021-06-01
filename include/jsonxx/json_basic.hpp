@@ -36,9 +36,13 @@ class basic_json
 {
     friend struct detail::iterator<basic_json>;
     friend struct detail::iterator<const basic_json>;
-    friend struct json_serializer<basic_json>;
-    friend struct json_parser<basic_json>;
     friend struct json_value_getter<basic_json>;
+
+    template <typename _BasicJsonUTy, template <class _CharTy> class _Encoding>
+    friend struct json_serializer;
+
+    template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
+    friend struct json_parser;
 
 public:
     template <typename _Ty>
@@ -777,8 +781,6 @@ public:
 
     friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out, const basic_json& j)
     {
-        using char_type = typename std::basic_ostream<char_type>::char_type;
-
         dump_args args;
         args.indent      = static_cast<unsigned int>(out.width());
         args.indent_char = out.fill();
@@ -791,26 +793,29 @@ public:
         return out;
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     string_type dump(const dump_args& args = dump_args{}) const
     {
         string_type                        result;
         string_output_adapter<string_type> adapter(result);
-        this->dump(&adapter, args);
+        this->dump<_Encoding>(&adapter, args);
         return result;
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false) const
     {
         dump_args args;
         args.indent         = indent;
         args.indent_char    = indent_char;
         args.escape_unicode = escape_unicode;
-        return this->dump(args);
+        return this->dump<_Encoding>(args);
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     void dump(output_adapter<char_type>* adapter, const dump_args& args = dump_args()) const
     {
-        json_serializer<basic_json>(adapter, args).dump(*this);
+        json_serializer<basic_json, _Encoding>(adapter, args).dump(*this);
     }
 
 public:
@@ -819,32 +824,36 @@ public:
     friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in, basic_json& json)
     {
         stream_input_adapter<char_type> adapter(in);
-        json_parser<basic_json>(&adapter).parse(json);
+        json_parser<basic_json, auto_utf>(&adapter).parse(json);
         return in;
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(const string_type& str)
     {
         string_input_adapter<string_type> adapter(str);
-        return parse(&adapter);
+        return basic_json::parse<_Encoding>(&adapter);
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(const char_type* str)
     {
         buffer_input_adapter<char_type> adapter(str);
-        return parse(&adapter);
+        return basic_json::parse<_Encoding>(&adapter);
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(std::FILE* file)
     {
         file_input_adapter<char_type> adapter(file);
-        return parse(&adapter);
+        return basic_json::parse<_Encoding>(&adapter);
     }
 
+    template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(input_adapter<char_type>* adapter)
     {
         basic_json result;
-        json_parser<basic_json>(adapter).parse(result);
+        json_parser<basic_json, _Encoding>(adapter).parse(result);
         return result;
     }
 

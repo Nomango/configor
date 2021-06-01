@@ -55,7 +55,13 @@
     <ClInclude Include="..\include\jsonxx\json_utils.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\jsonxx\json_unicode.hpp">
+    <ClInclude Include="..\include\jsonxx\json_encoding.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_config.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_stream.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
   </ItemGroup>
