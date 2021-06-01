@@ -152,10 +152,10 @@ struct serializer_args
     using char_type  = typename _BasicJsonTy::char_type;
     using float_type = typename _BasicJsonTy::float_type;
 
-    int       precision      = std::numeric_limits<float_type>::digits10 + 1;
-    int       indent         = -1;
-    char_type indent_char    = ' ';
-    bool      escape_unicode = false;
+    int          precision      = std::numeric_limits<float_type>::digits10 + 1;
+    unsigned int indent         = 0;
+    char_type    indent_char    = ' ';
+    bool         escape_unicode = false;
 };
 
 }  // namespace detail
@@ -178,16 +178,23 @@ struct json_serializer
         : buf_(adapter)
         , out_(&buf_)
         , args_(args)
-        , indent_string_(32, args_.indent_char)
+        , indent_()
+        , newline_func_(json_serializer::stream_do_nothing)
     {
         out_ << std::setprecision(args_.precision);
         out_ << std::right;
         out_ << std::noshowbase;
+
+        const bool pretty_print = (args_.indent > 0);
+        if (pretty_print)
+        {
+            newline_func_ = json_serializer::stream_new_line;
+            indent_.init(args_.indent_char);
+        }
     }
 
-    void dump(const _BasicJsonTy& json, const int current_indent = 0)
+    void dump(const _BasicJsonTy& json, const unsigned int current_indent = 0)
     {
-        const bool pretty_print = (args_.indent > 0);
         switch (json.type())
         {
         case json_type::object:
@@ -200,113 +207,54 @@ struct json_serializer
                 return;
             }
 
-            if (pretty_print)
+            out_ << '{' << newline_func_;
+
+            auto       iter       = object.cbegin();
+            const auto size       = object.size();
+            const auto new_indent = current_indent + args_.indent;
+            for (std::size_t i = 0; i < size; ++i, ++iter)
             {
-                out_ << '{' << '\n';
+                out_ << indent_.set(new_indent);
+                out_ << '\"' << iter->first << '\"' << ':';
+                out_ << indent_.set(1);
+                dump(iter->second, new_indent);
 
-                const auto new_indent = static_cast<size_t>(current_indent + args_.indent);
-                if (indent_string_.size() < new_indent)
+                // not last element
+                if (i != size - 1)
                 {
-                    indent_string_.resize(indent_string_.size() * 2, args_.indent_char);
+                    out_ << ',' << newline_func_;
                 }
-
-                auto       iter = object.cbegin();
-                const auto size = object.size();
-                for (std::size_t i = 0; i < size; ++i, ++iter)
-                {
-                    out_.write(indent_string_.c_str(), new_indent);
-                    out_ << '\"' << iter->first << '\"' << ':';
-                    out_.write(indent_string_.c_str(), 1);
-                    dump(iter->second, new_indent);
-
-                    // not last element
-                    if (i != size - 1)
-                    {
-                        out_ << ',' << '\n';
-                    }
-                }
-
-                out_ << '\n';
-                out_.write(indent_string_.c_str(), current_indent);
-                out_ << '}';
             }
-            else
-            {
-                out_ << '{';
-
-                auto       iter = object.cbegin();
-                const auto size = object.size();
-                for (std::size_t i = 0; i < size; ++i, ++iter)
-                {
-                    out_ << '\"' << iter->first << '\"' << ':';
-                    dump(iter->second, current_indent);
-
-                    // not last element
-                    if (i != size - 1)
-                        out_ << ',';
-                }
-
-                out_ << '}';
-            }
-
+            out_ << newline_func_ << indent_.set(current_indent) << '}';
             return;
         }
 
         case json_type::array:
         {
-            auto& vector = *json.value_.data.vector;
+            auto& v = *json.value_.data.vector;
 
-            if (vector.empty())
+            if (v.empty())
             {
                 out_ << '[' << ']';
                 return;
             }
 
-            if (pretty_print)
+            out_ << '[' << newline_func_;
+
+            const auto new_indent = current_indent + args_.indent;
+            const auto size       = v.size();
+            for (std::size_t i = 0; i < size; ++i)
             {
-                out_ << '[' << '\n';
+                out_ << indent_.set(new_indent);
+                dump(v.at(i), new_indent);
 
-                const auto new_indent = static_cast<size_t>(current_indent + args_.indent);
-                if (indent_string_.size() < new_indent)
+                // not last element
+                if (i != size - 1)
                 {
-                    indent_string_.resize(indent_string_.size() * 2, args_.indent_char);
+                    out_ << ',' << newline_func_;
                 }
-
-                auto       iter = vector.cbegin();
-                const auto size = vector.size();
-                for (std::size_t i = 0; i < size; ++i, ++iter)
-                {
-                    out_.write(indent_string_.c_str(), new_indent);
-                    dump(*iter, new_indent);
-
-                    // not last element
-                    if (i != size - 1)
-                    {
-                        out_ << ',' << '\n';
-                    }
-                }
-
-                out_ << '\n';
-                out_.write(indent_string_.c_str(), current_indent);
-                out_ << ']';
             }
-            else
-            {
-                out_ << '[';
-
-                auto       iter = vector.cbegin();
-                const auto size = vector.size();
-                for (std::size_t i = 0; i < size; ++i, ++iter)
-                {
-                    dump(*iter, current_indent);
-                    // not last element
-                    if (i != size - 1)
-                        out_ << ',';
-                }
-
-                out_ << ']';
-            }
-
+            out_ << newline_func_ << indent_.set(current_indent) << ']';
             return;
         }
 
@@ -443,10 +391,68 @@ struct json_serializer
     }
 
 private:
-    detail::output_streambuf<char_type> buf_;
-    std::basic_ostream<char_type>       out_;
-    const args&                         args_;
-    string_type                         indent_string_;
+    using ostream_type    = std::basic_ostream<char_type>;
+    using ostreambuf_type = detail::output_streambuf<char_type>;
+
+    class indent
+    {
+    public:
+        inline indent()
+            : length_(0)
+            , indent_char_(0)
+            , indent_string_()
+        {
+        }
+
+        inline void init(char_type ch)
+        {
+            indent_char_ = ch;
+            indent_string_.resize(16, indent_char_);
+        }
+
+        inline indent& set(unsigned int length)
+        {
+            length_ = length;
+            if (indent_string_.size() < static_cast<size_t>(length))
+            {
+                indent_string_.resize(indent_string_.size() * 2, indent_char_);
+            }
+            return *this;
+        }
+
+        friend inline ostream_type& operator<<(ostream_type& os, const indent& i)
+        {
+            if (i.indent_char_)
+            {
+                os.write(i.indent_string_.c_str(), static_cast<std::streamsize>(i.length_));
+            }
+            return os;
+        }
+
+    private:
+        unsigned int length_;
+        char_type    indent_char_;
+        string_type  indent_string_;
+    };
+
+    static inline std::basic_ostream<char_type>& stream_do_nothing(std::basic_ostream<char_type>& out)
+    {
+        return out;
+    }
+
+    static inline std::basic_ostream<char_type>& stream_new_line(std::basic_ostream<char_type>& out)
+    {
+        return out << '\n';
+    }
+
+private:
+    ostreambuf_type buf_;
+    ostream_type    out_;
+    const args&     args_;
+    indent          indent_;
+
+    using stream_func = ostream_type& (*)(ostream_type&);
+    stream_func newline_func_;
 };
 
 }  // namespace jsonxx

@@ -780,7 +780,7 @@ public:
         using char_type = typename std::basic_ostream<char_type>::char_type;
 
         dump_args args;
-        args.indent      = static_cast<int>(out.width());
+        args.indent      = static_cast<unsigned int>(out.width());
         args.indent_char = out.fill();
         args.precision   = static_cast<int>(out.precision());
 
@@ -791,21 +791,21 @@ public:
         return out;
     }
 
-    string_type dump(const int indent = -1, const char_type indent_char = ' ', const bool escape_unicode = false) const
+    string_type dump(const dump_args& args = dump_args{}) const
+    {
+        string_type                        result;
+        string_output_adapter<string_type> adapter(result);
+        this->dump(&adapter, args);
+        return result;
+    }
+
+    string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false) const
     {
         dump_args args;
         args.indent         = indent;
         args.indent_char    = indent_char;
         args.escape_unicode = escape_unicode;
         return this->dump(args);
-    }
-
-    string_type dump(const dump_args& args) const
-    {
-        string_type                        result;
-        string_output_adapter<string_type> adapter(result);
-        this->dump(&adapter, args);
-        return result;
     }
 
     void dump(output_adapter<char_type>* adapter, const dump_args& args = dump_args()) const
