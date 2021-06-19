@@ -19,7 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "json_unicode.hpp"
+#include "json_encoding.hpp"
+#include "json_stream.hpp"
 #include "json_value.hpp"
 
 #include <cctype>            // std::isdigit
@@ -150,6 +151,46 @@ private:
     std::size_t      index;
 };
 
+namespace detail
+{
+
+template <typename _CharTy>
+class input_streambuf : public std::basic_streambuf<_CharTy>
+{
+public:
+    using char_type   = _CharTy;
+    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
+    using char_traits = std::char_traits<char_type>;
+
+    input_streambuf(input_adapter<char_type>* adapter)
+        : adapter_(adapter)
+        , last_char_(0)
+    {
+    }
+
+protected:
+    virtual int_type underflow() override
+    {
+        if (last_char_ != 0)
+            return last_char_;
+        last_char_ = adapter_->get_char();
+        return last_char_;
+    }
+
+    virtual int_type uflow() override
+    {
+        int_type c = underflow();
+        last_char_ = 0;
+        return c;
+    }
+
+private:
+    input_adapter<char_type>* adapter_;
+    int_type                  last_char_;
+};
+
+}  // namespace detail
+
 //
 // json_lexer
 //
@@ -178,21 +219,20 @@ enum class token_type
     end_of_input
 };
 
-template <typename _BasicJsonTy>
+template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
 struct json_lexer
 {
-    using string_type   = typename _BasicJsonTy::string_type;
     using char_type     = typename _BasicJsonTy::char_type;
-    using integer_type  = typename _BasicJsonTy::integer_type;
-    using float_type    = typename _BasicJsonTy::float_type;
-    using boolean_type  = typename _BasicJsonTy::boolean_type;
-    using array_type    = typename _BasicJsonTy::array_type;
-    using object_type   = typename _BasicJsonTy::object_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
+    using string_type   = typename _BasicJsonTy::string_type;
+    using encoding      = _Encoding<char_type>;
+    using integer_type  = typename _BasicJsonTy::integer_type;
+    using float_type    = typename _BasicJsonTy::float_type;
 
     json_lexer(input_adapter<char_type>* adapter)
-        : adapter_(adapter)
+        : buf_(adapter)
+        , in_(&buf_)
     {
         // read first char
         read_next();
@@ -200,7 +240,7 @@ struct json_lexer
 
     char_int_type read_next()
     {
-        current_ = adapter_->get_char();
+        current_ = in_.get();
         return current_;
     }
 
@@ -249,6 +289,7 @@ struct json_lexer
             return scan_string();
 
         case '-':
+        case '+':
         case '0':
         case '1':
         case '2':
@@ -296,6 +337,7 @@ struct json_lexer
 
         string_buffer_.clear();
 
+        detail::fast_ostringstream<char_type> oss{ string_buffer_ };
         while (true)
         {
             const auto ch = read_next();
@@ -303,7 +345,7 @@ struct json_lexer
             {
             case char_traits::eof():
             {
-                throw json_parse_error("unexpected end");
+                throw json_parse_error("unexpected end of string");
             }
 
             case '\"':
@@ -354,57 +396,55 @@ struct json_lexer
                 switch (read_next())
                 {
                 case '\"':
-                    add_char('\"');
+                    oss << '\"';
                     break;
                 case '\\':
-                    add_char('\\');
+                    oss << '\\';
                     break;
                 case '/':
-                    add_char('/');
+                    oss << '/';
                     break;
                 case 'b':
-                    add_char('\b');
+                    oss << '\b';
                     break;
                 case 'f':
-                    add_char('\f');
+                    oss << '\f';
                     break;
                 case 'n':
-                    add_char('\n');
+                    oss << '\n';
                     break;
                 case 'r':
-                    add_char('\r');
+                    oss << '\r';
                     break;
                 case 't':
-                    add_char('\t');
+                    oss << '\t';
                     break;
 
                 case 'u':
                 {
-                    uint32_t code = read_one_escaped_code();
-
-                    if (JSONXX_UNICODE_SUR_LEAD_BEGIN <= code && code <= JSONXX_UNICODE_SUR_LEAD_END)
+                    uint32_t codepoint = read_escaped_codepoint();
+                    if (JSONXX_UNICODE_SUR_LEAD_BEGIN <= codepoint && codepoint <= JSONXX_UNICODE_SUR_LEAD_END)
                     {
                         if (read_next() != '\\' || read_next() != 'u')
                         {
                             throw json_parse_error("lead surrogate must be followed by trail surrogate");
                         }
 
-                        const auto lead_surrogate  = code;
-                        const auto trail_surrogate = read_one_escaped_code();
+                        const auto lead_surrogate  = codepoint;
+                        const auto trail_surrogate = read_escaped_codepoint();
 
                         if (!(JSONXX_UNICODE_SUR_TRAIL_BEGIN <= trail_surrogate
                               && trail_surrogate <= JSONXX_UNICODE_SUR_TRAIL_END))
                         {
                             throw json_parse_error("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
                         }
-
-                        detail::unicode_writer<string_type> uw(this->string_buffer_);
-                        uw.add_surrogates(lead_surrogate, trail_surrogate);
+                        codepoint = detail::merge_surrogates(lead_surrogate, trail_surrogate);
                     }
-                    else
+
+                    encoding::encode(oss, codepoint);
+                    if (!oss.good())
                     {
-                        detail::unicode_writer<string_type> uw(this->string_buffer_);
-                        uw.add_code(code);
+                        throw json_parse_error("unexpected encoding error");
                     }
                     break;
                 }
@@ -419,7 +459,7 @@ struct json_lexer
 
             default:
             {
-                add_char(ch);
+                oss << char_traits::to_char_type(ch);
             }
             }
         }
@@ -427,22 +467,26 @@ struct json_lexer
 
     token_type scan_number()
     {
-        is_negative_  = false;
-        number_value_ = static_cast<float_type>(0.0);
+        is_negative_    = false;
+        number_integer_ = 0;
 
-        if (current_ == '-')
+        if (current_ == '-' || current_ == '+')
         {
-            is_negative_ = true;
+            is_negative_ = (current_ == '-');
             read_next();
-            return scan_integer();
         }
 
         if (current_ == '0')
         {
-            if (read_next() == '.')
+            read_next();
+            if (current_ == '.')
                 return scan_float();
-            else
-                return token_type::value_integer;
+
+            if (current_ == 'e' || current_ == 'E')
+                throw json_parse_error("invalid exponent");
+
+            // zero
+            return token_type::value_integer;
         }
         return scan_integer();
     }
@@ -452,19 +496,16 @@ struct json_lexer
         if (!std::isdigit(current_))
             throw json_parse_error("invalid integer");
 
-        number_value_ = static_cast<float_type>(current_ - '0');
+        number_integer_ = static_cast<integer_type>(current_ - '0');
 
         while (true)
         {
             const auto ch = read_next();
-            if (ch == '.')
+            if (ch == '.' || ch == 'e' || ch == 'E')
                 return scan_float();
 
-            if (ch == 'e' || ch == 'E')
-                return scan_exponent();
-
             if (std::isdigit(ch))
-                number_value_ = number_value_ * 10 + (ch - '0');
+                number_integer_ = number_integer_ * 10 + static_cast<integer_type>(ch - '0');
             else
                 break;
         }
@@ -473,6 +514,11 @@ struct json_lexer
 
     token_type scan_float()
     {
+        number_float_ = static_cast<float_type>(number_integer_);
+
+        if (current_ == 'e' || current_ == 'E')
+                return scan_exponent();
+
         if (current_ != '.')
             throw json_parse_error("float number must start with '.'");
 
@@ -480,7 +526,7 @@ struct json_lexer
             throw json_parse_error("invalid float number");
 
         float_type fraction = static_cast<float_type>(0.1);
-        number_value_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
+        number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
 
         while (true)
         {
@@ -491,7 +537,7 @@ struct json_lexer
             if (std::isdigit(ch))
             {
                 fraction *= static_cast<float_type>(0.1);
-                number_value_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
+                number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
             }
             else
                 break;
@@ -533,27 +579,26 @@ struct json_lexer
             if (exponent & 1)
                 power *= base;
 
-        number_value_ *= power;
+        number_float_ *= power;
         return token_type::value_float;
     }
 
     integer_type token_to_integer() const
     {
-        integer_type integer = static_cast<integer_type>(number_value_);
-        return is_negative_ ? -integer : integer;
+        return is_negative_ ? -number_integer_ : number_integer_;
     }
 
     float_type token_to_float() const
     {
-        return is_negative_ ? -number_value_ : number_value_;
+        return is_negative_ ? -number_float_ : number_float_;
     }
 
-    string_type token_to_string() const
+    const string_type& token_to_string() const
     {
         return string_buffer_;
     }
 
-    uint32_t read_one_escaped_code()
+    uint32_t read_escaped_codepoint()
     {
         uint32_t code = 0;
         for (const auto factor : { 12, 8, 4, 0 })
@@ -579,39 +624,33 @@ struct json_lexer
         return code;
     }
 
-    void add_char(const char_int_type ch)
-    {
-        string_buffer_.push_back(char_traits::to_char_type(ch));
-    }
-
 private:
-    bool        is_negative_;
-    float_type  number_value_;
-    string_type string_buffer_;
+    bool         is_negative_;
+    integer_type number_integer_;
+    float_type   number_float_;
+    string_type  string_buffer_;
 
-    input_adapter<char_type>* adapter_;
-    char_int_type             current_;
+    using istream_type    = std::basic_istream<char_type>;
+    using istreambuf_type = detail::input_streambuf<char_type>;
+
+    istreambuf_type buf_;
+    istream_type    in_;
+    char_int_type   current_;
 };
 
 //
 // json_parser
 //
 
-template <typename _BasicJsonTy>
+template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
 struct json_parser
 {
-    using string_type  = typename _BasicJsonTy::string_type;
-    using char_type    = typename _BasicJsonTy::char_type;
-    using integer_type = typename _BasicJsonTy::integer_type;
-    using float_type   = typename _BasicJsonTy::float_type;
-    using boolean_type = typename _BasicJsonTy::boolean_type;
-    using array_type   = typename _BasicJsonTy::array_type;
-    using object_type  = typename _BasicJsonTy::object_type;
-    using char_traits  = std::char_traits<char_type>;
+    using char_type  = typename _BasicJsonTy::char_type;
+    using lexer_type = json_lexer<_BasicJsonTy, _Encoding>;
 
     json_parser(input_adapter<char_type>* adapter)
-        : lexer(adapter)
-        , last_token(token_type::uninitialized)
+        : lexer_(adapter)
+        , last_token_(token_type::uninitialized)
     {
     }
 
@@ -626,13 +665,13 @@ struct json_parser
 private:
     token_type get_token()
     {
-        last_token = lexer.scan();
-        return last_token;
+        last_token_ = lexer_.scan();
+        return last_token_;
     }
 
     void parse_value(_BasicJsonTy& json, bool read_next = true)
     {
-        token_type token = last_token;
+        token_type token = last_token_;
         if (read_next)
         {
             token = get_token();
@@ -641,13 +680,11 @@ private:
         switch (token)
         {
         case token_type::literal_true:
-            json                     = json_type::boolean;
-            json.value_.data.boolean = true;
+            json.value_ = true;
             break;
 
         case token_type::literal_false:
-            json                     = json_type::boolean;
-            json.value_.data.boolean = false;
+            json.value_ = false;
             break;
 
         case token_type::literal_null:
@@ -655,15 +692,15 @@ private:
             break;
 
         case token_type::value_string:
-            json = lexer.token_to_string();
+            json = lexer_.token_to_string();
             break;
 
         case token_type::value_integer:
-            json = lexer.token_to_integer();
+            json = lexer_.token_to_integer();
             break;
 
         case token_type::value_float:
-            json = lexer.token_to_float();
+            json = lexer_.token_to_float();
             break;
 
         case token_type::begin_array:
@@ -680,7 +717,7 @@ private:
                 if (get_token() != token_type::value_separator)
                     break;
             }
-            if (last_token != token_type::end_array)
+            if (last_token_ != token_type::end_array)
                 throw json_parse_error("unexpected token in array");
             break;
 
@@ -690,8 +727,8 @@ private:
             {
                 if (get_token() != token_type::value_string)
                     break;
-                string_type key = lexer.token_to_string();
 
+                const auto key = lexer_.token_to_string();
                 if (get_token() != token_type::name_separator)
                     break;
 
@@ -703,7 +740,7 @@ private:
                 if (get_token() != token_type::value_separator)
                     break;
             }
-            if (last_token != token_type::end_object)
+            if (last_token_ != token_type::end_object)
                 throw json_parse_error("unexpected token in object");
             break;
 
@@ -715,8 +752,8 @@ private:
     }
 
 private:
-    json_lexer<_BasicJsonTy> lexer;
-    token_type               last_token;
+    lexer_type lexer_;
+    token_type last_token_;
 };
 
 }  // namespace jsonxx

@@ -110,11 +110,13 @@
   <ItemGroup>
     <ClInclude Include="..\include\jsonxx\json.hpp" />
     <ClInclude Include="..\include\jsonxx\json_basic.hpp" />
-    <ClInclude Include="..\include\jsonxx\json_unicode.hpp" />
+    <ClInclude Include="..\include\jsonxx\json_config.hpp" />
+    <ClInclude Include="..\include\jsonxx\json_encoding.hpp" />
     <ClInclude Include="..\include\jsonxx\json_exception.hpp" />
     <ClInclude Include="..\include\jsonxx\json_iterator.hpp" />
     <ClInclude Include="..\include\jsonxx\json_parser.hpp" />
     <ClInclude Include="..\include\jsonxx\json_serializer.hpp" />
+    <ClInclude Include="..\include\jsonxx\json_stream.hpp" />
     <ClInclude Include="..\include\jsonxx\json_utils.hpp" />
     <ClInclude Include="..\include\jsonxx\json_value.hpp" />
     <ClInclude Include="handler.h" />

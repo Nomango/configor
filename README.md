@@ -352,6 +352,8 @@ int main(int argc, char** argv)
 - [ ] 支持注释
 - [ ] 支持 json 和自定义类型的隐式转换（has_to_json限定）
 - [ ] optional 返回值的支持（作为模板参数并允许替换）
+- [ ] 错误信息完善
+- [ ] SAX工具
 
 ### 鸣谢
 

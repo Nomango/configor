@@ -20,14 +20,15 @@
 
 #pragma once
 #include "json_config.hpp"
-#include "json_unicode.hpp"
+#include "json_encoding.hpp"
+#include "json_stream.hpp"
 #include "json_value.hpp"
 
 #include <algorithm>         // std::none_of
 #include <array>             // std::array
 #include <initializer_list>  // std::initializer_list
 #include <iomanip>           // std::fill, std::setw, std::setprecision, std::right, std::noshowbase
-#include <ios>               // std::streamsize, std::hex, std::dec
+#include <ios>               // std::streamsize, std::hex, std::dec, std::uppercase, std::nouppercase
 #include <ostream>           // std::basic_ostream
 #include <streambuf>         // std::basic_streambuf
 #include <type_traits>       // std::char_traits
@@ -160,18 +161,14 @@ struct serializer_args
 
 }  // namespace detail
 
-template <typename _BasicJsonTy>
+template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
 struct json_serializer
 {
-    using string_type   = typename _BasicJsonTy::string_type;
     using char_type     = typename _BasicJsonTy::char_type;
-    using integer_type  = typename _BasicJsonTy::integer_type;
-    using float_type    = typename _BasicJsonTy::float_type;
-    using boolean_type  = typename _BasicJsonTy::boolean_type;
-    using array_type    = typename _BasicJsonTy::array_type;
-    using object_type   = typename _BasicJsonTy::object_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
+    using string_type   = typename _BasicJsonTy::string_type;
+    using encoding      = _Encoding<char_type>;
     using args          = detail::serializer_args<_BasicJsonTy>;
 
     json_serializer(output_adapter<char_type>* adapter, const args& args)
@@ -199,7 +196,7 @@ struct json_serializer
         {
         case json_type::object:
         {
-            auto& object = *json.value_.data.object;
+            const auto& object = *json.value_.data.object;
 
             if (object.empty())
             {
@@ -209,15 +206,16 @@ struct json_serializer
 
             out_ << '{' << newline_func_;
 
-            auto       iter       = object.cbegin();
-            const auto size       = object.size();
-            const auto new_indent = current_indent + args_.indent;
+            auto       iter         = object.cbegin();
+            const auto size         = object.size();
+            const auto elem_indents = current_indent + args_.indent;
             for (std::size_t i = 0; i < size; ++i, ++iter)
             {
-                out_ << indent_.set(new_indent);
-                out_ << '\"' << iter->first << '\"' << ':';
-                out_ << indent_.set(1);
-                dump(iter->second, new_indent);
+                out_ << indent_ * elem_indents << '\"';
+                dump_string(iter->first);
+                out_ << '\"' << ':';
+                out_ << indent_ * 1;
+                dump(iter->second, elem_indents);
 
                 // not last element
                 if (i != size - 1)
@@ -225,7 +223,7 @@ struct json_serializer
                     out_ << ',' << newline_func_;
                 }
             }
-            out_ << newline_func_ << indent_.set(current_indent) << '}';
+            out_ << newline_func_ << indent_ * current_indent << '}';
             return;
         }
 
@@ -241,12 +239,12 @@ struct json_serializer
 
             out_ << '[' << newline_func_;
 
-            const auto new_indent = current_indent + args_.indent;
-            const auto size       = v.size();
+            const auto elem_indents = current_indent + args_.indent;
+            const auto size         = v.size();
             for (std::size_t i = 0; i < size; ++i)
             {
-                out_ << indent_.set(new_indent);
-                dump(v.at(i), new_indent);
+                out_ << indent_ * elem_indents;
+                dump(v.at(i), elem_indents);
 
                 // not last element
                 if (i != size - 1)
@@ -254,7 +252,7 @@ struct json_serializer
                     out_ << ',' << newline_func_;
                 }
             }
-            out_ << newline_func_ << indent_.set(current_indent) << ']';
+            out_ << newline_func_ << indent_ * current_indent << ']';
             return;
         }
 
@@ -301,12 +299,16 @@ struct json_serializer
 
     void dump_string(const string_type& val)
     {
-        size_t   i    = 0;
-        uint32_t code = 0;
+        detail::fast_istringstream<char_type> iss{ val };
 
-        detail::unicode_reader<string_type> ur(val, args_.escape_unicode);
-        while (ur.get_code(i, code))
+        uint32_t code = 0;
+        while (encoding::decode(iss, code))
         {
+            if (!iss.good())
+            {
+                throw json_serialize_error("unexpected character");
+            }
+
             switch (code)
             {
             case '\t':
@@ -359,29 +361,31 @@ struct json_serializer
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
-                    out_ << char_traits::to_char_type(static_cast<char_int_type>(code));
+                    encoding::encode(out_, code);
+                    if (!out_.good())
+                    {
+                        throw json_serialize_error("unexpected encoding error");
+                    }
                 }
                 else
                 {
                     if (code <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        out_ << std::setfill(char_type('0')) << std::hex;
+                        out_ << std::setfill(char_type('0')) << std::hex << std::uppercase;
                         out_ << '\\' << 'u' << std::setw(4) << static_cast<uint16_t>(code);
-                        out_ << std::dec;
+                        out_ << std::dec << std::nouppercase;
                     }
                     else
                     {
                         // supplementary planes: U+10000...U+10FFFF
-                        code = code - JSONXX_UNICODE_SUR_BASE;
-                        const auto lead_surrogate =
-                            static_cast<uint16_t>(JSONXX_UNICODE_SUR_LEAD_BEGIN + (code >> JSONXX_UNICODE_SUR_BITS));
-                        const auto trail_surrogate =
-                            static_cast<uint16_t>(JSONXX_UNICODE_SUR_TRAIL_BEGIN + (code & JSONXX_UNICODE_SUR_MAX));
-                        out_ << std::setfill(char_type('0')) << std::hex;
+                        uint32_t lead_surrogate = 0, trail_surrogate = 0;
+                        detail::separate_surrogates(code, lead_surrogate, trail_surrogate);
+
+                        out_ << std::setfill(char_type('0')) << std::hex << std::uppercase;
                         out_ << '\\' << 'u' << std::setw(4) << lead_surrogate;
                         out_ << '\\' << 'u' << std::setw(4) << trail_surrogate;
-                        out_ << std::dec;
+                        out_ << std::dec << std::nouppercase;
                     }
                 }
                 break;
@@ -410,12 +414,15 @@ private:
             indent_string_.resize(16, indent_char_);
         }
 
-        inline indent& set(unsigned int length)
+        inline indent& operator*(unsigned int length)
         {
-            length_ = length;
-            if (indent_string_.size() < static_cast<size_t>(length))
+            if (indent_char_)
             {
-                indent_string_.resize(indent_string_.size() * 2, indent_char_);
+                length_ = length;
+                if (indent_string_.size() < static_cast<size_t>(length))
+                {
+                    indent_string_.resize(indent_string_.size() * 2, indent_char_);
+                }
             }
             return *this;
         }

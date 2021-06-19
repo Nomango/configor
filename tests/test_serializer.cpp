@@ -48,11 +48,25 @@ TEST_F(SerializerTest, test_dump)
     ASSERT_NO_THROW(std::string serialized_string = j.dump());
     ASSERT_NO_THROW(std::string serialized_string = j.dump(4, ' '));
 
+    // dump float
     // issue 7
     ASSERT_EQ(json(0.0).dump(), "0");
     ASSERT_EQ(json(1.0).dump(), "1");
     ASSERT_EQ(json(1.2).dump(), "1.2");
     ASSERT_EQ(json(1.23).dump(), "1.23");
+
+    // dump empty object
+    ASSERT_EQ(json::object({}).dump(), "{}");
+
+    // dump empty array
+    ASSERT_EQ(json::array({}).dump(), "[]");
+
+    // dump boolean
+    ASSERT_EQ(json(true).dump(), "true");
+    ASSERT_EQ(json(false).dump(), "false");
+
+    // dump control characters
+    ASSERT_EQ(json("\t\r\n\b\f\"\\").dump(), "\"\\t\\r\\n\\b\\f\\\"\\\\\"");
 }
 
 TEST(test_serializer, test_dump_intend)

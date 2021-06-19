@@ -270,3 +270,39 @@ TEST(test_basic_json, test_int64)
     json64  j     = max64;
     ASSERT_EQ(j.as_integer(), max64);
 }
+
+TEST(test_basic_json, test_json_value)
+{
+    using value = json_value<json>;
+    value v;
+
+    ASSERT_NO_THROW(v = json_type::null);
+    ASSERT_EQ(v.type, json_type::null);
+
+    ASSERT_NO_THROW(v = json_type::boolean);
+    ASSERT_EQ(v.type, json_type::boolean);
+    ASSERT_EQ(v.data.boolean, false);
+
+    ASSERT_NO_THROW(v = json_type::number_integer);
+    ASSERT_EQ(v.type, json_type::number_integer);
+    ASSERT_EQ(v.data.number_integer, 0);
+
+    ASSERT_NO_THROW(v = json_type::number_float);
+    ASSERT_EQ(v.type, json_type::number_float);
+    ASSERT_EQ(v.data.number_float, 0);
+
+    ASSERT_NO_THROW(v = json_type::string);
+    ASSERT_EQ(v.type, json_type::string);
+    ASSERT_TRUE(v.data.string != nullptr);
+    ASSERT_EQ(*v.data.string, std::string{});
+
+    ASSERT_NO_THROW(v = json_type::object);
+    ASSERT_EQ(v.type, json_type::object);
+    ASSERT_TRUE(v.data.object != nullptr);
+    ASSERT_EQ(*v.data.object, json::object_type{});
+
+    ASSERT_NO_THROW(v = json_type::array);
+    ASSERT_EQ(v.type, json_type::array);
+    ASSERT_TRUE(v.data.vector != nullptr);
+    ASSERT_EQ(*v.data.vector, json::array_type{});
+}
