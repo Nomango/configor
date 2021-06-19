@@ -289,6 +289,7 @@ struct json_lexer
             return scan_string();
 
         case '-':
+        case '+':
         case '0':
         case '1':
         case '2':
@@ -466,22 +467,26 @@ struct json_lexer
 
     token_type scan_number()
     {
-        is_negative_  = false;
-        number_value_ = static_cast<float_type>(0.0);
+        is_negative_    = false;
+        number_integer_ = 0;
 
-        if (current_ == '-')
+        if (current_ == '-' || current_ == '+')
         {
-            is_negative_ = true;
+            is_negative_ = (current_ == '-');
             read_next();
-            return scan_integer();
         }
 
         if (current_ == '0')
         {
-            if (read_next() == '.')
+            read_next();
+            if (current_ == '.')
                 return scan_float();
-            else
-                return token_type::value_integer;
+
+            if (current_ == 'e' || current_ == 'E')
+                throw json_parse_error("invalid exponent");
+
+            // zero
+            return token_type::value_integer;
         }
         return scan_integer();
     }
@@ -491,19 +496,16 @@ struct json_lexer
         if (!std::isdigit(current_))
             throw json_parse_error("invalid integer");
 
-        number_value_ = static_cast<float_type>(current_ - '0');
+        number_integer_ = static_cast<integer_type>(current_ - '0');
 
         while (true)
         {
             const auto ch = read_next();
-            if (ch == '.')
+            if (ch == '.' || ch == 'e' || ch == 'E')
                 return scan_float();
 
-            if (ch == 'e' || ch == 'E')
-                return scan_exponent();
-
             if (std::isdigit(ch))
-                number_value_ = number_value_ * 10 + (ch - '0');
+                number_integer_ = number_integer_ * 10 + static_cast<integer_type>(ch - '0');
             else
                 break;
         }
@@ -512,6 +514,11 @@ struct json_lexer
 
     token_type scan_float()
     {
+        number_float_ = static_cast<float_type>(number_integer_);
+
+        if (current_ == 'e' || current_ == 'E')
+                return scan_exponent();
+
         if (current_ != '.')
             throw json_parse_error("float number must start with '.'");
 
@@ -519,7 +526,7 @@ struct json_lexer
             throw json_parse_error("invalid float number");
 
         float_type fraction = static_cast<float_type>(0.1);
-        number_value_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
+        number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
 
         while (true)
         {
@@ -530,7 +537,7 @@ struct json_lexer
             if (std::isdigit(ch))
             {
                 fraction *= static_cast<float_type>(0.1);
-                number_value_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
+                number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
             }
             else
                 break;
@@ -572,19 +579,18 @@ struct json_lexer
             if (exponent & 1)
                 power *= base;
 
-        number_value_ *= power;
+        number_float_ *= power;
         return token_type::value_float;
     }
 
     integer_type token_to_integer() const
     {
-        integer_type integer = static_cast<integer_type>(number_value_);
-        return is_negative_ ? -integer : integer;
+        return is_negative_ ? -number_integer_ : number_integer_;
     }
 
     float_type token_to_float() const
     {
-        return is_negative_ ? -number_value_ : number_value_;
+        return is_negative_ ? -number_float_ : number_float_;
     }
 
     const string_type& token_to_string() const
@@ -619,9 +625,10 @@ struct json_lexer
     }
 
 private:
-    bool        is_negative_;
-    float_type  number_value_;
-    string_type string_buffer_;
+    bool         is_negative_;
+    integer_type number_integer_;
+    float_type   number_float_;
+    string_type  string_buffer_;
 
     using istream_type    = std::basic_istream<char_type>;
     using istreambuf_type = detail::input_streambuf<char_type>;

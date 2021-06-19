@@ -15,9 +15,60 @@ TEST(test_parser, test_parse)
     ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
     ASSERT_EQ(j["name"].as_string(), "中文测试");
 
+    // parse empty object
     // issue 4
-    ASSERT_NO_THROW(json::parse("{\"empty\": []}"));
-    ASSERT_NO_THROW(json::parse("{}"));
+    ASSERT_NO_THROW(j = json::parse("{}"));
+    ASSERT_TRUE(j.is_object() && j.empty());
+
+    // parse empty array
+    ASSERT_NO_THROW(j = json::parse("[]"));
+    ASSERT_TRUE(j.is_array() && j.empty());
+
+    // parse integer
+    ASSERT_EQ(json::parse("0").as_integer(), 0);
+    ASSERT_EQ(json::parse("2147483647").as_integer(), int32_t(2147483647));
+    ASSERT_EQ(json64::parse("9223372036854775807").as_integer(), int64_t(9223372036854775807));
+
+    // parse signed integer
+    ASSERT_EQ(json::parse("+0").as_integer(), 0);
+    ASSERT_EQ(json::parse("+2147483647").as_integer(), int32_t(2147483647));
+    ASSERT_EQ(json64::parse("+9223372036854775807").as_integer(), int64_t(9223372036854775807));
+    ASSERT_EQ(json::parse("-0").as_integer(), 0);
+    ASSERT_EQ(json::parse("-2147483647").as_integer(), int32_t(-2147483647));
+    ASSERT_EQ(json64::parse("-9223372036854775807").as_integer(), int64_t(-9223372036854775807));
+
+    // parse float
+    ASSERT_DOUBLE_EQ(json::parse("0.25").as_float(), 0.25);
+    ASSERT_DOUBLE_EQ(json::parse("1.25").as_float(), 1.25);
+    ASSERT_DOUBLE_EQ(json::parse("1.125e2").as_float(), 112.5);
+    ASSERT_DOUBLE_EQ(json::parse("0.125e2").as_float(), 12.5);
+    ASSERT_DOUBLE_EQ(json::parse("112.5e-2").as_float(), 1.125);
+    ASSERT_DOUBLE_EQ(json::parse("12.5e-2").as_float(), 0.125);
+
+    // parse signed float
+    ASSERT_DOUBLE_EQ(json::parse("+0.25").as_float(), 0.25);
+    ASSERT_DOUBLE_EQ(json::parse("+1.25").as_float(), 1.25);
+    ASSERT_DOUBLE_EQ(json::parse("+1.125e2").as_float(), 112.5);
+    ASSERT_DOUBLE_EQ(json::parse("+0.125e2").as_float(), 12.5);
+    ASSERT_DOUBLE_EQ(json::parse("+112.5e-2").as_float(), 1.125);
+    ASSERT_DOUBLE_EQ(json::parse("+12.5e-2").as_float(), 0.125);
+
+    ASSERT_DOUBLE_EQ(json::parse("-0.25").as_float(), -0.25);
+    ASSERT_DOUBLE_EQ(json::parse("-1.25").as_float(), -1.25);
+    ASSERT_DOUBLE_EQ(json::parse("-1.125e2").as_float(), -112.5);
+    ASSERT_DOUBLE_EQ(json::parse("-0.125e2").as_float(), -12.5);
+    ASSERT_DOUBLE_EQ(json::parse("-112.5e-2").as_float(), -1.125);
+    ASSERT_DOUBLE_EQ(json::parse("-12.5e-2").as_float(), -0.125);
+
+    // parse controle characters
+    ASSERT_THROW(json::parse("\t"), json_parse_error);
+    ASSERT_THROW(json::parse("\r"), json_parse_error);
+    ASSERT_THROW(json::parse("\n"), json_parse_error);
+    ASSERT_THROW(json::parse("\b"), json_parse_error);
+    ASSERT_THROW(json::parse("\f"), json_parse_error);
+
+    // unexpect end
+    ASSERT_THROW(json::parse("\\"), json_parse_error);
 }
 
 TEST(test_parser, test_parse_surrogate)
