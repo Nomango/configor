@@ -247,8 +247,54 @@ struct json_lexer
     void skip_spaces()
     {
         while (current_ == ' ' || current_ == '\t' || current_ == '\n' || current_ == '\r')
+            read_next();
+
+        if (current_ == '/')
         {
             read_next();
+            if (current_ == '/')
+            {
+                // one line comment
+                while (true)
+                {
+                    read_next();
+                    if (current_ == '\n' || current_ == '\r')
+                    {
+                        // end of comment
+                        skip_spaces();
+                        break;
+                    }
+
+                    if (current_ == 0 || current_ == char_traits::eof())
+                    {
+                        // end of input
+                        break;
+                    }
+                }
+            }
+            else if (current_ == '*')
+            {
+                // multiple line comment
+                while (true)
+                {
+                    read_next();
+                    if (current_ == '*')
+                    {
+                        read_next();
+                        if (current_ == '/')
+                        {
+                            // end of comment
+                            read_next();
+                            break;
+                        }
+                    }
+                }
+                skip_spaces();
+            }
+            else
+            {
+                throw json_parse_error("unexpected character '/'");
+            }
         }
     }
 
@@ -311,7 +357,7 @@ struct json_lexer
             throw json_parse_error("unexpected character");
         }
 
-        // skip current_ char
+        // skip next char
         read_next();
 
         return result;

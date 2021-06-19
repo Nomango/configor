@@ -71,6 +71,26 @@ TEST(test_parser, test_parse)
     ASSERT_THROW(json::parse("\\"), json_parse_error);
 }
 
+TEST(test_parser, test_comment)
+{
+    auto j = json::parse(R"(// some comments
+    /* some comments */
+    {
+        // some comments
+        /* some comments */ "happy": true,  /* some comments */
+        // "pi": 1,
+        "pi": 3.141, // some comments
+        // "pi": 2,
+        /*
+        some comments
+        "pi": 3,
+        */"name": "中文测试"
+    }// some comments)");
+    ASSERT_EQ(j["happy"].as_bool(), true);
+    ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
+    ASSERT_EQ(j["name"].as_string(), "中文测试");
+}
+
 TEST(test_parser, test_parse_surrogate)
 {
     // issue 8
