@@ -39,9 +39,9 @@ struct basic_oadapter
     using char_type   = _CharTy;
     using char_traits = std::char_traits<char_type>;
 
-    virtual void write(const _CharTy ch) = 0;
+    virtual void write(const char_type ch) = 0;
 
-    virtual void write(const _CharTy* str, std::size_t size)
+    virtual void write(const char_type* str, std::size_t size)
     {
         if (size)
         {
@@ -51,18 +51,19 @@ struct basic_oadapter
     }
 };
 
-using oadapter = basic_oadapter<char>;
+using oadapter  = basic_oadapter<char>;
 using woadapter = basic_oadapter<wchar_t>;
 
 template <typename _CharTy>
 class basic_oadapterstream : public std::basic_ostream<_CharTy>
 {
 public:
-    using char_type    = _CharTy;
-    using adapter_type = basic_oadapter<char_type>;
+    using char_type   = _CharTy;
+    using char_traits = std::char_traits<char_type>;
+    using int_type    = typename char_traits::int_type;
 
     basic_oadapterstream(basic_oadapter<char_type>& adapter)
-        : std::basic_ostream<_CharTy>(nullptr)
+        : std::basic_ostream<char_type>(nullptr)
         , buf_(adapter)
     {
         this->rdbuf(&buf_);
@@ -72,10 +73,6 @@ private:
     class streambuf : public std::basic_streambuf<char_type>
     {
     public:
-        using char_type   = typename std::basic_streambuf<_CharTy>::char_type;
-        using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-        using char_traits = std::char_traits<char_type>;
-
         streambuf(basic_oadapter<char_type>& adapter)
             : adapter_(adapter)
         {
@@ -104,7 +101,7 @@ private:
     streambuf buf_;
 };
 
-using oadapterstream = basic_oadapterstream<char>;
+using oadapterstream  = basic_oadapterstream<char>;
 using woadapterstream = basic_oadapterstream<wchar_t>;
 
 //
@@ -129,7 +126,7 @@ struct basic_iadapter
     }
 };
 
-using iadapter = basic_iadapter<char>;
+using iadapter  = basic_iadapter<char>;
 using wiadapter = basic_iadapter<wchar_t>;
 
 template <typename _CharTy>
@@ -137,7 +134,8 @@ class basic_iadapterstream : public std::basic_istream<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using string_type = std::basic_string<char_type>;
+    using char_traits = std::char_traits<char_type>;
+    using int_type    = typename char_traits::int_type;
 
     basic_iadapterstream(basic_iadapter<char_type>& adapter)
         : std::basic_istream<_CharTy>(nullptr)
@@ -150,10 +148,6 @@ private:
     class streambuf : public std::basic_streambuf<_CharTy>
     {
     public:
-        using char_type   = typename std::basic_streambuf<_CharTy>::char_type;
-        using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-        using char_traits = std::char_traits<char_type>;
-
         streambuf(basic_iadapter<char_type>& adapter)
             : adapter_(adapter)
             , last_char_(0)
@@ -181,7 +175,7 @@ private:
             if (last_char_ != 0)
             {
                 // read last char
-                s[0] = char_traits::to_char_type(last_char_);
+                s[0]       = char_traits::to_char_type(last_char_);
                 last_char_ = 0;
                 ++s;
                 --num;
@@ -192,13 +186,13 @@ private:
 
     private:
         basic_iadapter<char_type>& adapter_;
-        int_type                  last_char_;
+        int_type                   last_char_;
     };
 
     streambuf buf_;
 };
 
-using iadapterstream = basic_iadapterstream<char>;
+using iadapterstream  = basic_iadapterstream<char>;
 using wiadapterstream = basic_iadapterstream<wchar_t>;
 
 namespace detail

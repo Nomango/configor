@@ -15,7 +15,7 @@
 - STL-like，低学习成本
 - 与标准库 io 交互
 - 非侵入式的序列化与反序列化
-- Unicode与多编码支持（支持`char`和`wchar_t`，对`char16_t`和`char32_t`需要额外支持）
+- Unicode与多编码支持（支持`char`、`wchar_t`、`char16_t`和`char32_t`）
 - 可扩展的输入输出方式
 
 ### 使用介绍
@@ -190,7 +190,7 @@ json j;
 std::cin >> j;
 ```
 
-- 宽字符与int64支持
+- Unicode与int64支持
 
 jsonxx 对宽字符 `wchar_t` 类型和 `int64` 进行了支持，通过不同的别名使用不同的类型支持。
 
@@ -208,14 +208,12 @@ wjson j = wjson::parse(L"{ \"name\": \"中文测试\" }");
 std::wstring str = j[L"name"].as_string();  // L"中文测试"
 ```
 
-对 char16_t 和 char32_t 字符类型，需要用户编写对应的io流（由于C++标准库并不支持这两种流）
-
-然后通过下面的别名来使用：
+对 char16_t 和 char32_t 字符类型需要使用下面的别名
 ```cpp
-// char32_t
-using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
 // char16_t
 using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
+// char32_t
+using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
 ```
 
 - JSON 与任意类型的转换

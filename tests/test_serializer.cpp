@@ -69,6 +69,19 @@ TEST_F(SerializerTest, test_dump)
     ASSERT_EQ(json("\t\r\n\b\f\"\\").dump(), "\"\\t\\r\\n\\b\\f\\\"\\\\\"");
 }
 
+TEST(test_serializer, test_numeric)
+{
+    // dump integer
+    ASSERT_EQ(json(0).dump(), "0");
+    ASSERT_EQ(json(int32_t(2147483647)).dump(), "2147483647");
+    ASSERT_EQ(json64(int64_t(9223372036854775807)).dump(), "9223372036854775807");
+
+    // dump signed integer
+    ASSERT_EQ(json(-0).dump(), "0");
+    ASSERT_EQ(json(int32_t(-2147483647)).dump(), "-2147483647");
+    ASSERT_EQ(json64(int64_t(-9223372036854775807)).dump(), "-9223372036854775807");
+}
+
 TEST(test_serializer, test_dump_intend)
 {
     json j;
