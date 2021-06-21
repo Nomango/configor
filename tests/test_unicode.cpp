@@ -14,6 +14,11 @@ using namespace jsonxx;
 #define QUOTE_STR "\"我是地球🌍\""
 #define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
 
+// char16_t
+using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
+// char32_t
+using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
+
 TEST(test_unicode, test_parse_surrogate)
 {
     auto j = json::parse(ESCAPED_STR);
@@ -21,9 +26,15 @@ TEST(test_unicode, test_parse_surrogate)
 
     auto wj = wjson::parse(WIDE(ESCAPED_STR));
     ASSERT_EQ(wj.as_string(), WIDE(RAW_STR));
+
+    auto u16j = u16json::parse(U16(ESCAPED_STR));
+    ASSERT_EQ(u16j.as_string(), U16(RAW_STR));
+
+    auto u32j = u32json::parse(U32(ESCAPED_STR));
+    ASSERT_EQ(u32j.as_string(), U32(RAW_STR));
 }
 
-TEST(test_unicode, test_dump_escaped)
+TEST(test_unicode, test_dump_surrogate)
 {
     json j = RAW_STR;
     ASSERT_EQ(j.dump(), QUOTE_STR);
@@ -34,6 +45,16 @@ TEST(test_unicode, test_dump_escaped)
     ASSERT_EQ(wj.dump(), WIDE(QUOTE_STR));
     ASSERT_EQ(wj.dump(-1, ' ', false), WIDE(QUOTE_STR));
     ASSERT_EQ(wj.dump(-1, ' ', true), WIDE(ESCAPED_STR));
+
+    u16json u16j = U16(RAW_STR);
+    ASSERT_EQ(u16j.dump(), U16(QUOTE_STR));
+    ASSERT_EQ(u16j.dump(-1, ' ', false), U16(QUOTE_STR));
+    ASSERT_EQ(u16j.dump(-1, ' ', true), U16(ESCAPED_STR));
+
+    u32json u32j = U32(RAW_STR);
+    ASSERT_EQ(u32j.dump(), U32(QUOTE_STR));
+    ASSERT_EQ(u32j.dump(-1, ' ', false), U32(QUOTE_STR));
+    ASSERT_EQ(u32j.dump(-1, ' ', true), U32(ESCAPED_STR));
 }
 
 class WCharTest : public testing::Test

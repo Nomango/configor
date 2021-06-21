@@ -26,7 +26,8 @@
 #include "json_utils.hpp"
 #include "json_value.hpp"
 
-#include <type_traits>  // std::enable_if, std::is_constructible, std::bool_constant, std::is_same, std::is_integral, std::is_floating_point
+#include <algorithm>    // std::for_each, std::all_of
+#include <type_traits>  // std::enable_if, std::is_constructible, std::is_same, std::is_integral, std::is_floating_point
 
 namespace jsonxx
 {
@@ -795,9 +796,9 @@ public:
     template <template <class _CharTy> class _Encoding = auto_utf>
     string_type dump(const dump_args& args = dump_args{}) const
     {
-        string_type result;
+        string_type                               result;
         detail::fast_string_ostreambuf<char_type> buf{ result };
-        std::basic_ostream<char_type> os{ &buf };
+        std::basic_ostream<char_type>             os{ &buf };
         this->dump<_Encoding>(os, args);
         return result;
     }
@@ -831,7 +832,7 @@ public:
     static inline basic_json parse(const string_type& str)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type> is{ &buf };
+        std::basic_istream<char_type>             is{ &buf };
         return basic_json::parse<_Encoding>(is);
     }
 
@@ -839,7 +840,7 @@ public:
     static inline basic_json parse(const char_type* str)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type> is{ &buf };
+        std::basic_istream<char_type>             is{ &buf };
         return basic_json::parse<_Encoding>(is);
     }
 
@@ -847,7 +848,7 @@ public:
     static inline basic_json parse(std::FILE* file)
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
-        std::basic_istream<char_type> is{ &buf };
+        std::basic_istream<char_type>            is{ &buf };
         return basic_json::parse<_Encoding>(is);
     }
 
