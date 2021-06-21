@@ -36,116 +36,6 @@
 
 namespace jsonxx
 {
-//
-// output_adapter
-//
-
-template <typename _CharTy>
-struct output_adapter
-{
-    using char_type   = _CharTy;
-    using char_traits = std::char_traits<char_type>;
-
-    virtual void write(const _CharTy ch)                     = 0;
-    virtual void write(const _CharTy* str, std::size_t size) = 0;
-};
-
-template <typename _StringTy>
-struct string_output_adapter : public output_adapter<typename _StringTy::value_type>
-{
-    using char_type   = typename _StringTy::value_type;
-    using size_type   = typename _StringTy::size_type;
-    using char_traits = std::char_traits<char_type>;
-
-    string_output_adapter(_StringTy& str)
-        : str_(str)
-    {
-    }
-
-    virtual void write(const char_type ch) override
-    {
-        str_.push_back(ch);
-    }
-
-    virtual void write(const char_type* str, std::size_t size) override
-    {
-        str_.append(str, static_cast<size_type>(size));
-    }
-
-private:
-    _StringTy& str_;
-};
-
-template <typename _CharTy>
-struct stream_output_adapter : public output_adapter<_CharTy>
-{
-    using char_type   = _CharTy;
-    using size_type   = std::streamsize;
-    using char_traits = std::char_traits<char_type>;
-
-    stream_output_adapter(std::basic_ostream<char_type>& stream)
-        : stream_(stream)
-    {
-    }
-
-    virtual void write(const char_type ch) override
-    {
-        stream_.put(ch);
-    }
-
-    virtual void write(const char_type* str, std::size_t size) override
-    {
-        stream_.write(str, static_cast<size_type>(size));
-    }
-
-private:
-    std::basic_ostream<char_type>& stream_;
-};
-
-namespace detail
-{
-
-template <typename _CharTy>
-class output_streambuf : public std::basic_streambuf<_CharTy>
-{
-public:
-    using char_type   = typename std::basic_streambuf<_CharTy>::char_type;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
-
-    output_streambuf(output_adapter<char_type>* adapter)
-        : adapter_(adapter)
-    {
-    }
-
-protected:
-    virtual int_type overflow(int_type c) override
-    {
-        if (c != EOF)
-        {
-            adapter_->write(char_traits::to_char_type(c));
-        }
-        return c;
-    }
-
-    virtual std::streamsize xsputn(const char_type* s, std::streamsize num) override
-    {
-        adapter_->write(s, static_cast<size_t>(num));
-        return num;
-    }
-
-private:
-    output_adapter<char_type>* adapter_;
-};
-
-}  // namespace detail
-
-//
-// json_serializer
-//
-
-namespace detail
-{
 
 template <typename _BasicJsonTy>
 struct serializer_args
@@ -159,7 +49,9 @@ struct serializer_args
     bool         escape_unicode = false;
 };
 
-}  // namespace detail
+//
+// json_serializer
+//
 
 template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
 struct json_serializer
@@ -169,23 +61,22 @@ struct json_serializer
     using char_int_type = typename char_traits::int_type;
     using string_type   = typename _BasicJsonTy::string_type;
     using encoding      = _Encoding<char_type>;
-    using args          = detail::serializer_args<_BasicJsonTy>;
+    using args          = serializer_args<_BasicJsonTy>;
 
-    json_serializer(output_adapter<char_type>* adapter, const args& args)
-        : buf_(adapter)
-        , out_(&buf_)
+    json_serializer(std::basic_ostream<char_type>& os, const args& args)
+        : os_(os)
         , args_(args)
         , indent_()
-        , newline_func_(json_serializer::stream_do_nothing)
+        , newline_(json_serializer::stream_do_nothing)
     {
-        out_ << std::setprecision(args_.precision);
-        out_ << std::right;
-        out_ << std::noshowbase;
+        os_ << std::setprecision(args_.precision);
+        os_ << std::right;
+        os_ << std::noshowbase;
 
         const bool pretty_print = (args_.indent > 0);
         if (pretty_print)
         {
-            newline_func_ = json_serializer::stream_new_line;
+            newline_ = json_serializer::stream_new_line;
             indent_.init(args_.indent_char);
         }
     }
@@ -200,30 +91,30 @@ struct json_serializer
 
             if (object.empty())
             {
-                out_ << '{' << '}';
+                os_ << '{' << '}';
                 return;
             }
 
-            out_ << '{' << newline_func_;
+            os_ << '{' << newline_;
 
             auto       iter         = object.cbegin();
             const auto size         = object.size();
             const auto elem_indents = current_indent + args_.indent;
             for (std::size_t i = 0; i < size; ++i, ++iter)
             {
-                out_ << indent_ * elem_indents << '\"';
+                os_ << indent_ * elem_indents << '\"';
                 dump_string(iter->first);
-                out_ << '\"' << ':';
-                out_ << indent_ * 1;
+                os_ << '\"' << ':';
+                os_ << indent_ * 1;
                 dump(iter->second, elem_indents);
 
                 // not last element
                 if (i != size - 1)
                 {
-                    out_ << ',' << newline_func_;
+                    os_ << ',' << newline_;
                 }
             }
-            out_ << newline_func_ << indent_ * current_indent << '}';
+            os_ << newline_ << indent_ * current_indent << '}';
             return;
         }
 
@@ -233,34 +124,34 @@ struct json_serializer
 
             if (v.empty())
             {
-                out_ << '[' << ']';
+                os_ << '[' << ']';
                 return;
             }
 
-            out_ << '[' << newline_func_;
+            os_ << '[' << newline_;
 
             const auto elem_indents = current_indent + args_.indent;
             const auto size         = v.size();
             for (std::size_t i = 0; i < size; ++i)
             {
-                out_ << indent_ * elem_indents;
+                os_ << indent_ * elem_indents;
                 dump(v.at(i), elem_indents);
 
                 // not last element
                 if (i != size - 1)
                 {
-                    out_ << ',' << newline_func_;
+                    os_ << ',' << newline_;
                 }
             }
-            out_ << newline_func_ << indent_ * current_indent << ']';
+            os_ << newline_ << indent_ * current_indent << ']';
             return;
         }
 
         case json_type::string:
         {
-            out_ << '\"';
+            os_ << '\"';
             dump_string(*json.value_.data.string);
-            out_ << '\"';
+            os_ << '\"';
             return;
         }
 
@@ -268,30 +159,30 @@ struct json_serializer
         {
             if (json.value_.data.boolean)
             {
-                out_ << 't' << 'r' << 'u' << 'e';
+                os_ << 't' << 'r' << 'u' << 'e';
             }
             else
             {
-                out_ << 'f' << 'a' << 'l' << 's' << 'e';
+                os_ << 'f' << 'a' << 'l' << 's' << 'e';
             }
             return;
         }
 
         case json_type::number_integer:
         {
-            out_ << json.value_.data.number_integer;
+            os_ << json.value_.data.number_integer;
             return;
         }
 
         case json_type::number_float:
         {
-            out_ << json.value_.data.number_float;
+            os_ << json.value_.data.number_float;
             return;
         }
 
         case json_type::null:
         {
-            out_ << 'n' << 'u' << 'l' << 'l';
+            os_ << 'n' << 'u' << 'l' << 'l';
             return;
         }
         }
@@ -299,7 +190,8 @@ struct json_serializer
 
     void dump_string(const string_type& val)
     {
-        detail::fast_istringstream<char_type> iss{ val };
+        detail::fast_string_istreambuf<char_type> buf{ val };
+        std::basic_istream<char_type> iss{ &buf };
 
         uint32_t code = 0;
         while (encoding::decode(iss, code))
@@ -313,43 +205,43 @@ struct json_serializer
             {
             case '\t':
             {
-                out_ << '\\' << 't';
+                os_ << '\\' << 't';
                 break;
             }
 
             case '\r':
             {
-                out_ << '\\' << 'r';
+                os_ << '\\' << 'r';
                 break;
             }
 
             case '\n':
             {
-                out_ << '\\' << 'n';
+                os_ << '\\' << 'n';
                 break;
             }
 
             case '\b':
             {
-                out_ << '\\' << 'b';
+                os_ << '\\' << 'b';
                 break;
             }
 
             case '\f':
             {
-                out_ << '\\' << 'f';
+                os_ << '\\' << 'f';
                 break;
             }
 
             case '\"':
             {
-                out_ << '\\' << '\"';
+                os_ << '\\' << '\"';
                 break;
             }
 
             case '\\':
             {
-                out_ << '\\' << '\\';
+                os_ << '\\' << '\\';
                 break;
             }
 
@@ -361,8 +253,8 @@ struct json_serializer
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
-                    encoding::encode(out_, code);
-                    if (!out_.good())
+                    encoding::encode(os_, code);
+                    if (!os_.good())
                     {
                         throw json_serialize_error("unexpected encoding error");
                     }
@@ -372,9 +264,9 @@ struct json_serializer
                     if (code <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        out_ << std::setfill(char_type('0')) << std::hex << std::uppercase;
-                        out_ << '\\' << 'u' << std::setw(4) << static_cast<uint16_t>(code);
-                        out_ << std::dec << std::nouppercase;
+                        os_ << std::setfill(char_type('0')) << std::hex << std::uppercase;
+                        os_ << '\\' << 'u' << std::setw(4) << static_cast<uint16_t>(code);
+                        os_ << std::dec << std::nouppercase;
                     }
                     else
                     {
@@ -382,10 +274,10 @@ struct json_serializer
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
                         detail::separate_surrogates(code, lead_surrogate, trail_surrogate);
 
-                        out_ << std::setfill(char_type('0')) << std::hex << std::uppercase;
-                        out_ << '\\' << 'u' << std::setw(4) << lead_surrogate;
-                        out_ << '\\' << 'u' << std::setw(4) << trail_surrogate;
-                        out_ << std::dec << std::nouppercase;
+                        os_ << std::setfill(char_type('0')) << std::hex << std::uppercase;
+                        os_ << '\\' << 'u' << std::setw(4) << lead_surrogate;
+                        os_ << '\\' << 'u' << std::setw(4) << trail_surrogate;
+                        os_ << std::dec << std::nouppercase;
                     }
                 }
                 break;
@@ -395,9 +287,6 @@ struct json_serializer
     }
 
 private:
-    using ostream_type    = std::basic_ostream<char_type>;
-    using ostreambuf_type = detail::output_streambuf<char_type>;
-
     class indent
     {
     public:
@@ -427,7 +316,7 @@ private:
             return *this;
         }
 
-        friend inline ostream_type& operator<<(ostream_type& os, const indent& i)
+        friend inline std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& os, const indent& i)
         {
             if (i.indent_char_)
             {
@@ -453,13 +342,13 @@ private:
     }
 
 private:
-    ostreambuf_type buf_;
-    ostream_type    out_;
-    const args&     args_;
-    indent          indent_;
+    std::basic_ostream<char_type>& os_;
 
-    using stream_func = ostream_type& (*)(ostream_type&);
-    stream_func newline_func_;
+    const args& args_;
+    indent      indent_;
+
+    using stream_func = std::basic_ostream<char_type>& (*)(std::basic_ostream<char_type>&);
+    stream_func newline_;
 };
 
 }  // namespace jsonxx

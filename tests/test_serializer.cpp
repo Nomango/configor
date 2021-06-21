@@ -99,3 +99,29 @@ TEST(test_serializer, test_dump_minimal_float)
     j = json::parse(j.dump());
     ASSERT_NEAR(j.as_float(), minimal_float, PRECISION(DBL_DIG));
 }
+
+TEST_F(SerializerTest, test_adapter)
+{
+    struct myadapter : public oadapter
+    {
+        myadapter(std::string& str)
+            : str_(str)
+        {
+        }
+
+        virtual void write(const char ch) override
+        {
+            str_.push_back(ch);
+        }
+
+    private:
+        std::string& str_;
+    };
+
+    std::string output;
+
+    myadapter ma{ output };
+    oadapterstream os{ ma };
+    ASSERT_NO_THROW(j.dump(os));
+    ASSERT_EQ(output, j.dump());
+}

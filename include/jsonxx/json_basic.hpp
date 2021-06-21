@@ -2,12 +2,12 @@
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
+// is the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in
+// The above copyright notice and this permission notice shall be included is
 // all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -64,7 +64,7 @@ public:
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    using dump_args = detail::serializer_args<basic_json>;
+    using dump_args = serializer_args<basic_json>;
 
 public:
     basic_json() {}
@@ -779,26 +779,26 @@ public:
 public:
     // dumps functions
 
-    friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out, const basic_json& j)
+    friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& os, const basic_json& j)
     {
         dump_args args;
-        args.indent      = static_cast<unsigned int>(out.width());
-        args.indent_char = out.fill();
-        args.precision   = static_cast<int>(out.precision());
+        args.indent      = static_cast<unsigned int>(os.width());
+        args.indent_char = os.fill();
+        args.precision   = static_cast<int>(os.precision());
 
-        out.width(0);
+        os.width(0);
 
-        stream_output_adapter<char_type> adapter(out);
-        j.dump(&adapter, args);
-        return out;
+        j.dump(os, args);
+        return os;
     }
 
     template <template <class _CharTy> class _Encoding = auto_utf>
     string_type dump(const dump_args& args = dump_args{}) const
     {
-        string_type                        result;
-        string_output_adapter<string_type> adapter(result);
-        this->dump<_Encoding>(&adapter, args);
+        string_type result;
+        detail::fast_string_ostreambuf<char_type> buf{ result };
+        std::basic_ostream<char_type> os{ &buf };
+        this->dump<_Encoding>(os, args);
         return result;
     }
 
@@ -813,47 +813,49 @@ public:
     }
 
     template <template <class _CharTy> class _Encoding = auto_utf>
-    void dump(output_adapter<char_type>* adapter, const dump_args& args = dump_args()) const
+    void dump(std::basic_ostream<char_type>& os, const dump_args& args = dump_args()) const
     {
-        json_serializer<basic_json, _Encoding>(adapter, args).dump(*this);
+        json_serializer<basic_json, _Encoding>{ os, args }.dump(*this);
     }
 
 public:
     // parse functions
 
-    friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in, basic_json& json)
+    friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, basic_json& json)
     {
-        stream_input_adapter<char_type> adapter(in);
-        json_parser<basic_json, auto_utf>(&adapter).parse(json);
-        return in;
+        json_parser<basic_json, auto_utf>{ is }.parse(json);
+        return is;
     }
 
     template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(const string_type& str)
     {
-        string_input_adapter<string_type> adapter(str);
-        return basic_json::parse<_Encoding>(&adapter);
+        detail::fast_string_istreambuf<char_type> buf{ str };
+        std::basic_istream<char_type> is{ &buf };
+        return basic_json::parse<_Encoding>(is);
     }
 
     template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(const char_type* str)
     {
-        buffer_input_adapter<char_type> adapter(str);
-        return basic_json::parse<_Encoding>(&adapter);
+        detail::fast_buffer_istreambuf<char_type> buf{ str };
+        std::basic_istream<char_type> is{ &buf };
+        return basic_json::parse<_Encoding>(is);
     }
 
     template <template <class _CharTy> class _Encoding = auto_utf>
     static inline basic_json parse(std::FILE* file)
     {
-        file_input_adapter<char_type> adapter(file);
-        return basic_json::parse<_Encoding>(&adapter);
+        detail::fast_cfile_istreambuf<char_type> buf{ file };
+        std::basic_istream<char_type> is{ &buf };
+        return basic_json::parse<_Encoding>(is);
     }
 
     template <template <class _CharTy> class _Encoding = auto_utf>
-    static inline basic_json parse(input_adapter<char_type>* adapter)
+    static inline basic_json parse(std::basic_istream<char_type>& is)
     {
         basic_json result;
-        json_parser<basic_json, _Encoding>(adapter).parse(result);
+        json_parser<basic_json, _Encoding>{ is }.parse(result);
         return result;
     }
 

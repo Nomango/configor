@@ -15,7 +15,7 @@
 - STL-like，低学习成本
 - 与标准库 io 交互
 - 非侵入式的序列化与反序列化
-- Unicode与多编码支持（包括wchar_t、char16_t、char32_t）
+- Unicode与多编码支持（支持`char`和`wchar_t`，对`char16_t`和`char32_t`需要额外支持）
 - 可扩展的输入输出方式
 
 ### 使用介绍
@@ -208,8 +208,9 @@ wjson j = wjson::parse(L"{ \"name\": \"中文测试\" }");
 std::wstring str = j[L"name"].as_string();  // L"中文测试"
 ```
 
-同时支持 char16_t 和 char32_t 类型，需要用户手动创建类型：
+对 char16_t 和 char32_t 字符类型，需要用户编写对应的io流（由于C++标准库并不支持这两种流）
 
+然后通过下面的别名来使用：
 ```cpp
 // char32_t
 using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
@@ -338,15 +339,73 @@ int main(int argc, char** argv)
 
 ### 更多
 
-若你需要将 JSON 解析和序列化应用到非 std::basic_stream 流中，可以通过创建自定义 `output_adapter` 和 `input_adapter` 的方式实现。
+若你需要将 JSON 解析和序列化应用到非 std::basic_stream 流中，可以通过实现自定义 `oadapter` 和 `iadapter` 的方式。
 
-实际上 json::parse() 和 json::dump() 函数也是通过自定义的 `string_output_adapter` 和 `string_input_adapter` 实现对字符串内容的输入和输出。
+一个 oadapter 的例子：
+```cpp
+struct myadapter : public oadapter
+{
+    myadapter(std::string& str)
+        : str_(str)
+    {
+    }
 
-详细内容请参考 json_parser.hpp 和 json_serializer.hpp
+    // 实现 write 接口，写入一个字符
+    virtual void write(const char ch) override
+    {
+        str_.push_back(ch);
+    }
+
+private:
+    std::string& str_;
+};
+
+// 使用方式
+std::string output;
+
+myadapter ma{ output };
+oadapterstream os{ ma };
+j.dump(os);  // 将 json j 序列化输出到 output 中
+
+std::cout << output;
+```
+
+一个 iadapter 的例子：
+```cpp
+struct myadapter : public iadapter
+{
+    myadapter(const std::string& str)
+        : str_(str)
+        , idx_(0)
+    {
+    }
+
+    // 实现 read 接口，读取一个字符
+    virtual char read() override
+    {
+        if (idx_ >= str_.size())
+            return std::char_traits<char>::eof();
+        return str_[idx_++];
+    }
+
+private:
+    const std::string& str_;
+    size_t             idx_;
+};
+
+// 使用方式
+std::string input = "{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }";
+
+myadapter ma{ input };
+iadapterstream is{ ma };
+json j = json::parse(is);  // 将 input 字符串反序列化到 json
+```
+
+详细内容请参考 json_stream.hpp
 
 ### 计划
 
-- [x] wchar_t、char16_t、char32_t 支持
+- [x] 完全的 unicode 支持
 - [x] 单测覆盖率达到 85% 以上
 - [x] 支持注释
 - [ ] 支持 json 和自定义类型的隐式转换（has_to_json限定）

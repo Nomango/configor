@@ -24,7 +24,6 @@
 #include "json_value.hpp"
 
 #include <cctype>            // std::isdigit
-#include <cstdio>            // std::FILE
 #include <initializer_list>  // std::initializer_list
 #include <istream>           // std::basic_istream
 #include <streambuf>         // std::basic_streambuf
@@ -32,165 +31,6 @@
 
 namespace jsonxx
 {
-//
-// input_adapter
-//
-
-template <typename _CharTy>
-struct input_adapter
-{
-    using char_type     = _CharTy;
-    using char_traits   = std::char_traits<char_type>;
-    using char_int_type = typename char_traits::int_type;
-
-    virtual char_int_type get_char() = 0;
-    virtual ~input_adapter()         = default;
-};
-
-template <typename _CharTy>
-struct file_input_adapter : public input_adapter<_CharTy>
-{
-    using char_type     = typename input_adapter<_CharTy>::char_type;
-    using char_traits   = typename input_adapter<_CharTy>::char_traits;
-    using char_int_type = typename char_traits::int_type;
-
-    file_input_adapter(std::FILE* file)
-        : file(file)
-    {
-    }
-
-    virtual char_int_type get_char() override
-    {
-        return std::fgetc(file);
-    }
-
-private:
-    std::FILE* file;
-};
-
-template <typename _CharTy>
-struct stream_input_adapter : public input_adapter<_CharTy>
-{
-    using char_type     = typename input_adapter<_CharTy>::char_type;
-    using char_traits   = typename input_adapter<_CharTy>::char_traits;
-    using char_int_type = typename char_traits::int_type;
-
-    stream_input_adapter(std::basic_istream<char_type>& stream)
-        : stream(stream)
-        , streambuf(*stream.rdbuf())
-    {
-    }
-
-    virtual char_int_type get_char() override
-    {
-        auto ch = streambuf.sbumpc();
-        if (ch == EOF)
-        {
-            stream.clear(stream.rdstate() | std::ios::eofbit);
-        }
-        return ch;
-    }
-
-    virtual ~stream_input_adapter()
-    {
-        stream.clear(stream.rdstate() & std::ios::eofbit);
-    }
-
-private:
-    std::basic_istream<char_type>&   stream;
-    std::basic_streambuf<char_type>& streambuf;
-};
-
-template <typename _StringTy>
-struct string_input_adapter : public input_adapter<typename _StringTy::value_type>
-{
-    using char_type     = typename input_adapter<typename _StringTy::value_type>::char_type;
-    using char_traits   = typename input_adapter<typename _StringTy::value_type>::char_traits;
-    using char_int_type = typename char_traits::int_type;
-
-    string_input_adapter(const _StringTy& str)
-        : str(str)
-        , index(0)
-    {
-    }
-
-    virtual char_int_type get_char() override
-    {
-        if (index == str.size())
-            return char_traits::eof();
-        return str[index++];
-    }
-
-private:
-    const _StringTy&              str;
-    typename _StringTy::size_type index;
-};
-
-template <typename _CharTy>
-struct buffer_input_adapter : public input_adapter<_CharTy>
-{
-    using char_type     = typename input_adapter<_CharTy>::char_type;
-    using char_traits   = typename input_adapter<_CharTy>::char_traits;
-    using char_int_type = typename char_traits::int_type;
-
-    buffer_input_adapter(const _CharTy* str)
-        : str(str)
-        , index(0)
-    {
-    }
-
-    virtual char_int_type get_char() override
-    {
-        if (str[index] == '\0')
-            return char_traits::eof();
-        return str[index++];
-    }
-
-private:
-    const char_type* str;
-    std::size_t      index;
-};
-
-namespace detail
-{
-
-template <typename _CharTy>
-class input_streambuf : public std::basic_streambuf<_CharTy>
-{
-public:
-    using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
-
-    input_streambuf(input_adapter<char_type>* adapter)
-        : adapter_(adapter)
-        , last_char_(0)
-    {
-    }
-
-protected:
-    virtual int_type underflow() override
-    {
-        if (last_char_ != 0)
-            return last_char_;
-        last_char_ = adapter_->get_char();
-        return last_char_;
-    }
-
-    virtual int_type uflow() override
-    {
-        int_type c = underflow();
-        last_char_ = 0;
-        return c;
-    }
-
-private:
-    input_adapter<char_type>* adapter_;
-    int_type                  last_char_;
-};
-
-}  // namespace detail
-
 //
 // json_lexer
 //
@@ -230,9 +70,13 @@ struct json_lexer
     using integer_type  = typename _BasicJsonTy::integer_type;
     using float_type    = typename _BasicJsonTy::float_type;
 
-    json_lexer(input_adapter<char_type>* adapter)
-        : buf_(adapter)
-        , in_(&buf_)
+    json_lexer(std::basic_istream<char_type>& is)
+        : is_negative_(false)
+        , number_integer_(0)
+        , number_float_(0)
+        , string_buffer_()
+        , current_(0)
+        , is_(is)
     {
         // read first char
         read_next();
@@ -240,7 +84,7 @@ struct json_lexer
 
     char_int_type read_next()
     {
-        current_ = in_.get();
+        current_ = is_.get();
         return current_;
     }
 
@@ -348,7 +192,7 @@ struct json_lexer
         case '9':
             return scan_number();
 
-        case '\0':
+        // case '\0':
         case char_traits::eof():
             return token_type::end_of_input;
 
@@ -383,7 +227,8 @@ struct json_lexer
 
         string_buffer_.clear();
 
-        detail::fast_ostringstream<char_type> oss{ string_buffer_ };
+        detail::fast_string_ostreambuf<char_type> buf{ string_buffer_ };
+        std::basic_ostream<char_type> oss{ &buf };
         while (true)
         {
             const auto ch = read_next();
@@ -563,7 +408,7 @@ struct json_lexer
         number_float_ = static_cast<float_type>(number_integer_);
 
         if (current_ == 'e' || current_ == 'E')
-                return scan_exponent();
+            return scan_exponent();
 
         if (current_ != '.')
             throw json_parse_error("float number must start with '.'");
@@ -676,12 +521,8 @@ private:
     float_type   number_float_;
     string_type  string_buffer_;
 
-    using istream_type    = std::basic_istream<char_type>;
-    using istreambuf_type = detail::input_streambuf<char_type>;
-
-    istreambuf_type buf_;
-    istream_type    in_;
-    char_int_type   current_;
+    char_int_type                  current_;
+    std::basic_istream<char_type>& is_;
 };
 
 //
@@ -694,8 +535,8 @@ struct json_parser
     using char_type  = typename _BasicJsonTy::char_type;
     using lexer_type = json_lexer<_BasicJsonTy, _Encoding>;
 
-    json_parser(input_adapter<char_type>* adapter)
-        : lexer_(adapter)
+    json_parser(std::basic_istream<char_type>& is)
+        : lexer_(is)
         , last_token_(token_type::uninitialized)
     {
     }

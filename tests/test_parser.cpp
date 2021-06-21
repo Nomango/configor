@@ -10,7 +10,8 @@ using namespace jsonxx;
 
 TEST(test_parser, test_parse)
 {
-    auto j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }");
+    json j;
+    ASSERT_NO_THROW(j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }"));
     ASSERT_EQ(j["happy"].as_bool(), true);
     ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
     ASSERT_EQ(j["name"].as_string(), "中文测试");
@@ -106,23 +107,28 @@ TEST(test_parser, test_read_from_file)
     };
 
     std::function<void(json&)> tests[] = {
-        [](json& j) {
+        [](json& j)
+        {
             // test 1
             auto list = j["glossary"]["GlossDiv"]["GlossList"]["GlossEntry"]["GlossDef"]["GlossSeeAlso"];
             ASSERT_EQ(list[0].as_string(), "GML");
             ASSERT_EQ(list[1].as_string(), "XML");
         },
-        [](json& j) {
+        [](json& j)
+        {
             // test 2
             ASSERT_EQ(j["menu"]["popup"]["menuitem"][0]["onclick"].as_string(), "CreateNewDoc()");
         },
-        [](json& j) {
+        [](json& j)
+        {
             // test 3
         },
-        [](json& j) {
+        [](json& j)
+        {
             // test 4
         },
-        [](json& j) {
+        [](json& j)
+        {
             // test 5
             ASSERT_EQ(j["menu"]["items"][2].is_null(), true);
             ASSERT_EQ(j["menu"]["items"][3]["id"].as_string(), "ZoomIn");
@@ -140,4 +146,33 @@ TEST(test_parser, test_read_from_file)
         // run tests
         tests[i](j);
     }
+}
+
+TEST(test_parser, test_adapter)
+{
+    struct myadapter : public iadapter
+    {
+        myadapter(const std::string& str)
+            : str_(str)
+            , idx_(0)
+        {
+        }
+
+        virtual char read() override
+        {
+            if (idx_ >= str_.size())
+                return std::char_traits<char>::eof();
+            return str_[idx_++];
+        }
+
+    private:
+        const std::string& str_;
+        size_t             idx_;
+    };
+
+    std::string input = "{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }";
+
+    myadapter ma{ input };
+    iadapterstream is{ ma };
+    ASSERT_EQ(json::parse(is), json::parse(input));
 }
