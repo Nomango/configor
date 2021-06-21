@@ -19,19 +19,197 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <cstdio>       // std::FILE, std::fgetc, std::fgets, std::fgetwc, std::fgetws
 #include <istream>      // std::basic_istream
 #include <ostream>      // std::basic_ostream
+#include <streambuf>    // std::streambuf
 #include <string>       // std::basic_string
 #include <type_traits>  // std::char_traits
 
 namespace jsonxx
 {
 
+//
+// basic_oadapter
+//
+
+template <typename _CharTy>
+struct basic_oadapter
+{
+    using char_type   = _CharTy;
+    using char_traits = std::char_traits<char_type>;
+
+    virtual void write(const _CharTy ch) = 0;
+
+    virtual void write(const _CharTy* str, std::size_t size)
+    {
+        if (size)
+        {
+            for (std::size_t i = 0; i < size; ++i)
+                this->write(str[i]);
+        }
+    }
+};
+
+using oadapter = basic_oadapter<char>;
+using woadapter = basic_oadapter<wchar_t>;
+
+template <typename _CharTy>
+class basic_oadapterstream : public std::basic_ostream<_CharTy>
+{
+public:
+    using char_type    = _CharTy;
+    using adapter_type = basic_oadapter<char_type>;
+
+    basic_oadapterstream(basic_oadapter<char_type>& adapter)
+        : std::basic_ostream<_CharTy>(nullptr)
+        , buf_(adapter)
+    {
+        this->rdbuf(&buf_);
+    }
+
+private:
+    class streambuf : public std::basic_streambuf<char_type>
+    {
+    public:
+        using char_type   = typename std::basic_streambuf<_CharTy>::char_type;
+        using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
+        using char_traits = std::char_traits<char_type>;
+
+        streambuf(basic_oadapter<char_type>& adapter)
+            : adapter_(adapter)
+        {
+        }
+
+    protected:
+        virtual int_type overflow(int_type c) override
+        {
+            if (c != EOF)
+            {
+                adapter_.write(char_traits::to_char_type(c));
+            }
+            return c;
+        }
+
+        virtual std::streamsize xsputn(const char_type* s, std::streamsize num) override
+        {
+            adapter_.write(s, static_cast<size_t>(num));
+            return num;
+        }
+
+    private:
+        basic_oadapter<char_type>& adapter_;
+    };
+
+    streambuf buf_;
+};
+
+using oadapterstream = basic_oadapterstream<char>;
+using woadapterstream = basic_oadapterstream<wchar_t>;
+
+//
+// basic_iadapter
+//
+
+template <typename _CharTy>
+struct basic_iadapter
+{
+    using char_type   = _CharTy;
+    using char_traits = std::char_traits<char_type>;
+
+    virtual char_type read() = 0;
+
+    virtual void read(char_type* s, size_t num)
+    {
+        if (num)
+        {
+            for (std::size_t i = 0; i < num; ++i)
+                s[i] = this->read();
+        }
+    }
+};
+
+using iadapter = basic_iadapter<char>;
+using wiadapter = basic_iadapter<wchar_t>;
+
+template <typename _CharTy>
+class basic_iadapterstream : public std::basic_istream<_CharTy>
+{
+public:
+    using char_type   = _CharTy;
+    using string_type = std::basic_string<char_type>;
+
+    basic_iadapterstream(basic_iadapter<char_type>& adapter)
+        : std::basic_istream<_CharTy>(nullptr)
+        , buf_(adapter)
+    {
+        this->rdbuf(&buf_);
+    }
+
+private:
+    class streambuf : public std::basic_streambuf<_CharTy>
+    {
+    public:
+        using char_type   = typename std::basic_streambuf<_CharTy>::char_type;
+        using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
+        using char_traits = std::char_traits<char_type>;
+
+        streambuf(basic_iadapter<char_type>& adapter)
+            : adapter_(adapter)
+            , last_char_(0)
+        {
+        }
+
+    protected:
+        virtual int_type underflow() override
+        {
+            if (last_char_ != 0)
+                return last_char_;
+            last_char_ = char_traits::to_char_type(adapter_.read());
+            return last_char_;
+        }
+
+        virtual int_type uflow() override
+        {
+            int_type c = underflow();
+            last_char_ = 0;
+            return c;
+        }
+
+        virtual std::streamsize xsgetn(char_type* s, std::streamsize num) override
+        {
+            if (last_char_ != 0)
+            {
+                // read last char
+                s[0] = char_traits::to_char_type(last_char_);
+                last_char_ = 0;
+                ++s;
+                --num;
+            }
+            adapter_.read(s, static_cast<size_t>(num));
+            return num;
+        }
+
+    private:
+        basic_iadapter<char_type>& adapter_;
+        int_type                  last_char_;
+    };
+
+    streambuf buf_;
+};
+
+using iadapterstream = basic_iadapterstream<char>;
+using wiadapterstream = basic_iadapterstream<wchar_t>;
+
 namespace detail
 {
 
+//
+// ostreambuf
+//
+
 template <typename _CharTy>
-class ostring_streambuf : public std::basic_streambuf<_CharTy>
+class fast_string_ostreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
@@ -39,7 +217,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    ostring_streambuf(string_type& str)
+    fast_string_ostreambuf(string_type& str)
         : str_(str)
     {
     }
@@ -47,7 +225,7 @@ public:
 protected:
     virtual int_type overflow(int_type c) override
     {
-        if (c != EOF)
+        if (c != char_traits::eof())
         {
             str_.push_back(char_traits::to_char_type(c));
         }
@@ -64,8 +242,12 @@ private:
     string_type& str_;
 };
 
+//
+// istreambuf
+//
+
 template <typename _CharTy>
-class istring_streambuf : public std::basic_streambuf<_CharTy>
+class fast_string_istreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
@@ -73,7 +255,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    istring_streambuf(const string_type& str)
+    fast_string_istreambuf(const string_type& str)
         : str_(str)
         , index_(0)
     {
@@ -83,7 +265,7 @@ protected:
     virtual int_type underflow() override
     {
         if (index_ >= str_.size())
-            return EOF;
+            return char_traits::eof();
         return char_traits::to_int_type(str_[index_]);
     }
 
@@ -106,39 +288,137 @@ private:
 };
 
 template <typename _CharTy>
-class fast_ostringstream : public std::basic_ostream<_CharTy>
+class fast_buffer_istreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
+    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
+    using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_ostringstream(string_type& str)
-        : std::basic_ostream<_CharTy>(nullptr)
-        , buf_(str)
+    fast_buffer_istreambuf(const char_type* buffer)
+        : buffer_(buffer)
+        , index_(0)
+        , size_(char_traits::length(buffer))
     {
-        this->rdbuf(&buf_);
+    }
+
+protected:
+    virtual int_type underflow() override
+    {
+        if (index_ >= size_)
+            return char_traits::eof();
+        return char_traits::to_int_type(buffer_[index_]);
+    }
+
+    virtual int_type uflow() override
+    {
+        int_type c = underflow();
+        ++index_;
+        return c;
+    }
+
+    virtual std::streamsize xsgetn(char_type* s, std::streamsize num) override
+    {
+        if (index_ + static_cast<size_t>(num) >= size_)
+            num = static_cast<std::streamsize>(size_ - index_);
+        if (num == 0)
+            return 0;
+        char_traits::copy(s, buffer_, static_cast<size_t>(num));
+        return num;
     }
 
 private:
-    ostring_streambuf<_CharTy> buf_;
+    const char_type* buffer_;
+    size_t           index_;
+    const size_t     size_;
 };
 
 template <typename _CharTy>
-class fast_istringstream : public std::basic_istream<_CharTy>
+class fast_cfile_istreambuf;
+
+template <>
+class fast_cfile_istreambuf<char> : public std::basic_streambuf<char>
 {
 public:
-    using char_type   = _CharTy;
+    using char_type   = char;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
+    using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_istringstream(const string_type& str)
-        : std::basic_istream<_CharTy>(nullptr)
-        , buf_(str)
+    fast_cfile_istreambuf(std::FILE* file)
+        : file_(file)
     {
-        this->rdbuf(&buf_);
+    }
+
+protected:
+    virtual int_type underflow() override
+    {
+        if (last_char_ != 0)
+            return last_char_;
+        last_char_ = std::fgetc(file_);
+        return last_char_;
+    }
+
+    virtual int_type uflow() override
+    {
+        int_type c = underflow();
+        last_char_ = 0;
+        return c;
+    }
+
+    virtual std::streamsize xsgetn(char_type* s, std::streamsize num) override
+    {
+        if (std::fgets(s, static_cast<std::size_t>(num), file_) == nullptr)
+            return 0;
+        return num;
     }
 
 private:
-    istring_streambuf<_CharTy> buf_;
+    std::FILE* file_;
+    int_type   last_char_;
+};
+
+template <>
+class fast_cfile_istreambuf<wchar_t> : public std::basic_streambuf<wchar_t>
+{
+public:
+    using char_type   = wchar_t;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
+    using char_traits = std::char_traits<char_type>;
+    using string_type = std::basic_string<char_type>;
+
+    fast_cfile_istreambuf(std::FILE* file)
+        : file_(file)
+    {
+    }
+
+protected:
+    virtual int_type underflow() override
+    {
+        if (last_char_ != 0)
+            return last_char_;
+        last_char_ = std::fgetwc(file_);
+        return last_char_;
+    }
+
+    virtual int_type uflow() override
+    {
+        int_type c = underflow();
+        last_char_ = 0;
+        return c;
+    }
+
+    virtual std::streamsize xsgetn(char_type* s, std::streamsize num) override
+    {
+        if (std::fgetws(s, static_cast<std::size_t>(num), file_) == nullptr)
+            return 0;
+        return num;
+    }
+
+private:
+    std::FILE* file_;
+    int_type   last_char_;
 };
 
 }  // namespace detail
