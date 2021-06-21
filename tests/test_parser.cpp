@@ -172,7 +172,32 @@ TEST(test_parser, test_adapter)
 
     std::string input = "{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }";
 
-    myadapter ma{ input };
-    iadapterstream is{ ma };
-    ASSERT_EQ(json::parse(is), json::parse(input));
+    {
+        myadapter ma{ input };
+        iadapterstream is{ ma };
+        ASSERT_EQ(json::parse(is), json::parse(input));
+    }
+
+    {
+        myadapter ma{ input };
+        iadapterstream is{ ma };
+        ASSERT_EQ(is.get(), '{');
+        ASSERT_EQ(is.peek(), ' ');
+        ASSERT_EQ(is.get(), ' ');
+        ASSERT_EQ(is.peek(), '\"');
+        ASSERT_EQ(is.get(), '\"');
+
+        char str[6] = {};
+        is.get(str, 6);
+        ASSERT_STREQ(str, "happy");
+        ASSERT_TRUE(is.good());
+
+        ASSERT_EQ(is.get(), '\"');
+        ASSERT_EQ(is.get(), ':');
+        ASSERT_EQ(is.get(), ' ');
+
+        is.get(str, 5);
+        ASSERT_STREQ(str, "true");
+        ASSERT_TRUE(is.good());
+    }
 }

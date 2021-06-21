@@ -119,9 +119,20 @@ TEST_F(SerializerTest, test_adapter)
     };
 
     std::string output;
+    {
+        myadapter ma{ output };
+        oadapterstream os{ ma };
+        ASSERT_NO_THROW(j.dump(os));
+        ASSERT_EQ(output, j.dump());
+    }
 
-    myadapter ma{ output };
-    oadapterstream os{ ma };
-    ASSERT_NO_THROW(j.dump(os));
-    ASSERT_EQ(output, j.dump());
+    {
+        output.clear();
+
+        myadapter ma{ output };
+        oadapterstream os{ ma };
+
+        os << 'h' << "ello,world";
+        ASSERT_EQ(output, "hello,world");
+    }
 }
