@@ -66,7 +66,6 @@ struct json_lexer
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
     using string_type   = typename _BasicJsonTy::string_type;
-    using encoding      = _Encoding<char_type>;
     using integer_type  = typename _BasicJsonTy::integer_type;
     using float_type    = typename _BasicJsonTy::float_type;
 
@@ -138,7 +137,7 @@ struct json_lexer
             }
             else
             {
-                throw json_parse_error("unexpected character '/'");
+                throw json_deserialization_error("unexpected character '/'");
             }
         }
     }
@@ -199,7 +198,7 @@ struct json_lexer
 
         // unexpected character
         default:
-            throw json_parse_error("unexpected character");
+            throw json_deserialization_error("unexpected character");
         }
 
         // skip next char
@@ -214,7 +213,7 @@ struct json_lexer
         {
             if (ch != char_traits::to_char_type(current_))
             {
-                throw json_parse_error("unexpected literal");
+                throw json_deserialization_error("unexpected literal");
             }
             read_next();
         }
@@ -224,7 +223,7 @@ struct json_lexer
     token_type scan_string()
     {
         if (current_ != '\"')
-            throw json_parse_error("string must start with '\"'");
+            throw json_deserialization_error("string must start with '\"'");
 
         string_buffer_.clear();
 
@@ -237,7 +236,7 @@ struct json_lexer
             {
             case char_traits::eof():
             {
-                throw json_parse_error("unexpected end of string");
+                throw json_deserialization_error("unexpected end of string");
             }
 
             case '\"':
@@ -280,7 +279,7 @@ struct json_lexer
             case 0x1E:
             case 0x1F:
             {
-                throw json_parse_error("invalid control character");
+                throw json_deserialization_error("invalid control character");
             }
 
             case '\\':
@@ -315,35 +314,35 @@ struct json_lexer
                 case 'u':
                 {
                     uint32_t codepoint = read_escaped_codepoint();
-                    if (JSONXX_UNICODE_SUR_LEAD_BEGIN <= codepoint && codepoint <= JSONXX_UNICODE_SUR_LEAD_END)
+                    if (encoding::unicode::is_lead_surrogate(codepoint))
                     {
                         if (read_next() != '\\' || read_next() != 'u')
                         {
-                            throw json_parse_error("lead surrogate must be followed by trail surrogate");
+                            throw json_deserialization_error("lead surrogate must be followed by trail surrogate");
                         }
 
                         const auto lead_surrogate  = codepoint;
                         const auto trail_surrogate = read_escaped_codepoint();
 
-                        if (!(JSONXX_UNICODE_SUR_TRAIL_BEGIN <= trail_surrogate
-                              && trail_surrogate <= JSONXX_UNICODE_SUR_TRAIL_END))
+                        if (!encoding::unicode::is_trail_surrogate(trail_surrogate))
                         {
-                            throw json_parse_error("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
+                            throw json_deserialization_error(
+                                "surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
                         }
-                        codepoint = detail::merge_surrogates(lead_surrogate, trail_surrogate);
+                        codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
 
-                    encoding::encode(oss, codepoint);
+                    _Encoding<char_type>::encode(oss, codepoint);
                     if (!oss.good())
                     {
-                        throw json_parse_error("unexpected encoding error");
+                        throw json_deserialization_error("unexpected encoding error");
                     }
                     break;
                 }
 
                 default:
                 {
-                    throw json_parse_error("invalid character");
+                    throw json_deserialization_error("invalid character");
                 }
                 }
                 break;
@@ -375,7 +374,7 @@ struct json_lexer
                 return scan_float();
 
             if (current_ == 'e' || current_ == 'E')
-                throw json_parse_error("invalid exponent");
+                throw json_deserialization_error("invalid exponent");
 
             // zero
             return token_type::value_integer;
@@ -386,7 +385,7 @@ struct json_lexer
     token_type scan_integer()
     {
         if (!std::isdigit(current_))
-            throw json_parse_error("invalid integer");
+            throw json_deserialization_error("invalid integer");
 
         number_integer_ = static_cast<integer_type>(current_ - '0');
 
@@ -412,10 +411,10 @@ struct json_lexer
             return scan_exponent();
 
         if (current_ != '.')
-            throw json_parse_error("float number must start with '.'");
+            throw json_deserialization_error("float number must start with '.'");
 
         if (!std::isdigit(read_next()))
-            throw json_parse_error("invalid float number");
+            throw json_deserialization_error("invalid float number");
 
         float_type fraction = static_cast<float_type>(0.1);
         number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
@@ -440,14 +439,14 @@ struct json_lexer
     token_type scan_exponent()
     {
         if (current_ != 'e' && current_ != 'E')
-            throw json_parse_error("exponent number must contains 'e' or 'E'");
+            throw json_deserialization_error("exponent number must contains 'e' or 'E'");
 
         // skip current_ char
         read_next();
 
         const bool invalid = (std::isdigit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
         if (!invalid)
-            throw json_parse_error("invalid exponent number");
+            throw json_deserialization_error("invalid exponent number");
 
         float_type base = 10;
         if (current_ == '+')
@@ -510,7 +509,7 @@ struct json_lexer
             }
             else
             {
-                throw json_parse_error("'\\u' must be followed by 4 hex digits");
+                throw json_deserialization_error("'\\u' must be followed by 4 hex digits");
             }
         }
         return code;
@@ -549,7 +548,7 @@ struct json_parser
         parse_value(json);
 
         if (get_token() != token_type::end_of_input)
-            throw json_parse_error("unexpected token, expect end");
+            throw json_deserialization_error("unexpected token, expect end");
     }
 
 private:
@@ -608,7 +607,7 @@ private:
                     break;
             }
             if (last_token_ != token_type::end_array)
-                throw json_parse_error("unexpected token in array");
+                throw json_deserialization_error("unexpected token in array");
             break;
 
         case token_type::begin_object:
@@ -631,12 +630,12 @@ private:
                     break;
             }
             if (last_token_ != token_type::end_object)
-                throw json_parse_error("unexpected token in object");
+                throw json_deserialization_error("unexpected token in object");
             break;
 
         default:
             // unexpected token
-            throw json_parse_error("unexpected token");
+            throw json_deserialization_error("unexpected token");
             break;
         }
     }

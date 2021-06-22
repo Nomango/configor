@@ -14,7 +14,7 @@ TEST(test_iterator, string)
     ASSERT_TRUE(iter == j.begin());
     ASSERT_TRUE(*iter == j);
 
-    ASSERT_THROW(iter->key(), json_invalid_iterator);
+    ASSERT_THROW(iter.key(), json_invalid_iterator);
 
     ASSERT_NO_THROW(iter++);
     ASSERT_TRUE(iter == j.end());
@@ -38,7 +38,7 @@ TEST(test_iterator, integer)
     ASSERT_TRUE(iter == j.begin());
     ASSERT_TRUE(*iter == j);
 
-    ASSERT_THROW(iter->key(), json_invalid_iterator);
+    ASSERT_THROW(iter.key(), json_invalid_iterator);
 
     ASSERT_NO_THROW(iter++);
     ASSERT_TRUE(iter == j.end());
@@ -62,7 +62,7 @@ TEST(test_iterator, double)
     ASSERT_TRUE(iter == j.begin());
     ASSERT_TRUE(*iter == j);
 
-    ASSERT_THROW(iter->key(), json_invalid_iterator);
+    ASSERT_THROW(iter.key(), json_invalid_iterator);
 
     ASSERT_NO_THROW(iter++);
     ASSERT_TRUE(iter == j.end());
@@ -86,7 +86,7 @@ TEST(test_iterator, boolean)
     ASSERT_TRUE(iter == j.begin());
     ASSERT_TRUE(*iter == j);
 
-    ASSERT_THROW(iter->key(), json_invalid_iterator);
+    ASSERT_THROW(iter.key(), json_invalid_iterator);
 
     ASSERT_NO_THROW(iter++);
     ASSERT_TRUE(iter == j.end());
@@ -128,20 +128,14 @@ TEST(test_iterator, object)
     const json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
     for (auto iter = obj.begin(); iter != obj.end(); iter++)
     {
-        ASSERT_EQ(iter, obj.find(iter->key()));
-        ASSERT_EQ(iter->value(), obj[iter->key()]);
-        ASSERT_EQ(iter->value(), *iter);
-    }
-
-    for (auto pair : obj)
-    {
-        ASSERT_EQ(pair, *(obj.find(pair.key())));
-        ASSERT_EQ(pair.value(), obj[pair.key()]);
+        ASSERT_EQ(iter, obj.find(iter.key()));
+        ASSERT_EQ(iter.value(), obj[iter.key()]);
+        ASSERT_EQ(iter.value(), *iter);
     }
 
     for (auto riter = obj.rbegin(); riter != obj.rend(); riter++)
     {
-        ASSERT_EQ(riter->value(), obj[riter->key()]);
+        ASSERT_EQ(riter.value(), obj[riter.key()]);
     }
 
     ASSERT_THROW(obj.end().operator*(), std::out_of_range);
@@ -163,21 +157,21 @@ TEST(test_iterator, array)
         auto temp_iter = arr.begin();
         std::advance(temp_iter, idx);
         ASSERT_EQ(iter, temp_iter);
-        ASSERT_EQ(iter->value(), arr[idx]);
-        ASSERT_THROW(iter->key(), json_invalid_iterator);
+        ASSERT_EQ(iter.value(), arr[idx]);
+        ASSERT_THROW(iter.key(), json_invalid_iterator);
     }
 
     idx = 0;
     for (auto elem : arr)
     {
-        ASSERT_EQ(elem.value(), arr[idx]);
+        ASSERT_EQ(elem, arr[idx]);
         idx++;
     }
 
     idx = arr.size() - 1;
     for (auto riter = arr.rbegin(); riter != arr.rend(); riter++, idx--)
     {
-        ASSERT_EQ(riter->value(), arr[idx]);
+        ASSERT_EQ(riter.value(), arr[idx]);
     }
 
     ASSERT_THROW(arr.end().operator*(), std::out_of_range);
@@ -189,6 +183,6 @@ TEST(test_iterator, array)
 TEST(test_iterator, others)
 {
     ASSERT_TRUE(json::object({}).begin() != json::array({}).begin());
-    ASSERT_THROW((json::iterator{ nullptr })->key(), json_invalid_iterator);
+    ASSERT_THROW((json::iterator{ nullptr }).key(), json_invalid_iterator);
     ASSERT_FALSE(json::iterator{ nullptr } == json::iterator{ nullptr });
 }

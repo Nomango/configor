@@ -26,42 +26,71 @@
 #include <ostream>      // std::basic_ostream
 #include <type_traits>  // std::char_traits
 
-// unicode constants
-#define JSONXX_UNICODE_SUR_BASE 0x10000
-#define JSONXX_UNICODE_SUR_LEAD_BEGIN 0xD800
-#define JSONXX_UNICODE_SUR_LEAD_END 0xDBFF
-#define JSONXX_UNICODE_SUR_TRAIL_BEGIN 0xDC00
-#define JSONXX_UNICODE_SUR_TRAIL_END 0xDFFF
-#define JSONXX_UNICODE_SUR_BITS 10
-#define JSONXX_UNICODE_SUR_MAX 0x3FF
-
 namespace jsonxx
 {
 
-namespace detail
+namespace encoding
 {
 
-namespace
+namespace unicode
 {
 
-inline uint32_t merge_surrogates(uint32_t lead_surrogate, uint32_t trail_surrogate)
+template <typename _Dummy>
+struct constants_t
 {
-    uint32_t codepoint = ((lead_surrogate - JSONXX_UNICODE_SUR_LEAD_BEGIN) << JSONXX_UNICODE_SUR_BITS);
-    codepoint += (trail_surrogate - JSONXX_UNICODE_SUR_TRAIL_BEGIN);
-    codepoint += JSONXX_UNICODE_SUR_BASE;
+    static constexpr uint32_t surrogate_base        = static_cast<uint32_t>(0x10000);
+    static constexpr uint32_t lead_surrogate_begin  = static_cast<uint32_t>(0xD800);
+    static constexpr uint32_t lead_surrogate_end    = static_cast<uint32_t>(0xDBFF);
+    static constexpr uint32_t trail_surrogate_begin = static_cast<uint32_t>(0xDC00);
+    static constexpr uint32_t trail_surrogate_end   = static_cast<uint32_t>(0xDFFF);
+    static constexpr uint32_t trail_surrogate_max   = static_cast<uint32_t>(0x3FF);
+    static constexpr uint32_t surrogate_bits        = static_cast<uint32_t>(10);
+};
+
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::surrogate_base;
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::lead_surrogate_begin;
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::lead_surrogate_end;
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::trail_surrogate_begin;
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::trail_surrogate_end;
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::trail_surrogate_max;
+template <typename _Dummy>
+const uint32_t constants_t<_Dummy>::surrogate_bits;
+
+using constants = constants_t<int>;
+
+inline bool is_lead_surrogate(const uint32_t codepoint)
+{
+    return constants::lead_surrogate_begin <= codepoint && codepoint <= constants::lead_surrogate_end;
+}
+
+inline bool is_trail_surrogate(const uint32_t codepoint)
+{
+    return constants::trail_surrogate_begin <= codepoint && codepoint <= constants::trail_surrogate_end;
+}
+
+inline uint32_t decode_surrogates(uint32_t lead_surrogate, uint32_t trail_surrogate)
+{
+    uint32_t codepoint = ((lead_surrogate - constants::lead_surrogate_begin) << constants::surrogate_bits);
+    codepoint += (trail_surrogate - constants::trail_surrogate_begin);
+    codepoint += constants::surrogate_base;
     return codepoint;
 }
 
-inline void separate_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint32_t& trail_surrogate)
+inline void encode_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint32_t& trail_surrogate)
 {
-    codepoint       = codepoint - JSONXX_UNICODE_SUR_BASE;
-    lead_surrogate  = static_cast<uint16_t>(JSONXX_UNICODE_SUR_LEAD_BEGIN + (codepoint >> JSONXX_UNICODE_SUR_BITS));
-    trail_surrogate = static_cast<uint16_t>(JSONXX_UNICODE_SUR_TRAIL_BEGIN + (codepoint & JSONXX_UNICODE_SUR_MAX));
+    codepoint      = codepoint - constants::surrogate_base;
+    lead_surrogate = static_cast<uint16_t>(constants::lead_surrogate_begin + (codepoint >> constants::surrogate_bits));
+    trail_surrogate =
+        static_cast<uint16_t>(constants::trail_surrogate_begin + (codepoint & constants::trail_surrogate_max));
 }
 
-}  // namespace
-
-}  // namespace detail
+}  // namespace unicode
 
 template <typename _CharTy>
 class utf8
@@ -188,7 +217,7 @@ public:
         else if (codepoint <= 0x10FFFF)
         {
             uint32_t lead_surrogate = 0, trail_surrogate = 0;
-            detail::separate_surrogates(codepoint, lead_surrogate, trail_surrogate);
+            unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
             os << char_traits::to_char_type(static_cast<typename char_traits::int_type>(lead_surrogate));
             os << char_traits::to_char_type(static_cast<typename char_traits::int_type>(trail_surrogate));
         }
@@ -205,14 +234,14 @@ public:
         if (is.eof())
             return false;
 
-        if (JSONXX_UNICODE_SUR_LEAD_BEGIN <= codepoint && codepoint <= JSONXX_UNICODE_SUR_LEAD_END)
+        if (unicode::is_lead_surrogate(codepoint))
         {
             uint32_t lead_surrogate  = codepoint;
             uint32_t trail_surrogate = static_cast<uint32_t>(static_cast<uint16_t>(is.get()));
 
-            if (JSONXX_UNICODE_SUR_TRAIL_BEGIN <= trail_surrogate && trail_surrogate <= JSONXX_UNICODE_SUR_TRAIL_END)
+            if (unicode::is_trail_surrogate(trail_surrogate))
             {
-                codepoint = detail::merge_surrogates(lead_surrogate, trail_surrogate);
+                codepoint = unicode::decode_surrogates(lead_surrogate, trail_surrogate);
             }
             else
             {
@@ -313,5 +342,7 @@ private:
         return utf32<_CharTy>::decode(is, codepoint);
     }
 };
+
+}  // namespace encoding
 
 }  // namespace jsonxx
