@@ -265,7 +265,8 @@ struct json_serializer
     using args          = serializer_args<_BasicJsonTy>;
 
     json_serializer(std::basic_ostream<char_type>& os, const args& args)
-        : os_(os)
+        : fmt_(os)
+        , os_(os)
         , args_(args)
         , indent_()
     {
@@ -515,8 +516,9 @@ private:
 private:
     const args& args_;
 
-    std::basic_ostream<char_type>& os_;
-    detail::indent<string_type>    indent_;
+    detail::format_keeper<char_type> fmt_;
+    std::basic_ostream<char_type>&   os_;
+    detail::indent<string_type>      indent_;
 };
 
 }  // namespace jsonxx

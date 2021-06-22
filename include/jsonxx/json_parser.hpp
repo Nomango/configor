@@ -76,6 +76,7 @@ struct json_lexer
         , number_float_(0)
         , string_buffer_()
         , current_(0)
+        , fmt_(is)
         , is_(is)
     {
         // read first char
@@ -228,7 +229,7 @@ struct json_lexer
         string_buffer_.clear();
 
         detail::fast_string_ostreambuf<char_type> buf{ string_buffer_ };
-        std::basic_ostream<char_type> oss{ &buf };
+        std::basic_ostream<char_type>             oss{ &buf };
         while (true)
         {
             const auto ch = read_next();
@@ -521,8 +522,10 @@ private:
     float_type   number_float_;
     string_type  string_buffer_;
 
-    char_int_type                  current_;
-    std::basic_istream<char_type>& is_;
+    char_int_type current_;
+
+    detail::format_keeper<char_type> fmt_;
+    std::basic_istream<char_type>&   is_;
 };
 
 //

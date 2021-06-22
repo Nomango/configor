@@ -20,6 +20,7 @@
 
 #pragma once
 #include <cstdio>       // std::FILE, std::fgetc, std::fgets, std::fgetwc, std::fgetws
+#include <ios>          // std::basic_ios
 #include <istream>      // std::basic_istream
 #include <ostream>      // std::basic_ostream
 #include <streambuf>    // std::streambuf
@@ -413,6 +414,80 @@ protected:
 private:
     std::FILE* file_;
     int_type   last_char_;
+};
+
+//
+// format_keeper
+//
+
+template <typename _CharTy>
+class format_keeper : public std::basic_ios<_CharTy>
+{
+public:
+    using char_type = _CharTy;
+
+    format_keeper(std::basic_ios<char_type>& other)
+        : std::basic_ios<char_type>(nullptr)
+        , other_(other)
+    {
+        // only copy flags
+        this->setf(other.flags());
+    }
+
+    ~format_keeper()
+    {
+        // restore previous flags
+        other_.setf(this->flags());
+    }
+
+private:
+    std::basic_ios<char_type>& other_;
+};
+
+template <>
+class format_keeper<char> : public std::basic_ios<char>
+{
+public:
+    using char_type = char;
+
+    format_keeper(std::basic_ios<char_type>& other)
+        : std::basic_ios<char_type>(nullptr)
+        , other_(other)
+    {
+        copyfmt(other);
+    }
+
+    ~format_keeper()
+    {
+        // restore previous formatting
+        other_.copyfmt(*this);
+    }
+
+private:
+    std::basic_ios<char_type>& other_;
+};
+
+template <>
+class format_keeper<wchar_t> : public std::basic_ios<wchar_t>
+{
+public:
+    using char_type = wchar_t;
+
+    format_keeper(std::basic_ios<char_type>& other)
+        : std::basic_ios<char_type>(nullptr)
+        , other_(other)
+    {
+        copyfmt(other);
+    }
+
+    ~format_keeper()
+    {
+        // restore previous formatting
+        other_.copyfmt(*this);
+    }
+
+private:
+    std::basic_ios<char_type>& other_;
 };
 
 }  // namespace detail
