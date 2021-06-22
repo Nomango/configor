@@ -62,14 +62,14 @@ TEST(test_parser, test_parse)
     ASSERT_DOUBLE_EQ(json::parse("-12.5e-2").as_float(), -0.125);
 
     // parse controle characters
-    ASSERT_THROW(json::parse("\t"), json_parse_error);
-    ASSERT_THROW(json::parse("\r"), json_parse_error);
-    ASSERT_THROW(json::parse("\n"), json_parse_error);
-    ASSERT_THROW(json::parse("\b"), json_parse_error);
-    ASSERT_THROW(json::parse("\f"), json_parse_error);
+    ASSERT_THROW(json::parse("\t"), json_deserialization_error);
+    ASSERT_THROW(json::parse("\r"), json_deserialization_error);
+    ASSERT_THROW(json::parse("\n"), json_deserialization_error);
+    ASSERT_THROW(json::parse("\b"), json_deserialization_error);
+    ASSERT_THROW(json::parse("\f"), json_deserialization_error);
 
     // unexpect end
-    ASSERT_THROW(json::parse("\\"), json_parse_error);
+    ASSERT_THROW(json::parse("\\"), json_deserialization_error);
 }
 
 TEST(test_parser, test_comment)

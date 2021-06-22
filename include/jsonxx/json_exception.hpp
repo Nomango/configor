@@ -19,13 +19,11 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <stdexcept>
+#include <stdexcept>  // std::runtime_error
+#include <string>     // std::string
 
 namespace jsonxx
 {
-//
-// exceptions
-//
 
 class json_exception : public std::runtime_error
 {
@@ -34,13 +32,18 @@ public:
         : std::runtime_error(message)
     {
     }
+
+    json_exception(const std::string& message)
+        : std::runtime_error(message)
+    {
+    }
 };
 
 class json_type_error : public json_exception
 {
 public:
-    json_type_error(const char* message)
-        : json_exception(message)
+    json_type_error(const std::string& message)
+        : json_exception("json type error: " + message)
     {
     }
 };
@@ -48,8 +51,8 @@ public:
 class json_invalid_key : public json_exception
 {
 public:
-    json_invalid_key(const char* message)
-        : json_exception(message)
+    json_invalid_key(const std::string& message)
+        : json_exception("invalid json key error: " + message)
     {
     }
 };
@@ -57,27 +60,28 @@ public:
 class json_invalid_iterator : public json_exception
 {
 public:
-    json_invalid_iterator(const char* message)
-        : json_exception(message)
+    json_invalid_iterator(const std::string& message)
+        : json_exception("invalid json iterator error: " + message)
     {
     }
 };
 
-class json_parse_error : public json_exception
+class json_deserialization_error : public json_exception
 {
 public:
-    json_parse_error(const char* message)
-        : json_exception(message)
+    json_deserialization_error(const std::string& message)
+        : json_exception("json deserialization error: " + message)
     {
     }
 };
 
-class json_serialize_error : public json_exception
+class json_serialization_error : public json_exception
 {
 public:
-    json_serialize_error(const char* message)
-        : json_exception(message)
+    json_serialization_error(const std::string& message)
+        : json_exception("json serialization error: " + message)
     {
     }
 };
+
 }  // namespace jsonxx

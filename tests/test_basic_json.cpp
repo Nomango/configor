@@ -177,8 +177,8 @@ TEST(test_basic_json, test_object)
     ASSERT_NO_THROW(json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } }));
 
     // not an object
-    ASSERT_DEATH(json::object({ {"1", 1}, {""} }), ".*");
-    ASSERT_DEATH(json::object({ {1, ""} }), ".*");
+    ASSERT_THROW(json::object({ {"1", 1}, {""} }), json_type_error);
+    ASSERT_THROW(json::object({ {1, ""} }), json_type_error);
 
     json j = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
     json j2 = j;

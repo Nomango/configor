@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "json_config.hpp"
 #include "json_iterator.hpp"
 #include "json_parser.hpp"
 #include "json_serializer.hpp"
@@ -62,8 +61,8 @@ public:
 
     using iterator               = detail::iterator<basic_json>;
     using const_iterator         = detail::iterator<const basic_json>;
-    using reverse_iterator       = std::reverse_iterator<iterator>;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using reverse_iterator       = detail::reverse_iterator<iterator>;
+    using const_reverse_iterator = detail::reverse_iterator<const_iterator>;
 
     using dump_args = serializer_args<basic_json>;
 
@@ -153,9 +152,10 @@ public:
 
         if (exact_type == json_type::object)
         {
-            JSONXX_ASSERT(is_an_object);
-            value_ = json_type::object;
+            if (!is_an_object)
+                throw json_type_error("initializer_list is not object type");
 
+            value_ = json_type::object;
             std::for_each(init_list.begin(), init_list.end(),
                           [this](const basic_json& json) {
                               value_.data.object->emplace(*((*json.value_.data.vector)[0].value_.data.string),
@@ -793,7 +793,7 @@ public:
         return os;
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     string_type dump(const dump_args& args = dump_args{}) const
     {
         string_type                               result;
@@ -803,7 +803,7 @@ public:
         return result;
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false) const
     {
         dump_args args;
@@ -813,7 +813,7 @@ public:
         return this->dump<_Encoding>(args);
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     void dump(std::basic_ostream<char_type>& os, const dump_args& args = dump_args()) const
     {
         json_serializer<basic_json, _Encoding>{ os, args }.dump(*this);
@@ -824,11 +824,11 @@ public:
 
     friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, basic_json& json)
     {
-        json_parser<basic_json, auto_utf>{ is }.parse(json);
+        json_parser<basic_json, encoding::auto_utf>{ is }.parse(json);
         return is;
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     static inline basic_json parse(const string_type& str)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
@@ -836,7 +836,7 @@ public:
         return basic_json::parse<_Encoding>(is);
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     static inline basic_json parse(const char_type* str)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
@@ -844,7 +844,7 @@ public:
         return basic_json::parse<_Encoding>(is);
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     static inline basic_json parse(std::FILE* file)
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
@@ -852,7 +852,7 @@ public:
         return basic_json::parse<_Encoding>(is);
     }
 
-    template <template <class _CharTy> class _Encoding = auto_utf>
+    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
     static inline basic_json parse(std::basic_istream<char_type>& is)
     {
         basic_json result;

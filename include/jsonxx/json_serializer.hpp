@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "json_config.hpp"
 #include "json_encoding.hpp"
 #include "json_stream.hpp"
 #include "json_value.hpp"
@@ -43,26 +42,29 @@ namespace detail
 // serialize functions
 //
 
+template <typename _CharTy>
 struct snprintf_t
 {
-    template <typename _CharTy, typename _IntTy>
-    static inline std::basic_ostream<_CharTy>& one_integer(std::basic_ostream<_CharTy>& os, const _IntTy val)
+    using char_type = _CharTy;
+
+    template <typename _IntTy>
+    static inline std::basic_ostream<char_type>& one_integer(std::basic_ostream<char_type>& os, const _IntTy val)
     {
         char buffer[32] = {};
         internal_snprintf(os, buffer, sizeof(buffer), "%d", val);
         return os;
     }
 
-    template <typename _CharTy, typename _IntTy>
-    static inline std::basic_ostream<_CharTy>& one_hex(std::basic_ostream<_CharTy>& os, const _IntTy val)
+    template <typename _IntTy>
+    static inline std::basic_ostream<char_type>& one_hex(std::basic_ostream<char_type>& os, const _IntTy val)
     {
         char buffer[7] = {};
         internal_snprintf(os, buffer, sizeof(buffer), "\\u%04X", val);
         return os;
     }
 
-    template <typename _CharTy, typename _FloatTy>
-    static inline std::basic_ostream<_CharTy>& one_float(std::basic_ostream<_CharTy>& os, const _FloatTy val)
+    template <typename _FloatTy>
+    static inline std::basic_ostream<char_type>& one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
     {
         char buffer[32] = {};
         internal_snprintf(os, buffer, sizeof(buffer), "%.*g", static_cast<int>(os.precision()), val);
@@ -70,22 +72,21 @@ struct snprintf_t
     }
 
 private:
-    template <typename _CharTy, typename... _Args>
-    static inline void internal_snprintf(std::basic_ostream<_CharTy>& os, char* buffer, size_t size, const char* format,
-                                         _Args&&... args)
+    template <typename... _Args>
+    static inline void internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
+                                         const char* format, _Args&&... args)
     {
         const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
         if (len > 0)
-            copy_simple_str_to_big(os, buffer, static_cast<size_t>(len));
+            copy_simple_string(os, buffer, static_cast<size_t>(len));
         else
             os.setstate(std::ios_base::failbit);
     }
 
-    template <typename _CharTy>
-    static inline void copy_simple_str_to_big(std::basic_ostream<_CharTy>& os, const char* str, size_t len)
+    static inline void copy_simple_string(std::basic_ostream<char_type>& os, const char* str, size_t len)
     {
         for (size_t i = 0; i < len; i++)
-            os.put(static_cast<_CharTy>(str[i]));
+            os.put(static_cast<char_type>(str[i]));
     }
 };
 
@@ -103,12 +104,12 @@ struct serializable_integer
 
     friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_integer& i)
     {
-        return snprintf_t::one_integer(os, i.i);
+        return snprintf_t<char16_t>::one_integer(os, i.i);
     }
 
     friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_integer& i)
     {
-        return snprintf_t::one_integer(os, i.i);
+        return snprintf_t<char32_t>::one_integer(os, i.i);
     }
 };
 
@@ -128,12 +129,12 @@ struct serializable_hex
 
     friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_hex& i)
     {
-        return snprintf_t::one_hex(os, i.i);
+        return snprintf_t<char16_t>::one_hex(os, i.i);
     }
 
     friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_hex& i)
     {
-        return snprintf_t::one_hex(os, i.i);
+        return snprintf_t<char32_t>::one_hex(os, i.i);
     }
 };
 
@@ -150,12 +151,12 @@ struct serializable_float
 
     friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_float& f)
     {
-        return snprintf_t::one_float(os, f.f);
+        return snprintf_t<char16_t>::one_float(os, f.f);
     }
 
     friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_float& f)
     {
-        return snprintf_t::one_float(os, f.f);
+        return snprintf_t<char32_t>::one_float(os, f.f);
     }
 };
 
@@ -261,7 +262,6 @@ struct json_serializer
     using string_type   = typename _BasicJsonTy::string_type;
     using integer_type  = typename _BasicJsonTy::integer_type;
     using float_type    = typename _BasicJsonTy::float_type;
-    using encoding      = _Encoding<char_type>;
     using args          = serializer_args<_BasicJsonTy>;
 
     json_serializer(std::basic_ostream<char_type>& os, const args& args)
@@ -403,11 +403,11 @@ struct json_serializer
         std::basic_istream<char_type>             iss{ &buf };
 
         uint32_t code = 0;
-        while (encoding::decode(iss, code))
+        while (_Encoding<char_type>::decode(iss, code))
         {
             if (!iss.good())
             {
-                throw json_serialize_error("unexpected character");
+                throw json_serialization_error("unexpected character");
             }
 
             switch (code)
@@ -462,10 +462,10 @@ struct json_serializer
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
-                    encoding::encode(os_, code);
+                    _Encoding<char_type>::encode(os_, code);
                     if (!os_.good())
                     {
-                        throw json_serialize_error("unexpected encoding error");
+                        throw json_serialization_error("unexpected encoding error");
                     }
                 }
                 else
@@ -479,10 +479,9 @@ struct json_serializer
                     {
                         // supplementary planes: U+10000...U+10FFFF
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
-                        detail::separate_surrogates(code, lead_surrogate, trail_surrogate);
+                        encoding::unicode::encode_surrogates(code, lead_surrogate, trail_surrogate);
 
-                        os_ << detail::serialize_hex(lead_surrogate);
-                        os_ << detail::serialize_hex(trail_surrogate);
+                        os_ << detail::serialize_hex(lead_surrogate) << detail::serialize_hex(trail_surrogate);
                     }
                 }
                 break;

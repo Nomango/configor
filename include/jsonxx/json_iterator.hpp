@@ -22,7 +22,9 @@
 #include "json_exception.hpp"
 #include "json_value.hpp"
 
-#include <cstddef>  // std::ptrdiff_t
+#include <cstddef>   // std::ptrdiff_t
+#include <iterator>  // std::reverse_iterator, std::prev
+#include <memory>    // std::addressof
 
 namespace jsonxx
 {
@@ -131,77 +133,32 @@ private:
 };
 
 template <typename _BasicJsonTy>
-struct iterator_value
-{
-    using value_type  = _BasicJsonTy;
-    using object_type = typename _BasicJsonTy::object_type;
-    using key_type    = typename object_type::key_type;
-
-    explicit iterator_value(value_type* value)
-        : key_(&dummy_key_)
-        , value_(value)
-    {
-    }
-
-    explicit iterator_value(const key_type& key, value_type* value)
-        : key_(&key)
-        , value_(value)
-    {
-    }
-
-    inline const key_type& key() const
-    {
-        if (key_ == &dummy_key_)
-            throw json_invalid_iterator("cannot use key() with non-object type");
-        return *key_;
-    }
-
-    inline value_type& value() const
-    {
-        return *value_;
-    }
-
-    inline operator value_type&() const
-    {
-        return *value_;
-    }
-
-private:
-    static key_type dummy_key_;
-
-    const key_type* key_;
-    value_type*     value_;
-};
-
-template <typename _BasicJsonTy>
-typename iterator_value<_BasicJsonTy>::key_type iterator_value<_BasicJsonTy>::dummy_key_;
-
-template <typename _BasicJsonTy>
 struct iterator
 {
     friend _BasicJsonTy;
 
-    using string_type  = typename _BasicJsonTy::string_type;
-    using char_type    = typename _BasicJsonTy::char_type;
-    using integer_type = typename _BasicJsonTy::integer_type;
-    using float_type   = typename _BasicJsonTy::float_type;
-    using boolean_type = typename _BasicJsonTy::boolean_type;
-    using array_type   = typename _BasicJsonTy::array_type;
-    using object_type  = typename _BasicJsonTy::object_type;
-
     using value_type        = _BasicJsonTy;
     using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
-    using pointer           = iterator_value<value_type>*;
-    using reference         = iterator_value<value_type>&;
+    using pointer           = value_type*;
+    using reference         = value_type&;
 
     inline explicit iterator(value_type* json)
         : data_(json)
-        , it_value_(json)
     {
     }
 
-    inline reference operator*() const
+    inline const typename value_type::string_type& key() const
+    {
+        check_data();
+        check_iterator();
+
+        if (data_->type() != json_type::object)
+            throw json_invalid_iterator("cannot use key() with non-object type");
+        return object_it_->first;
+    }
+
+    inline reference value() const
     {
         check_data();
         check_iterator();
@@ -209,21 +166,21 @@ struct iterator
         switch (data_->type())
         {
         case json_type::object:
-            it_value_ = iterator_value<value_type>(object_it_->first, &(object_it_->second));
-            break;
+            return object_it_->second;
         case json_type::array:
-            it_value_ = iterator_value<value_type>(&(*array_it_));
-            break;
-        default:
-            it_value_ = iterator_value<value_type>(data_);
-            break;
+            return *array_it_;
         }
-        return it_value_;
+        return *data_;
+    }
+
+    inline reference operator*() const
+    {
+        return this->value();
     }
 
     inline pointer operator->() const
     {
-        return &(operator*());
+        return std::addressof(this->operator*());
     }
 
     inline iterator operator++(int)
@@ -504,11 +461,37 @@ private:
 private:
     value_type* data_;
 
-    mutable iterator_value<value_type> it_value_;
-
     typename _BasicJsonTy::array_type::iterator  array_it_;
     typename _BasicJsonTy::object_type::iterator object_it_;
     primitive_iterator                           original_it_ = 0;  // for other types
+};
+
+template <typename _IterTy>
+struct reverse_iterator : public std::reverse_iterator<_IterTy>
+{
+    using iterator_type     = typename std::reverse_iterator<_IterTy>::iterator_type;
+    using value_type        = typename std::reverse_iterator<_IterTy>::value_type;
+    using difference_type   = typename std::reverse_iterator<_IterTy>::difference_type;
+    using iterator_category = typename std::reverse_iterator<_IterTy>::iterator_category;
+    using pointer           = typename std::reverse_iterator<_IterTy>::pointer;
+    using reference         = typename std::reverse_iterator<_IterTy>::reference;
+
+    reverse_iterator() = default;
+
+    inline explicit reverse_iterator(iterator_type it)
+        : std::reverse_iterator<_IterTy>(it)
+    {
+    }
+
+    inline const typename value_type::string_type& key() const
+    {
+        return std::prev(this->current).key();
+    }
+
+    inline reference value() const
+    {
+        return std::prev(this->current).value();
+    }
 };
 
 }  // namespace detail
