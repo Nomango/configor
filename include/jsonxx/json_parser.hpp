@@ -23,7 +23,6 @@
 #include "json_stream.hpp"
 #include "json_value.hpp"
 
-#include <cctype>            // std::isdigit
 #include <initializer_list>  // std::initializer_list
 #include <istream>           // std::basic_istream
 #include <streambuf>         // std::basic_streambuf
@@ -31,6 +30,14 @@
 
 namespace jsonxx
 {
+
+template <typename _BasicJsonTy>
+struct parser_args
+{
+    bool allow_comments = false;  // allow comments
+    bool check_document = false;  // only allow object or array type
+};
+
 //
 // json_lexer
 //
@@ -59,7 +66,7 @@ enum class token_type
     end_of_input
 };
 
-template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
+template <typename _BasicJsonTy>
 struct json_lexer
 {
     using char_type     = typename _BasicJsonTy::char_type;
@@ -68,12 +75,15 @@ struct json_lexer
     using string_type   = typename _BasicJsonTy::string_type;
     using integer_type  = typename _BasicJsonTy::integer_type;
     using float_type    = typename _BasicJsonTy::float_type;
+    using encoding_type = typename _BasicJsonTy::encoding_type;
+    using args          = parser_args<_BasicJsonTy>;
 
-    json_lexer(std::basic_istream<char_type>& is)
+    json_lexer(std::basic_istream<char_type>& is, const args& args)
         : is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
         , string_buffer_()
+        , args_(args)
         , current_(0)
         , fmt_(is)
         , is_(is)
@@ -93,7 +103,8 @@ struct json_lexer
         while (current_ == ' ' || current_ == '\t' || current_ == '\n' || current_ == '\r')
             read_next();
 
-        if (current_ == '/')
+        // skip comments
+        if (args_.allow_comments && current_ == '/')
         {
             read_next();
             if (current_ == '/')
@@ -137,7 +148,7 @@ struct json_lexer
             }
             else
             {
-                throw json_deserialization_error("unexpected character '/'");
+                fail("unexpected character '/'");
             }
         }
     }
@@ -196,9 +207,10 @@ struct json_lexer
         case char_traits::eof():
             return token_type::end_of_input;
 
-        // unexpected character
         default:
-            throw json_deserialization_error("unexpected character");
+        {
+            fail("unexpected character", current_);
+        }
         }
 
         // skip next char
@@ -213,7 +225,13 @@ struct json_lexer
         {
             if (ch != char_traits::to_char_type(current_))
             {
-                throw json_deserialization_error("unexpected literal");
+                detail::fast_ostringstream ss;
+                ss << "unexpected character '" << static_cast<char>(current_) << "'";
+                ss << " (expected literal '";
+                for (const auto ch : text)
+                    ss.put(static_cast<char>(ch));
+                ss << "')";
+                fail(ss.str());
             }
             read_next();
         }
@@ -222,8 +240,7 @@ struct json_lexer
 
     token_type scan_string()
     {
-        if (current_ != '\"')
-            throw json_deserialization_error("string must start with '\"'");
+        JSONXX_ASSERT(current_ == '\"');
 
         string_buffer_.clear();
 
@@ -236,7 +253,7 @@ struct json_lexer
             {
             case char_traits::eof():
             {
-                throw json_deserialization_error("unexpected end of string");
+                fail("unexpected end of string");
             }
 
             case '\"':
@@ -279,7 +296,7 @@ struct json_lexer
             case 0x1E:
             case 0x1F:
             {
-                throw json_deserialization_error("invalid control character");
+                fail("invalid control character", current_);
             }
 
             case '\\':
@@ -318,7 +335,7 @@ struct json_lexer
                     {
                         if (read_next() != '\\' || read_next() != 'u')
                         {
-                            throw json_deserialization_error("lead surrogate must be followed by trail surrogate");
+                            fail("lead surrogate must be followed by trail surrogate, but got", current_);
                         }
 
                         const auto lead_surrogate  = codepoint;
@@ -326,23 +343,23 @@ struct json_lexer
 
                         if (!encoding::unicode::is_trail_surrogate(trail_surrogate))
                         {
-                            throw json_deserialization_error(
-                                "surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
+                            fail("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF, but got",
+                                 trail_surrogate);
                         }
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
 
-                    _Encoding<char_type>::encode(oss, codepoint);
+                    encoding_type::encode(oss, codepoint);
                     if (!oss.good())
                     {
-                        throw json_deserialization_error("unexpected encoding error");
+                        fail("encoding failed with codepoint", codepoint);
                     }
                     break;
                 }
 
                 default:
                 {
-                    throw json_deserialization_error("invalid character");
+                    fail("invalid escaped character", current_);
                 }
                 }
                 break;
@@ -374,7 +391,7 @@ struct json_lexer
                 return scan_float();
 
             if (current_ == 'e' || current_ == 'E')
-                throw json_deserialization_error("invalid exponent");
+                fail("invalid exponent");
 
             // zero
             return token_type::value_integer;
@@ -384,18 +401,16 @@ struct json_lexer
 
     token_type scan_integer()
     {
-        if (!std::isdigit(current_))
-            throw json_deserialization_error("invalid integer");
+        JSONXX_ASSERT(is_digit(current_));
 
         number_integer_ = static_cast<integer_type>(current_ - '0');
-
         while (true)
         {
             const auto ch = read_next();
             if (ch == '.' || ch == 'e' || ch == 'E')
                 return scan_float();
 
-            if (std::isdigit(ch))
+            if (is_digit(ch))
                 number_integer_ = number_integer_ * 10 + static_cast<integer_type>(ch - '0');
             else
                 break;
@@ -410,11 +425,10 @@ struct json_lexer
         if (current_ == 'e' || current_ == 'E')
             return scan_exponent();
 
-        if (current_ != '.')
-            throw json_deserialization_error("float number must start with '.'");
+        JSONXX_ASSERT(current_ == '.');
 
-        if (!std::isdigit(read_next()))
-            throw json_deserialization_error("invalid float number");
+        if (!is_digit(read_next()))
+            fail("invalid float number, got", current_);
 
         float_type fraction = static_cast<float_type>(0.1);
         number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
@@ -425,7 +439,7 @@ struct json_lexer
             if (ch == 'e' || ch == 'E')
                 return scan_exponent();
 
-            if (std::isdigit(ch))
+            if (is_digit(ch))
             {
                 fraction *= static_cast<float_type>(0.1);
                 number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
@@ -438,15 +452,13 @@ struct json_lexer
 
     token_type scan_exponent()
     {
-        if (current_ != 'e' && current_ != 'E')
-            throw json_deserialization_error("exponent number must contains 'e' or 'E'");
+        JSONXX_ASSERT(current_ == 'e' || current_ == 'E');
 
-        // skip current_ char
         read_next();
 
-        const bool invalid = (std::isdigit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
+        const bool invalid = (is_digit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
         if (!invalid)
-            throw json_deserialization_error("invalid exponent number");
+            fail("invalid exponent number, got", current_);
 
         float_type base = 10;
         if (current_ == '+')
@@ -460,7 +472,7 @@ struct json_lexer
         }
 
         uint32_t exponent = static_cast<uint32_t>(current_ - '0');
-        while (std::isdigit(read_next()))
+        while (is_digit(read_next()))
         {
             exponent = (exponent * 10) + static_cast<uint32_t>(current_ - '0');
         }
@@ -509,10 +521,28 @@ struct json_lexer
             }
             else
             {
-                throw json_deserialization_error("'\\u' must be followed by 4 hex digits");
+                fail("'\\u' must be followed by 4 hex digits, but got", ch);
             }
         }
         return code;
+    }
+
+    inline bool is_digit(char_type ch) const
+    {
+        return char_type('0') <= ch && ch <= char_type('9');
+    }
+
+    inline void fail(const std::string& msg)
+    {
+        throw json_deserialization_error(msg);
+    }
+
+    template <typename _IntTy>
+    inline void fail(const std::string& msg, _IntTy code)
+    {
+        detail::fast_ostringstream ss;
+        ss << msg << " '" << detail::serialize_hex(code) << "'";
+        fail(ss.str());
     }
 
 private:
@@ -521,8 +551,9 @@ private:
     float_type   number_float_;
     string_type  string_buffer_;
 
-    char_int_type current_;
+    const args& args_;
 
+    char_int_type                    current_;
     detail::format_keeper<char_type> fmt_;
     std::basic_istream<char_type>&   is_;
 };
@@ -531,14 +562,15 @@ private:
 // json_parser
 //
 
-template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
+template <typename _BasicJsonTy>
 struct json_parser
 {
     using char_type  = typename _BasicJsonTy::char_type;
-    using lexer_type = json_lexer<_BasicJsonTy, _Encoding>;
+    using lexer_type = json_lexer<_BasicJsonTy>;
+    using args       = parser_args<_BasicJsonTy>;
 
-    json_parser(std::basic_istream<char_type>& is)
-        : lexer_(is)
+    json_parser(std::basic_istream<char_type>& is, const args& args)
+        : lexer_(is, args)
         , last_token_(token_type::uninitialized)
     {
     }
@@ -548,7 +580,7 @@ struct json_parser
         parse_value(json);
 
         if (get_token() != token_type::end_of_input)
-            throw json_deserialization_error("unexpected token, expect end");
+            fail(token_type::end_of_input);
     }
 
 private:
@@ -596,7 +628,25 @@ private:
             json = json_type::array;
             while (true)
             {
-                if (get_token() == token_type::end_array)
+                const auto token = get_token();
+
+                bool is_end = false;
+                switch (token)
+                {
+                case token_type::literal_true:
+                case token_type::literal_false:
+                case token_type::literal_null:
+                case token_type::value_string:
+                case token_type::value_integer:
+                case token_type::value_float:
+                case token_type::begin_array:
+                case token_type::begin_object:
+                    break;
+                default:
+                    is_end = true;
+                    break;
+                }
+                if (is_end)
                     break;
 
                 json.value_.data.vector->push_back(_BasicJsonTy());
@@ -607,7 +657,7 @@ private:
                     break;
             }
             if (last_token_ != token_type::end_array)
-                throw json_deserialization_error("unexpected token in array");
+                fail(token_type::end_array);
             break;
 
         case token_type::begin_object:
@@ -630,14 +680,61 @@ private:
                     break;
             }
             if (last_token_ != token_type::end_object)
-                throw json_deserialization_error("unexpected token in object");
+                fail(token_type::end_object);
             break;
 
         default:
-            // unexpected token
-            throw json_deserialization_error("unexpected token");
+            fail();
             break;
         }
+    }
+
+    inline void fail(token_type expected_token, const std::string& msg = "unexpected token")
+    {
+        fail(msg + ", expect '" + token_str(expected_token) + "', but got");
+    }
+
+    inline void fail(const std::string& msg = "unexpected token")
+    {
+        detail::fast_ostringstream ss;
+        ss << msg << " '" << token_str(last_token_) << "'";
+        throw json_deserialization_error(ss.str());
+    }
+
+    inline const char* token_str(token_type token) const
+    {
+        switch (token)
+        {
+        case token_type::uninitialized:
+            return "uninitialized";
+        case token_type::literal_true:
+            return "literal_true";
+        case token_type::literal_false:
+            return "literal_false";
+        case token_type::literal_null:
+            return "literal_null";
+        case token_type::value_string:
+            return "value_string";
+        case token_type::value_integer:
+            return "value_integer";
+        case token_type::value_float:
+            return "value_float";
+        case token_type::begin_array:
+            return "begin_array";
+        case token_type::end_array:
+            return "end_array";
+        case token_type::begin_object:
+            return "begin_object";
+        case token_type::end_object:
+            return "end_object";
+        case token_type::name_separator:
+            return "name_separator";
+        case token_type::value_separator:
+            return "value_separator";
+        case token_type::end_of_input:
+            return "end_of_input";
+        }
+        return "unknown";
     }
 
 private:

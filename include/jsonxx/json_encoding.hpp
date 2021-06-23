@@ -21,7 +21,6 @@
 #pragma once
 #include <array>        // std::array
 #include <cstdint>      // uint32_t, uint8_t
-#include <iomanip>      // std::fill, std::setw, std::setprecision, std::right, std::noshowbase
 #include <istream>      // std::basic_istream
 #include <ostream>      // std::basic_ostream
 #include <type_traits>  // std::char_traits
@@ -193,6 +192,10 @@ public:
             codepoint += static_cast<uint32_t>(static_cast<uint8_t>(is.get()));
         }
         codepoint -= utf8_offsets[extra_bytes_to_read];
+        if (codepoint > 0x10FFFF)
+        {
+            is.setstate(std::ios_base::failbit);
+        }
         return true;
     }
 };

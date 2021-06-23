@@ -19,6 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "json_encoding.hpp"
+
 #include <array>        // std::array
 #include <cstdint>      // std::int32_t
 #include <map>          // std::map
@@ -35,15 +37,18 @@ namespace jsonxx
 template <template <class _Kty, class _Ty, class... _Args> class _ObjectTy = std::map,
           template <class _Kty, class... _Args> class _ArrayTy = std::vector, typename _StringTy = std::string,
           typename _IntegerTy = std::int32_t, typename _FloatTy = double, typename _BooleanTy = bool,
-          template <class _Ty> class _Allocator = std::allocator>
+          template <class _Ty> class _Allocator    = std::allocator,
+          template <class _CharTy> class _Encoding = encoding::auto_utf>
 class basic_json;
 
 #define DECLARE_BASIC_JSON_TEMPLATE                                                                          \
     template <template <class _Kty, class _Ty, class... _Args> class _ObjectTy,                              \
               template <class _Kty, class... _Args> class _ArrayTy, typename _StringTy, typename _IntegerTy, \
-              typename _FloatTy, typename _BooleanTy, template <class _Ty> class _Allocator>
+              typename _FloatTy, typename _BooleanTy, template <class _Ty> class _Allocator,                 \
+              template <class _CharTy> class _Encoding>
 
-#define DECLARE_BASIC_JSON_TPL_ARGS _ObjectTy, _ArrayTy, _StringTy, _IntegerTy, _FloatTy, _BooleanTy, _Allocator
+#define DECLARE_BASIC_JSON_TPL_ARGS \
+    _ObjectTy, _ArrayTy, _StringTy, _IntegerTy, _FloatTy, _BooleanTy, _Allocator, _Encoding
 
 //
 // is_basic_json

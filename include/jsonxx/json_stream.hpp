@@ -19,13 +19,15 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <cstdio>       // std::FILE, std::fgetc, std::fgets, std::fgetwc, std::fgetws
-#include <ios>          // std::basic_ios
+#include <cstdio>       // std::FILE, std::fgetc, std::fgets, std::fgetwc, std::fgetws, std::snprintf
+#include <iomanip>      // std::fill, std::setw
+#include <ios>          // std::basic_ios, std::streamsize, std::hex, std::dec, std::uppercase, std::nouppercase
 #include <istream>      // std::basic_istream
 #include <ostream>      // std::basic_ostream
 #include <streambuf>    // std::streambuf
 #include <string>       // std::basic_string
 #include <type_traits>  // std::char_traits
+#include <utility>      // std::forward
 
 namespace jsonxx
 {
@@ -417,6 +419,44 @@ private:
 };
 
 //
+// fast I/O stream
+//
+
+template <typename _CharTy>
+class fast_basic_ostringstream : public std::basic_ostream<_CharTy>
+{
+public:
+    using char_type   = _CharTy;
+    using char_traits = std::char_traits<char_type>;
+    using string_type = std::basic_string<char_type>;
+
+    fast_basic_ostringstream()
+        : std::basic_ostream<char_type>(nullptr)
+        , str_()
+        , buf_(str_)
+    {
+        this->rdbuf(&buf_);
+    }
+
+    inline const string_type& str() const
+    {
+        return str_;
+    }
+
+    inline void str(const string_type& s)
+    {
+        str_ = s;
+    }
+
+private:
+    string_type                       str_;
+    fast_string_ostreambuf<char_type> buf_;
+};
+
+using fast_ostringstream  = fast_basic_ostringstream<char>;
+using fast_wostringstream = fast_basic_ostringstream<wchar_t>;
+
+//
 // format_keeper
 //
 
@@ -489,6 +529,154 @@ public:
 private:
     std::basic_ios<char_type>& other_;
 };
+
+//
+// serialization functions
+//
+
+template <typename _CharTy>
+struct snprintf_t
+{
+    using char_type = _CharTy;
+
+    template <typename _IntTy>
+    static inline void one_integer(std::basic_ostream<char_type>& os, const _IntTy val)
+    {
+        char buffer[32] = {};
+        internal_snprintf(os, buffer, sizeof(buffer), "%d", val);
+    }
+
+    template <typename _IntTy>
+    static inline void one_hex(std::basic_ostream<char_type>& os, const _IntTy val)
+    {
+        char buffer[7] = {};
+        internal_snprintf(os, buffer, sizeof(buffer), "\\u%04X", val);
+    }
+
+    template <typename _FloatTy>
+    static inline void one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
+    {
+        char buffer[32] = {};
+        internal_snprintf(os, buffer, sizeof(buffer), "%.*g", static_cast<int>(os.precision()), val);
+    }
+
+private:
+    template <typename... _Args>
+    static inline void internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
+                                         const char* format, _Args&&... args)
+    {
+        const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
+        if (len > 0)
+            copy_simple_string(os, buffer, static_cast<size_t>(len));
+        else
+            os.setstate(std::ios_base::failbit);
+    }
+
+    static inline void copy_simple_string(std::basic_ostream<char_type>& os, const char* str, size_t len)
+    {
+        for (size_t i = 0; i < len; i++)
+            os.put(static_cast<char_type>(str[i]));
+    }
+};
+
+template <typename _IntTy>
+struct serializable_integer
+{
+    const _IntTy i;
+
+    template <typename _CharTy>
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os,
+                                                          const serializable_integer&  i)
+    {
+        snprintf_t<_CharTy>::one_integer(os, i.i);
+        return os;
+    }
+
+    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_integer& i)
+    {
+        return os << i.i;
+    }
+
+    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_integer& i)
+    {
+        return os << i.i;
+    }
+};
+
+template <typename _IntTy>
+struct serializable_hex
+{
+    const _IntTy i;
+
+    template <typename _CharTy>
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_hex& i)
+    {
+        snprintf_t<_CharTy>::one_hex(os, i.i);
+        return os;
+    }
+
+    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_hex& i)
+    {
+        detail::format_keeper<char> fmt{ os };
+        os << std::setfill('0') << std::hex << std::uppercase;
+        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
+        return os;
+    }
+
+    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_hex& i)
+    {
+        detail::format_keeper<wchar_t> fmt{ os };
+        os << std::setfill(wchar_t('0')) << std::hex << std::uppercase;
+        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
+        return os;
+    }
+};
+
+template <typename _FloatTy>
+struct serializable_float
+{
+    const _FloatTy f;
+
+    template <typename _CharTy>
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_float& f)
+    {
+        snprintf_t<_CharTy>::one_float(os, f.f);
+        return os;
+    }
+
+    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_float& f)
+    {
+        return os << f.f;
+    }
+
+    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_float& f)
+    {
+        return os << f.f;
+    }
+};
+
+namespace
+{
+
+template <typename _IntTy>
+inline serializable_integer<_IntTy> serialize_integer(const _IntTy i)
+{
+    return serializable_integer<_IntTy>{ i };
+}
+
+template <typename _IntTy>
+inline serializable_hex<_IntTy> serialize_hex(const _IntTy i)
+{
+    return serializable_hex<_IntTy>{ i };
+}
+
+template <typename _FloatTy>
+inline serializable_float<_FloatTy> serialize_float(const _FloatTy f)
+{
+    return serializable_float<_FloatTy>{ f };
+}
+
+}  // namespace
 
 }  // namespace detail
 
