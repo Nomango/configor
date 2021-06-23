@@ -137,7 +137,7 @@ struct json_lexer
             }
             else
             {
-                throw json_deserialization_error("unexpected character '/'");
+                fail("unexpected character '/'");
             }
         }
     }
@@ -198,7 +198,9 @@ struct json_lexer
 
         // unexpected character
         default:
-            throw json_deserialization_error("unexpected character");
+        {
+            fail("unexpected character", current_);
+        }
         }
 
         // skip next char
@@ -213,7 +215,13 @@ struct json_lexer
         {
             if (ch != char_traits::to_char_type(current_))
             {
-                throw json_deserialization_error("unexpected literal");
+                detail::fast_ostringstream ss;
+                ss << "unexpected character '" << static_cast<char>(current_) << "'";
+                ss << " (expected literal '";
+                for (const auto ch : text)
+                    ss.put(static_cast<char>(ch));
+                ss << "')";
+                fail(ss.str());
             }
             read_next();
         }
@@ -222,8 +230,7 @@ struct json_lexer
 
     token_type scan_string()
     {
-        if (current_ != '\"')
-            throw json_deserialization_error("string must start with '\"'");
+        JSONXX_ASSERT(current_ == '\"');
 
         string_buffer_.clear();
 
@@ -236,7 +243,7 @@ struct json_lexer
             {
             case char_traits::eof():
             {
-                throw json_deserialization_error("unexpected end of string");
+                fail("unexpected end of string");
             }
 
             case '\"':
@@ -279,7 +286,7 @@ struct json_lexer
             case 0x1E:
             case 0x1F:
             {
-                throw json_deserialization_error("invalid control character");
+                fail("invalid control character", current_);
             }
 
             case '\\':
@@ -318,7 +325,7 @@ struct json_lexer
                     {
                         if (read_next() != '\\' || read_next() != 'u')
                         {
-                            throw json_deserialization_error("lead surrogate must be followed by trail surrogate");
+                            fail("lead surrogate must be followed by trail surrogate, but got", current_);
                         }
 
                         const auto lead_surrogate  = codepoint;
@@ -326,8 +333,8 @@ struct json_lexer
 
                         if (!encoding::unicode::is_trail_surrogate(trail_surrogate))
                         {
-                            throw json_deserialization_error(
-                                "surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
+                            fail("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF, but got",
+                                 trail_surrogate);
                         }
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
@@ -335,14 +342,14 @@ struct json_lexer
                     _Encoding<char_type>::encode(oss, codepoint);
                     if (!oss.good())
                     {
-                        throw json_deserialization_error("unexpected encoding error");
+                        fail("encoding failed with codepoint", codepoint);
                     }
                     break;
                 }
 
                 default:
                 {
-                    throw json_deserialization_error("invalid character");
+                    fail("invalid escaped character", current_);
                 }
                 }
                 break;
@@ -374,7 +381,7 @@ struct json_lexer
                 return scan_float();
 
             if (current_ == 'e' || current_ == 'E')
-                throw json_deserialization_error("invalid exponent");
+                fail("invalid exponent");
 
             // zero
             return token_type::value_integer;
@@ -385,7 +392,7 @@ struct json_lexer
     token_type scan_integer()
     {
         if (!std::isdigit(current_))
-            throw json_deserialization_error("invalid integer");
+            fail("invalid integer, got", current_);
 
         number_integer_ = static_cast<integer_type>(current_ - '0');
 
@@ -410,11 +417,10 @@ struct json_lexer
         if (current_ == 'e' || current_ == 'E')
             return scan_exponent();
 
-        if (current_ != '.')
-            throw json_deserialization_error("float number must start with '.'");
+        JSONXX_ASSERT(current_ == '.');
 
         if (!std::isdigit(read_next()))
-            throw json_deserialization_error("invalid float number");
+            fail("invalid float number, got", current_);
 
         float_type fraction = static_cast<float_type>(0.1);
         number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
@@ -438,15 +444,14 @@ struct json_lexer
 
     token_type scan_exponent()
     {
-        if (current_ != 'e' && current_ != 'E')
-            throw json_deserialization_error("exponent number must contains 'e' or 'E'");
+        JSONXX_ASSERT(current_ == 'e' || current_ == 'E');
 
         // skip current_ char
         read_next();
 
         const bool invalid = (std::isdigit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
         if (!invalid)
-            throw json_deserialization_error("invalid exponent number");
+            fail("invalid exponent number, got", current_);
 
         float_type base = 10;
         if (current_ == '+')
@@ -509,10 +514,23 @@ struct json_lexer
             }
             else
             {
-                throw json_deserialization_error("'\\u' must be followed by 4 hex digits");
+                fail("'\\u' must be followed by 4 hex digits, but got", ch);
             }
         }
         return code;
+    }
+
+    inline void fail(const std::string& msg)
+    {
+        throw json_deserialization_error(msg);
+    }
+
+    template <typename _IntTy>
+    inline void fail(const std::string& msg, _IntTy code)
+    {
+        detail::fast_ostringstream ss;
+        ss << msg << " '" << detail::serialize_hex(code) << "'";
+        fail(ss.str());
     }
 
 private:
@@ -548,7 +566,7 @@ struct json_parser
         parse_value(json);
 
         if (get_token() != token_type::end_of_input)
-            throw json_deserialization_error("unexpected token, expect end");
+            fail(token_type::end_of_input);
     }
 
 private:
@@ -607,7 +625,7 @@ private:
                     break;
             }
             if (last_token_ != token_type::end_array)
-                throw json_deserialization_error("unexpected token in array");
+                fail(token_type::end_array);
             break;
 
         case token_type::begin_object:
@@ -630,14 +648,61 @@ private:
                     break;
             }
             if (last_token_ != token_type::end_object)
-                throw json_deserialization_error("unexpected token in object");
+                fail(token_type::end_object);
             break;
 
         default:
-            // unexpected token
-            throw json_deserialization_error("unexpected token");
+            fail();
             break;
         }
+    }
+
+    inline void fail(token_type expected_token, const std::string& msg = "unexpected token")
+    {
+        fail(msg + ", expect '" + token_str(expected_token) + "', but got");
+    }
+
+    inline void fail(const std::string& msg = "unexpected token")
+    {
+        detail::fast_ostringstream ss;
+        ss << msg << " '" << token_str(last_token_) << "'";
+        throw json_deserialization_error(ss.str());
+    }
+
+    inline const char* token_str(token_type token) const
+    {
+        switch (token)
+        {
+        case token_type::uninitialized:
+            return "uninitialized";
+        case token_type::literal_true:
+            return "literal_true";
+        case token_type::literal_false:
+            return "literal_false";
+        case token_type::literal_null:
+            return "literal_null";
+        case token_type::value_string:
+            return "value_string";
+        case token_type::value_integer:
+            return "value_integer";
+        case token_type::value_float:
+            return "value_float";
+        case token_type::begin_array:
+            return "begin_array";
+        case token_type::end_array:
+            return "end_array";
+        case token_type::begin_object:
+            return "begin_object";
+        case token_type::end_object:
+            return "end_object";
+        case token_type::name_separator:
+            return "name_separator";
+        case token_type::value_separator:
+            return "value_separator";
+        case token_type::end_of_input:
+            return "end_of_input";
+        }
+        return "unknown";
     }
 
 private:

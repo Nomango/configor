@@ -213,7 +213,7 @@ struct iterator
         }
         default:
         {
-            ++original_it_;
+            ++primitive_it_;
             break;
         }
         }
@@ -250,7 +250,7 @@ struct iterator
         }
         default:
         {
-            --original_it_;
+            --primitive_it_;
             break;
         }
         }
@@ -280,7 +280,7 @@ struct iterator
         {
         case json_type::object:
         {
-            throw json_invalid_iterator("cannot use offsets with object type");
+            throw json_invalid_iterator("cannot compute offsets with object type");
             break;
         }
         case json_type::array:
@@ -295,11 +295,24 @@ struct iterator
         }
         default:
         {
-            original_it_ += off;
+            primitive_it_ += off;
             break;
         }
         }
         return *this;
+    }
+
+    inline difference_type operator-(const iterator& rhs) const
+    {
+        check_data();
+        rhs.check_data();
+
+        if (data_ != rhs.data_)
+            throw json_invalid_iterator("cannot compute iterator offsets of different json objects");
+
+        if (data_->type() != json_type::array)
+            throw json_invalid_iterator("cannot compute iterator offsets with non-array type");
+        return array_it_ - rhs.array_it_;
     }
 
     inline bool operator!=(iterator const& other) const
@@ -326,7 +339,7 @@ struct iterator
         }
         default:
         {
-            return original_it_ == other.original_it_;
+            return primitive_it_ == other.primitive_it_;
         }
         }
     }
@@ -349,7 +362,7 @@ struct iterator
         other.check_data();
 
         if (data_ != other.data_)
-            throw json_invalid_iterator("cannot compare iterators of different objects");
+            throw json_invalid_iterator("cannot compare iterators of different json objects");
 
         switch (data_->type())
         {
@@ -358,7 +371,7 @@ struct iterator
         case json_type::array:
             return array_it_ < other.array_it_;
         default:
-            return original_it_ < other.original_it_;
+            return primitive_it_ < other.primitive_it_;
         }
     }
 
@@ -386,7 +399,7 @@ private:
         }
         default:
         {
-            original_it_.set_begin();
+            primitive_it_.set_begin();
             break;
         }
         }
@@ -415,7 +428,7 @@ private:
         }
         default:
         {
-            original_it_.set_end();
+            primitive_it_.set_end();
             break;
         }
         }
@@ -425,7 +438,7 @@ private:
     {
         if (data_ == nullptr)
         {
-            throw json_invalid_iterator("iterator contains an empty object");
+            throw json_invalid_iterator("iterator is empty");
         }
     }
 
@@ -436,23 +449,23 @@ private:
         case json_type::object:
             if (object_it_ == data_->value_.data.object->end())
             {
-                throw std::out_of_range("iterator out of range");
+                throw std::out_of_range("object iterator out of range");
             }
             break;
         case json_type::array:
             if (array_it_ == data_->value_.data.vector->end())
             {
-                throw std::out_of_range("iterator out of range");
+                throw std::out_of_range("array iterator out of range");
             }
             break;
         case json_type::null:
         {
-            throw std::out_of_range("iterator out of range");
+            throw std::out_of_range("null iterator out of range");
         }
         default:
-            if (original_it_ != 0)
+            if (primitive_it_ != 0)
             {
-                throw std::out_of_range("iterator out of range");
+                throw std::out_of_range("primitive iterator out of range");
             }
             break;
         }
@@ -463,7 +476,7 @@ private:
 
     typename _BasicJsonTy::array_type::iterator  array_it_;
     typename _BasicJsonTy::object_type::iterator object_it_;
-    primitive_iterator                           original_it_ = 0;  // for other types
+    primitive_iterator                           primitive_it_ = 0;  // for other types
 };
 
 template <typename _IterTy>

@@ -19,8 +19,13 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <cassert>    // assert
 #include <stdexcept>  // std::runtime_error
 #include <string>     // std::string
+
+#ifndef JSONXX_ASSERT
+#define JSONXX_ASSERT(...) assert(__VA_ARGS__)
+#endif
 
 namespace jsonxx
 {

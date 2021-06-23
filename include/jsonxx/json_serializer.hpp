@@ -23,165 +23,18 @@
 #include "json_stream.hpp"
 #include "json_value.hpp"
 
-#include <cstdio>            // std::snprintf
 #include <initializer_list>  // std::initializer_list
-#include <iomanip>           // std::fill, std::setw, std::setprecision, std::right, std::noshowbase
-#include <ios>               // std::streamsize, std::hex, std::dec, std::uppercase, std::nouppercase
+#include <iomanip>           // std::setprecision, std::right, std::noshowbase
+#include <ios>               // std::streamsize
 #include <ostream>           // std::basic_ostream
 #include <streambuf>         // std::basic_streambuf
 #include <type_traits>       // std::char_traits
-#include <utility>           // std::forward
 
 namespace jsonxx
 {
 
 namespace detail
 {
-
-//
-// serialize functions
-//
-
-template <typename _CharTy>
-struct snprintf_t
-{
-    using char_type = _CharTy;
-
-    template <typename _IntTy>
-    static inline std::basic_ostream<char_type>& one_integer(std::basic_ostream<char_type>& os, const _IntTy val)
-    {
-        char buffer[32] = {};
-        internal_snprintf(os, buffer, sizeof(buffer), "%d", val);
-        return os;
-    }
-
-    template <typename _IntTy>
-    static inline std::basic_ostream<char_type>& one_hex(std::basic_ostream<char_type>& os, const _IntTy val)
-    {
-        char buffer[7] = {};
-        internal_snprintf(os, buffer, sizeof(buffer), "\\u%04X", val);
-        return os;
-    }
-
-    template <typename _FloatTy>
-    static inline std::basic_ostream<char_type>& one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
-    {
-        char buffer[32] = {};
-        internal_snprintf(os, buffer, sizeof(buffer), "%.*g", static_cast<int>(os.precision()), val);
-        return os;
-    }
-
-private:
-    template <typename... _Args>
-    static inline void internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
-                                         const char* format, _Args&&... args)
-    {
-        const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
-        if (len > 0)
-            copy_simple_string(os, buffer, static_cast<size_t>(len));
-        else
-            os.setstate(std::ios_base::failbit);
-    }
-
-    static inline void copy_simple_string(std::basic_ostream<char_type>& os, const char* str, size_t len)
-    {
-        for (size_t i = 0; i < len; i++)
-            os.put(static_cast<char_type>(str[i]));
-    }
-};
-
-template <typename _IntTy>
-struct serializable_integer
-{
-    const _IntTy i;
-
-    template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os,
-                                                          const serializable_integer&  i)
-    {
-        return os << i.i;
-    }
-
-    friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_integer& i)
-    {
-        return snprintf_t<char16_t>::one_integer(os, i.i);
-    }
-
-    friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_integer& i)
-    {
-        return snprintf_t<char32_t>::one_integer(os, i.i);
-    }
-};
-
-template <typename _IntTy>
-struct serializable_hex
-{
-    const _IntTy i;
-
-    template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_hex& i)
-    {
-        os << std::setfill(_CharTy('0')) << std::hex << std::uppercase;
-        os << '\\' << 'u' << std::setw(4) << i.i;
-        os << std::dec << std::nouppercase;
-        return os;
-    }
-
-    friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_hex& i)
-    {
-        return snprintf_t<char16_t>::one_hex(os, i.i);
-    }
-
-    friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_hex& i)
-    {
-        return snprintf_t<char32_t>::one_hex(os, i.i);
-    }
-};
-
-template <typename _FloatTy>
-struct serializable_float
-{
-    const _FloatTy f;
-
-    template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_float& f)
-    {
-        return os << f.f;
-    }
-
-    friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_float& f)
-    {
-        return snprintf_t<char16_t>::one_float(os, f.f);
-    }
-
-    friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_float& f)
-    {
-        return snprintf_t<char32_t>::one_float(os, f.f);
-    }
-};
-
-namespace
-{
-
-template <typename _IntTy>
-inline serializable_integer<_IntTy> serialize_integer(const _IntTy i)
-{
-    return serializable_integer<_IntTy>{ i };
-}
-
-template <typename _IntTy>
-inline serializable_hex<_IntTy> serialize_hex(const _IntTy i)
-{
-    return serializable_hex<_IntTy>{ i };
-}
-
-template <typename _FloatTy>
-inline serializable_float<_FloatTy> serialize_float(const _FloatTy f)
-{
-    return serializable_float<_FloatTy>{ f };
-}
-
-}  // namespace
 
 //
 // indent
@@ -397,20 +250,21 @@ struct json_serializer
         }
     }
 
+private:
     void dump_string(const string_type& val)
     {
         detail::fast_string_istreambuf<char_type> buf{ val };
         std::basic_istream<char_type>             iss{ &buf };
 
-        uint32_t code = 0;
-        while (_Encoding<char_type>::decode(iss, code))
+        uint32_t codepoint = 0;
+        while (_Encoding<char_type>::decode(iss, codepoint))
         {
             if (!iss.good())
             {
-                throw json_serialization_error("unexpected character");
+                fail("unexpected character", codepoint);
             }
 
-            switch (code)
+            switch (codepoint)
             {
             case '\t':
             {
@@ -458,31 +312,31 @@ struct json_serializer
             {
                 // escape control characters
                 // and non-ASCII characters (if `escape_unicode` is true)
-                const bool need_escape = code <= 0x1F || (args_.escape_unicode && code >= 0x7F);
+                const bool need_escape = codepoint <= 0x1F || (args_.escape_unicode && codepoint >= 0x7F);
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
-                    _Encoding<char_type>::encode(os_, code);
-                    if (!os_.good())
-                    {
-                        throw json_serialization_error("unexpected encoding error");
-                    }
-                }
+                    _Encoding<char_type>::encode(os_, codepoint);
+                                }
                 else
                 {
-                    if (code <= 0xFFFF)
+                    if (codepoint <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        os_ << detail::serialize_hex(static_cast<uint16_t>(code));
+                        os_ << detail::serialize_hex(static_cast<uint16_t>(codepoint));
                     }
                     else
                     {
                         // supplementary planes: U+10000...U+10FFFF
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
-                        encoding::unicode::encode_surrogates(code, lead_surrogate, trail_surrogate);
-
+                        encoding::unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
                         os_ << detail::serialize_hex(lead_surrogate) << detail::serialize_hex(trail_surrogate);
                     }
+                }
+
+                if (!os_.good())
+                {
+                    fail("encoding failed with codepoint", codepoint);
                 }
                 break;
             }
@@ -490,7 +344,6 @@ struct json_serializer
         }
     }
 
-private:
     void output(char_type ch)
     {
         os_.put(ch);
@@ -510,6 +363,13 @@ private:
     {
         if (args_.indent > 0 /* pretty print */)
             os_.put('\n');
+    }
+
+    inline void fail(const std::string& msg, uint32_t codepoint)
+    {
+        detail::fast_ostringstream ss;
+        ss << msg << " '" << detail::serialize_hex(codepoint) << "'";
+        throw json_serialization_error(ss.str());
     }
 
 private:

@@ -21,7 +21,6 @@
 #pragma once
 #include <array>        // std::array
 #include <cstdint>      // uint32_t, uint8_t
-#include <iomanip>      // std::fill, std::setw, std::setprecision, std::right, std::noshowbase
 #include <istream>      // std::basic_istream
 #include <ostream>      // std::basic_ostream
 #include <type_traits>  // std::char_traits
