@@ -192,6 +192,10 @@ public:
             codepoint += static_cast<uint32_t>(static_cast<uint8_t>(is.get()));
         }
         codepoint -= utf8_offsets[extra_bytes_to_read];
+        if (codepoint > 0x10FFFF)
+        {
+            is.setstate(std::ios_base::failbit);
+        }
         return true;
     }
 };

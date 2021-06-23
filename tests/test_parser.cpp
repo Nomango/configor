@@ -70,10 +70,21 @@ TEST(test_parser, test_parse)
 
     // unexpect end
     ASSERT_THROW(json::parse("\\"), json_deserialization_error);
+
+    // test error policy
+    error_handler_with<error_policy::ignore> ignore_handler{};
+    ASSERT_NO_THROW(json::parse("\f", json::parse_args{}, &ignore_handler));
+
+    error_handler_with<error_policy::record> record_handler{};
+    ASSERT_NO_THROW(json::parse("\f", json::parse_args{}, &record_handler));
+    ASSERT_FALSE(record_handler.error.empty());
 }
 
 TEST(test_parser, test_comment)
 {
+    json::parse_args args;
+    args.allow_comments = true;
+
     auto j = json::parse(R"(// some comments
     /* some comments */
     {
@@ -86,7 +97,7 @@ TEST(test_parser, test_comment)
         some comments
         "pi": 3,
         */"name": "中文测试"
-    }// some comments)");
+    }// some comments)", args);
     ASSERT_EQ(j["happy"].as_bool(), true);
     ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
     ASSERT_EQ(j["name"].as_string(), "中文测试");

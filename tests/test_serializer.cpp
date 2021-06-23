@@ -28,21 +28,6 @@ protected:
     json j;
 };
 
-TEST_F(SerializerTest, test_write_to_stream)
-{
-    std::stringstream ss;
-    ss << j;
-    ASSERT_EQ(ss.str(), j.dump());
-
-    ss.str("");
-    ss << std::setw(4) << j;
-    ASSERT_EQ(ss.str(), j.dump(4));
-
-    ss.str("");
-    ss << std::setw(2) << std::setfill('.') << j;
-    ASSERT_EQ(ss.str(), j.dump(2, '.'));
-}
-
 TEST_F(SerializerTest, test_dump)
 {
     ASSERT_NO_THROW(std::string serialized_string = j.dump());
@@ -67,6 +52,32 @@ TEST_F(SerializerTest, test_dump)
 
     // dump control characters
     ASSERT_EQ(json("\t\r\n\b\f\"\\").dump(), "\"\\t\\r\\n\\b\\f\\\"\\\\\"");
+
+    // invalid unicode
+    ASSERT_THROW(json("\xC0").dump(), json_serialization_error);
+
+    // test error policy
+    error_handler_with<error_policy::ignore> ignore_handler{};
+    ASSERT_NO_THROW(json("\xC0").dump(json::dump_args{}, &ignore_handler));
+
+    error_handler_with<error_policy::record> record_handler{};
+    ASSERT_NO_THROW(json("\xC0").dump(json::dump_args{}, &record_handler));
+    ASSERT_FALSE(record_handler.error.empty());
+}
+
+TEST_F(SerializerTest, test_write_to_stream)
+{
+    std::stringstream ss;
+    ss << j;
+    ASSERT_EQ(ss.str(), j.dump());
+
+    ss.str("");
+    ss << std::setw(4) << j;
+    ASSERT_EQ(ss.str(), j.dump(4));
+
+    ss.str("");
+    ss << std::setw(2) << std::setfill('.') << j;
+    ASSERT_EQ(ss.str(), j.dump(2, '.'));
 }
 
 TEST(test_serializer, test_numeric)

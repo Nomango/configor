@@ -37,12 +37,8 @@ class basic_json
     friend struct detail::iterator<basic_json>;
     friend struct detail::iterator<const basic_json>;
     friend struct json_value_getter<basic_json>;
-
-    template <typename _BasicJsonUTy, template <class _CharTy> class _Encoding>
-    friend struct json_serializer;
-
-    template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
-    friend struct json_parser;
+    friend struct json_serializer<basic_json>;
+    friend struct json_parser<basic_json>;
 
 public:
     template <typename _Ty>
@@ -64,7 +60,10 @@ public:
     using reverse_iterator       = detail::reverse_iterator<iterator>;
     using const_reverse_iterator = detail::reverse_iterator<const_iterator>;
 
-    using dump_args = serializer_args<basic_json>;
+    using encoding_type = _Encoding<char_type>;
+
+    using dump_args  = serializer_args<basic_json>;
+    using parse_args = parser_args<basic_json>;
 
 public:
     basic_json() {}
@@ -793,71 +792,94 @@ public:
         return os;
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    string_type dump(const dump_args& args = dump_args{}) const
+    string_type dump(const dump_args& args = dump_args{}, error_handler* eh = nullptr) const
     {
         string_type                               result;
         detail::fast_string_ostreambuf<char_type> buf{ result };
         std::basic_ostream<char_type>             os{ &buf };
-        this->dump<_Encoding>(os, args);
+        this->dump(os, args, eh);
         return result;
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false) const
+    string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false,
+                     error_handler* eh = nullptr) const
     {
         dump_args args;
         args.indent         = indent;
         args.indent_char    = indent_char;
         args.escape_unicode = escape_unicode;
-        return this->dump<_Encoding>(args);
+        return this->dump(args, eh);
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    void dump(std::basic_ostream<char_type>& os, const dump_args& args = dump_args()) const
+    void dump(std::basic_ostream<char_type>& os, const dump_args& args = dump_args{}, error_handler* eh = nullptr) const
     {
-        json_serializer<basic_json, _Encoding>{ os, args }.dump(*this);
+        try
+        {
+            json_serializer<basic_json>{ os, args }.dump(*this);
+        }
+        catch (...)
+        {
+            if (eh)
+                eh->handle(std::current_exception());
+            else
+                throw;
+        }
     }
 
 public:
     // parse functions
 
-    friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, basic_json& json)
+    friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, basic_json& j)
     {
-        json_parser<basic_json, encoding::auto_utf>{ is }.parse(json);
+        basic_json::parse(j, is);
         return is;
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    static inline basic_json parse(const string_type& str)
+    static inline basic_json parse(const string_type& str, const parse_args& args = parse_args{},
+                                   error_handler* eh = nullptr)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
-        return basic_json::parse<_Encoding>(is);
+        return basic_json::parse(is, args, eh);
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    static inline basic_json parse(const char_type* str)
+    static inline basic_json parse(const char_type* str, const parse_args& args = parse_args{},
+                                   error_handler* eh = nullptr)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
-        return basic_json::parse<_Encoding>(is);
+        return basic_json::parse(is, args, eh);
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    static inline basic_json parse(std::FILE* file)
+    static inline basic_json parse(std::FILE* file, const parse_args& args = parse_args{}, error_handler* eh = nullptr)
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
         std::basic_istream<char_type>            is{ &buf };
-        return basic_json::parse<_Encoding>(is);
+        return basic_json::parse(is, args, eh);
     }
 
-    template <template <class _CharTy> class _Encoding = encoding::auto_utf>
-    static inline basic_json parse(std::basic_istream<char_type>& is)
+    static inline basic_json parse(std::basic_istream<char_type>& is, const parse_args& args = parse_args{},
+                                   error_handler* eh = nullptr)
     {
         basic_json result;
-        json_parser<basic_json, _Encoding>{ is }.parse(result);
+        basic_json::parse(result, is, args, eh);
         return result;
+    }
+
+    static inline void parse(basic_json& j, std::basic_istream<char_type>& is, const parse_args& args = parse_args{},
+                             error_handler* eh = nullptr)
+    {
+        try
+        {
+            json_parser<basic_json>{ is, args }.parse(j);
+        }
+        catch (...)
+        {
+            if (eh)
+                eh->handle(std::current_exception());
+            else
+                throw;
+        }
     }
 
 public:

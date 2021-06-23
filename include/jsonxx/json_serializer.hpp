@@ -96,17 +96,17 @@ struct serializer_args
     using char_type  = typename _BasicJsonTy::char_type;
     using float_type = typename _BasicJsonTy::float_type;
 
-    int          precision      = std::numeric_limits<float_type>::digits10 + 1;
     unsigned int indent         = 0;
     char_type    indent_char    = ' ';
     bool         escape_unicode = false;
+    int          precision      = std::numeric_limits<float_type>::digits10 + 1;
 };
 
 //
 // json_serializer
 //
 
-template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
+template <typename _BasicJsonTy>
 struct json_serializer
 {
     using char_type     = typename _BasicJsonTy::char_type;
@@ -115,6 +115,7 @@ struct json_serializer
     using string_type   = typename _BasicJsonTy::string_type;
     using integer_type  = typename _BasicJsonTy::integer_type;
     using float_type    = typename _BasicJsonTy::float_type;
+    using encoding_type = typename _BasicJsonTy::encoding_type;
     using args          = serializer_args<_BasicJsonTy>;
 
     json_serializer(std::basic_ostream<char_type>& os, const args& args)
@@ -257,7 +258,7 @@ private:
         std::basic_istream<char_type>             iss{ &buf };
 
         uint32_t codepoint = 0;
-        while (_Encoding<char_type>::decode(iss, codepoint))
+        while (encoding_type::decode(iss, codepoint))
         {
             if (!iss.good())
             {
@@ -316,8 +317,8 @@ private:
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
-                    _Encoding<char_type>::encode(os_, codepoint);
-                                }
+                    encoding_type::encode(os_, codepoint);
+                }
                 else
                 {
                     if (codepoint <= 0xFFFF)

@@ -31,6 +31,13 @@
 
 namespace jsonxx
 {
+
+template <typename _BasicJsonTy>
+struct parser_args
+{
+    bool allow_comments = false;
+};
+
 //
 // json_lexer
 //
@@ -59,7 +66,7 @@ enum class token_type
     end_of_input
 };
 
-template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
+template <typename _BasicJsonTy>
 struct json_lexer
 {
     using char_type     = typename _BasicJsonTy::char_type;
@@ -68,12 +75,15 @@ struct json_lexer
     using string_type   = typename _BasicJsonTy::string_type;
     using integer_type  = typename _BasicJsonTy::integer_type;
     using float_type    = typename _BasicJsonTy::float_type;
+    using encoding_type = typename _BasicJsonTy::encoding_type;
+    using args          = parser_args<_BasicJsonTy>;
 
-    json_lexer(std::basic_istream<char_type>& is)
+    json_lexer(std::basic_istream<char_type>& is, const args& args)
         : is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
         , string_buffer_()
+        , args_(args)
         , current_(0)
         , fmt_(is)
         , is_(is)
@@ -93,7 +103,8 @@ struct json_lexer
         while (current_ == ' ' || current_ == '\t' || current_ == '\n' || current_ == '\r')
             read_next();
 
-        if (current_ == '/')
+        // skip comments
+        if (args_.allow_comments && current_ == '/')
         {
             read_next();
             if (current_ == '/')
@@ -339,7 +350,7 @@ struct json_lexer
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
 
-                    _Encoding<char_type>::encode(oss, codepoint);
+                    encoding_type::encode(oss, codepoint);
                     if (!oss.good())
                     {
                         fail("encoding failed with codepoint", codepoint);
@@ -539,8 +550,9 @@ private:
     float_type   number_float_;
     string_type  string_buffer_;
 
-    char_int_type current_;
+    const args& args_;
 
+    char_int_type                    current_;
     detail::format_keeper<char_type> fmt_;
     std::basic_istream<char_type>&   is_;
 };
@@ -549,14 +561,15 @@ private:
 // json_parser
 //
 
-template <typename _BasicJsonTy, template <class _CharTy> class _Encoding>
+template <typename _BasicJsonTy>
 struct json_parser
 {
     using char_type  = typename _BasicJsonTy::char_type;
-    using lexer_type = json_lexer<_BasicJsonTy, _Encoding>;
+    using lexer_type = json_lexer<_BasicJsonTy>;
+    using args       = parser_args<_BasicJsonTy>;
 
-    json_parser(std::basic_istream<char_type>& is)
-        : lexer_(is)
+    json_parser(std::basic_istream<char_type>& is, const args& args)
+        : lexer_(is, args)
         , last_token_(token_type::uninitialized)
     {
     }

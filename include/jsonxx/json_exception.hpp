@@ -20,7 +20,7 @@
 
 #pragma once
 #include <cassert>    // assert
-#include <stdexcept>  // std::runtime_error
+#include <stdexcept>  // std::runtime_error, std::exception_ptr, std::rethrow_exception
 #include <string>     // std::string
 
 #ifndef JSONXX_ASSERT
@@ -29,6 +29,10 @@
 
 namespace jsonxx
 {
+
+//
+// exceptions
+//
 
 class json_exception : public std::runtime_error
 {
@@ -87,6 +91,68 @@ public:
         : json_exception("json serialization error: " + message)
     {
     }
+};
+
+//
+// error handler
+//
+
+enum class error_policy
+{
+    strict = 1,  // throw exceptions
+    record = 2,  // record error message
+    ignore = 3,  // ignore all errors
+};
+
+class error_handler
+{
+public:
+    virtual void handle(std::exception_ptr eptr) = 0;
+};
+
+template <error_policy _Policy>
+class error_handler_with;
+
+template <>
+class error_handler_with<error_policy::strict> : public error_handler
+{
+public:
+    virtual void handle(std::exception_ptr eptr) override
+    {
+        std::rethrow_exception(eptr);
+    }
+};
+
+template <>
+class error_handler_with<error_policy::ignore> : public error_handler
+{
+public:
+    virtual void handle(std::exception_ptr eptr) override
+    {
+        // DO NOTHING
+    }
+};
+
+template <>
+class error_handler_with<error_policy::record> : public error_handler
+{
+public:
+    virtual void handle(std::exception_ptr eptr) override
+    {
+        try
+        {
+            if (eptr)
+            {
+                std::rethrow_exception(eptr);
+            }
+        }
+        catch (const json_exception& e)
+        {
+            this->error = e.what();
+        }
+    }
+
+    std::string error;
 };
 
 }  // namespace jsonxx
