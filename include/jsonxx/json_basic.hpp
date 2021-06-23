@@ -224,26 +224,26 @@ public:
         return value_.type;
     }
 
-    inline string_type type_name() const
+    inline const char* type_name() const
     {
         switch (type())
         {
         case json_type::object:
-            return string_type("object");
+            return "object";
         case json_type::array:
-            return string_type("array");
+            return "array";
         case json_type::string:
-            return string_type("string");
+            return "string";
         case json_type::number_integer:
-            return string_type("integer");
+            return "integer";
         case json_type::number_float:
-            return string_type("float");
+            return "float";
         case json_type::boolean:
-            return string_type("boolean");
+            return "boolean";
         case json_type::null:
-            return string_type("null");
+            return "null";
         }
-        return string_type();
+        return "unknown";
     }
 
     inline void swap(basic_json& rhs)
@@ -872,6 +872,11 @@ public:
         try
         {
             json_parser<basic_json>{ is, args }.parse(j);
+            if (args.check_document && !j.is_array() && !j.is_object())
+            {
+                std::string name = j.type_name();
+                throw json_deserialization_error("invalid document type '" + name + "'");
+            }
         }
         catch (...)
         {

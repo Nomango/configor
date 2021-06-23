@@ -230,6 +230,39 @@ TEST(test_basic_json, test_method_size)
     ASSERT_EQ(j.size(), 2);
 }
 
+TEST(test_basic_json, test_type)
+{
+    json j;
+    // string
+    j = "string";
+    ASSERT_EQ(j.type(), json_type::string);
+    ASSERT_STREQ(j.type_name(), "string");
+    // integer
+    j = 100;
+    ASSERT_EQ(j.type(), json_type::number_integer);
+    ASSERT_STREQ(j.type_name(), "integer");
+    // floating
+    j = 100.0;
+    ASSERT_EQ(j.type(), json_type::number_float);
+    ASSERT_STREQ(j.type_name(), "float");
+    // boolean
+    j = true;
+    ASSERT_EQ(j.type(), json_type::boolean);
+    ASSERT_STREQ(j.type_name(), "boolean");
+    // null
+    j = nullptr;
+    ASSERT_EQ(j.type(), json_type::null);
+    ASSERT_STREQ(j.type_name(), "null");
+    // array
+    j = json::array({ 1, 2, 3 });
+    ASSERT_EQ(j.type(), json_type::array);
+    ASSERT_STREQ(j.type_name(), "array");
+    // object
+    j = json::object({ { "1", 1 }, { "2", 2 } });
+    ASSERT_EQ(j.type(), json_type::object);
+    ASSERT_STREQ(j.type_name(), "object");
+}
+
 TEST(test_basic_json, test_method_clear)
 {
     json j;

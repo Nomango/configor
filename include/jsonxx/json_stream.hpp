@@ -588,19 +588,18 @@ struct serializable_integer
     friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os,
                                                           const serializable_integer&  i)
     {
+        snprintf_t<_CharTy>::one_integer(os, i.i);
+        return os;
+    }
+
+    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_integer& i)
+    {
         return os << i.i;
     }
 
-    friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_integer& i)
+    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_integer& i)
     {
-        snprintf_t<char16_t>::one_integer(os, i.i);
-        return os;
-    }
-
-    friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_integer& i)
-    {
-        snprintf_t<char32_t>::one_integer(os, i.i);
-        return os;
+        return os << i.i;
     }
 };
 
@@ -612,21 +611,23 @@ struct serializable_hex
     template <typename _CharTy>
     friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_hex& i)
     {
-        detail::format_keeper<_CharTy> fmt{ os };
-        os << std::setfill(_CharTy('0')) << std::hex << std::uppercase;
+        snprintf_t<_CharTy>::one_hex(os, i.i);
+        return os;
+    }
+
+    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_hex& i)
+    {
+        detail::format_keeper<char> fmt{ os };
+        os << std::setfill('0') << std::hex << std::uppercase;
         os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
         return os;
     }
 
-    friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_hex& i)
+    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_hex& i)
     {
-        snprintf_t<char16_t>::one_hex(os, i.i);
-        return os;
-    }
-
-    friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_hex& i)
-    {
-        snprintf_t<char32_t>::one_hex(os, i.i);
+        detail::format_keeper<wchar_t> fmt{ os };
+        os << std::setfill(wchar_t('0')) << std::hex << std::uppercase;
+        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
         return os;
     }
 };
@@ -639,19 +640,18 @@ struct serializable_float
     template <typename _CharTy>
     friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_float& f)
     {
+        snprintf_t<_CharTy>::one_float(os, f.f);
+        return os;
+    }
+
+    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_float& f)
+    {
         return os << f.f;
     }
 
-    friend std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const serializable_float& f)
+    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_float& f)
     {
-        snprintf_t<char16_t>::one_float(os, f.f);
-        return os;
-    }
-
-    friend std::basic_ostream<char32_t>& operator<<(std::basic_ostream<char32_t>& os, const serializable_float& f)
-    {
-        snprintf_t<char32_t>::one_float(os, f.f);
-        return os;
+        return os << f.f;
     }
 };
 

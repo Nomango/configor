@@ -10,6 +10,9 @@ using namespace jsonxx;
 #define U16(STR) COMBINE(u, STR)
 #define U32(STR) COMBINE(U, STR)
 
+#define STR_ANY(ANY) #ANY
+#define STR(ANY) STR_ANY(ANY)
+
 #define RAW_STR "我是地球🌍"
 #define QUOTE_STR "\"我是地球🌍\""
 #define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
@@ -19,18 +22,46 @@ using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
 // char32_t
 using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
 
+TEST(test_unicode, test_numeric)
+{
+#define TEST_INT 2147483647
+#define TEST_FLOAT 1.25
+
+    u16json u16j;
+    ASSERT_NO_THROW(u16j = u16json::parse(U16(STR(TEST_INT))));
+    ASSERT_EQ(u16j.as_integer(), TEST_INT);
+    ASSERT_EQ(u16j.dump(), U16(STR(TEST_INT)));
+
+    ASSERT_NO_THROW(u16j = u16json::parse(U16(STR(TEST_FLOAT))));
+    ASSERT_EQ(u16j.as_float(), TEST_FLOAT);
+    ASSERT_EQ(u16j.dump(), U16(STR(TEST_FLOAT)));
+
+    u32json u32j;
+    ASSERT_NO_THROW(u32j = u32json::parse(U32(STR(TEST_INT))));
+    ASSERT_EQ(u32j.as_integer(), TEST_INT);
+    ASSERT_EQ(u32j.dump(), U32(STR(TEST_INT)));
+
+    ASSERT_NO_THROW(u32j = u32json::parse(U32(STR(TEST_FLOAT))));
+    ASSERT_EQ(u32j.as_float(), TEST_FLOAT);
+    ASSERT_EQ(u32j.dump(), U32(STR(TEST_FLOAT)));
+}
+
 TEST(test_unicode, test_parse_surrogate)
 {
-    auto j = json::parse(ESCAPED_STR);
+    json j;
+    ASSERT_NO_THROW(j = json::parse(ESCAPED_STR));
     ASSERT_EQ(j.as_string(), RAW_STR);
 
-    auto wj = wjson::parse(WIDE(ESCAPED_STR));
+    wjson wj;
+    ASSERT_NO_THROW(wj = wjson::parse(WIDE(ESCAPED_STR)));
     ASSERT_EQ(wj.as_string(), WIDE(RAW_STR));
 
-    auto u16j = u16json::parse(U16(ESCAPED_STR));
+    u16json u16j;
+    ASSERT_NO_THROW(u16j = u16json::parse(U16(ESCAPED_STR)));
     ASSERT_EQ(u16j.as_string(), U16(RAW_STR));
 
-    auto u32j = u32json::parse(U32(ESCAPED_STR));
+    u32json u32j;
+    ASSERT_NO_THROW(u32j = u32json::parse(U32(ESCAPED_STR)));
     ASSERT_EQ(u32j.as_string(), U32(RAW_STR));
 }
 

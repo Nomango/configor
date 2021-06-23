@@ -23,7 +23,6 @@
 #include "json_stream.hpp"
 #include "json_value.hpp"
 
-#include <cctype>            // std::isdigit
 #include <initializer_list>  // std::initializer_list
 #include <istream>           // std::basic_istream
 #include <streambuf>         // std::basic_streambuf
@@ -35,7 +34,8 @@ namespace jsonxx
 template <typename _BasicJsonTy>
 struct parser_args
 {
-    bool allow_comments = false;
+    bool allow_comments = false;  // allow comments
+    bool check_document = false;  // only allow object or array type
 };
 
 //
@@ -207,7 +207,6 @@ struct json_lexer
         case char_traits::eof():
             return token_type::end_of_input;
 
-        // unexpected character
         default:
         {
             fail("unexpected character", current_);
@@ -402,18 +401,16 @@ struct json_lexer
 
     token_type scan_integer()
     {
-        if (!std::isdigit(current_))
-            fail("invalid integer, got", current_);
+        JSONXX_ASSERT(is_digit(current_));
 
         number_integer_ = static_cast<integer_type>(current_ - '0');
-
         while (true)
         {
             const auto ch = read_next();
             if (ch == '.' || ch == 'e' || ch == 'E')
                 return scan_float();
 
-            if (std::isdigit(ch))
+            if (is_digit(ch))
                 number_integer_ = number_integer_ * 10 + static_cast<integer_type>(ch - '0');
             else
                 break;
@@ -430,7 +427,7 @@ struct json_lexer
 
         JSONXX_ASSERT(current_ == '.');
 
-        if (!std::isdigit(read_next()))
+        if (!is_digit(read_next()))
             fail("invalid float number, got", current_);
 
         float_type fraction = static_cast<float_type>(0.1);
@@ -442,7 +439,7 @@ struct json_lexer
             if (ch == 'e' || ch == 'E')
                 return scan_exponent();
 
-            if (std::isdigit(ch))
+            if (is_digit(ch))
             {
                 fraction *= static_cast<float_type>(0.1);
                 number_float_ += static_cast<float_type>(static_cast<uint32_t>(current_ - '0')) * fraction;
@@ -457,10 +454,9 @@ struct json_lexer
     {
         JSONXX_ASSERT(current_ == 'e' || current_ == 'E');
 
-        // skip current_ char
         read_next();
 
-        const bool invalid = (std::isdigit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
+        const bool invalid = (is_digit(current_) && current_ != '0') || (current_ == '-') || (current_ == '+');
         if (!invalid)
             fail("invalid exponent number, got", current_);
 
@@ -476,7 +472,7 @@ struct json_lexer
         }
 
         uint32_t exponent = static_cast<uint32_t>(current_ - '0');
-        while (std::isdigit(read_next()))
+        while (is_digit(read_next()))
         {
             exponent = (exponent * 10) + static_cast<uint32_t>(current_ - '0');
         }
@@ -529,6 +525,11 @@ struct json_lexer
             }
         }
         return code;
+    }
+
+    inline bool is_digit(char_type ch) const
+    {
+        return char_type('0') <= ch && ch <= char_type('9');
     }
 
     inline void fail(const std::string& msg)
@@ -627,7 +628,25 @@ private:
             json = json_type::array;
             while (true)
             {
-                if (get_token() == token_type::end_array)
+                const auto token = get_token();
+
+                bool is_end = false;
+                switch (token)
+                {
+                case token_type::literal_true:
+                case token_type::literal_false:
+                case token_type::literal_null:
+                case token_type::value_string:
+                case token_type::value_integer:
+                case token_type::value_float:
+                case token_type::begin_array:
+                case token_type::begin_object:
+                    break;
+                default:
+                    is_end = true;
+                    break;
+                }
+                if (is_end)
                     break;
 
                 json.value_.data.vector->push_back(_BasicJsonTy());

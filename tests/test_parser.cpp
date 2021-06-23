@@ -60,18 +60,78 @@ TEST(test_parser, test_parse)
     ASSERT_DOUBLE_EQ(json::parse("-0.125e2").as_float(), -12.5);
     ASSERT_DOUBLE_EQ(json::parse("-112.5e-2").as_float(), -1.125);
     ASSERT_DOUBLE_EQ(json::parse("-12.5e-2").as_float(), -0.125);
+}
+
+TEST(test_parser, test_parse_error)
+{
+    // unexpected character
+    ASSERT_THROW(json::parse("()"), json_deserialization_error);
+
+    // check document
+    {
+        json::parse_args args;
+        args.check_document = true;
+        ASSERT_THROW(json::parse("true", args), json_deserialization_error);
+    }
+
+    // invalid literal
+    ASSERT_THROW(json::parse("trux"), json_deserialization_error);
+    ASSERT_THROW(json::parse("falsx"), json_deserialization_error);
+    ASSERT_THROW(json::parse("nulx"), json_deserialization_error);
+
+    // unexpected end of string
+    ASSERT_THROW(json::parse("\""), json_deserialization_error);
 
     // parse controle characters
-    ASSERT_THROW(json::parse("\t"), json_deserialization_error);
-    ASSERT_THROW(json::parse("\r"), json_deserialization_error);
-    ASSERT_THROW(json::parse("\n"), json_deserialization_error);
-    ASSERT_THROW(json::parse("\b"), json_deserialization_error);
-    ASSERT_THROW(json::parse("\f"), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\t\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\r\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\n\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\b\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\f\""), json_deserialization_error);
+
+    // invalid escaped character
+    ASSERT_THROW(json::parse("\"\\x\""), json_deserialization_error);
+
+    // invalid surrogate
+    ASSERT_THROW(json::parse("\"\\uD8\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\\uD800\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\\uD800\\uD800\""), json_deserialization_error);
+    ASSERT_THROW(json::parse("\"\\uD800\\x\""), json_deserialization_error);
+
+    // invalid float
+    ASSERT_THROW(json::parse("0.x"), json_deserialization_error);
+    ASSERT_THROW(json::parse("0e1"), json_deserialization_error);
+    ASSERT_THROW(json::parse("1ex"), json_deserialization_error);
+    ASSERT_THROW(json::parse("1e0"), json_deserialization_error);
+
+    // not allow comments
+    {
+        ASSERT_THROW(json::parse("{/**/}"), json_deserialization_error);
+        ASSERT_THROW(json::parse("{//\n}"), json_deserialization_error);
+
+        json::parse_args args;
+        args.allow_comments = true;
+        ASSERT_NO_THROW(json::parse("{/**/}", args));
+        ASSERT_NO_THROW(json::parse("{//\n}", args));
+        ASSERT_THROW(json::parse("{/x\n}", args), json_deserialization_error);
+    }
 
     // unexpect end
     ASSERT_THROW(json::parse("\\"), json_deserialization_error);
 
-    // test error policy
+    // unexpect token
+    ASSERT_THROW(json::parse("]"), json_deserialization_error);
+    ASSERT_THROW(json::parse("}"), json_deserialization_error);
+    ASSERT_THROW(json::parse("{]"), json_deserialization_error);
+    ASSERT_THROW(json::parse("[}"), json_deserialization_error);
+    ASSERT_THROW(json::parse("{}{"), json_deserialization_error);
+}
+
+TEST(test_parser, test_error_policy)
+{
+    error_handler_with<error_policy::strict> strict_handler{};
+    ASSERT_THROW(json::parse("\f", json::parse_args{}, &strict_handler), json_deserialization_error);
+
     error_handler_with<error_policy::ignore> ignore_handler{};
     ASSERT_NO_THROW(json::parse("\f", json::parse_args{}, &ignore_handler));
 
@@ -97,7 +157,8 @@ TEST(test_parser, test_comment)
         some comments
         "pi": 3,
         */"name": "中文测试"
-    }// some comments)", args);
+    }// some comments)",
+                         args);
     ASSERT_EQ(j["happy"].as_bool(), true);
     ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
     ASSERT_EQ(j["name"].as_string(), "中文测试");
@@ -184,13 +245,13 @@ TEST(test_parser, test_adapter)
     std::string input = "{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }";
 
     {
-        myadapter ma{ input };
+        myadapter      ma{ input };
         iadapterstream is{ ma };
         ASSERT_EQ(json::parse(is), json::parse(input));
     }
 
     {
-        myadapter ma{ input };
+        myadapter      ma{ input };
         iadapterstream is{ ma };
         ASSERT_EQ(is.get(), '{');
         ASSERT_EQ(is.peek(), ' ');
