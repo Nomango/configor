@@ -109,24 +109,25 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="test_basic_json.cpp" />
+    <ClCompile Include="test_conversion.cpp" />
     <ClCompile Include="test_iterator.cpp" />
     <ClCompile Include="test_parser.cpp" />
     <ClCompile Include="test_serializer.cpp" />
     <ClCompile Include="test_unicode.cpp" />
-    <ClCompile Include="test_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\jsonxx\json.hpp" />
     <ClInclude Include="..\include\jsonxx\json_basic.hpp" />
-    <ClInclude Include="..\include\jsonxx\json_config.hpp" />
+    <ClInclude Include="..\include\jsonxx\json_conversion.hpp" />
+    <ClInclude Include="..\include\jsonxx\json_declare.hpp" />
     <ClInclude Include="..\include\jsonxx\json_encoding.hpp" />
     <ClInclude Include="..\include\jsonxx\json_exception.hpp" />
     <ClInclude Include="..\include\jsonxx\json_iterator.hpp" />
     <ClInclude Include="..\include\jsonxx\json_parser.hpp" />
     <ClInclude Include="..\include\jsonxx\json_serializer.hpp" />
     <ClInclude Include="..\include\jsonxx\json_stream.hpp" />
-    <ClInclude Include="..\include\jsonxx\json_utils.hpp" />
     <ClInclude Include="..\include\jsonxx\json_value.hpp" />
+    <ClInclude Include="common.h" />
   </ItemGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

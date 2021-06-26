@@ -22,10 +22,25 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="handler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="user_info.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\jsonxx\json.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_basic.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_conversion.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_declare.hpp">
+      <Filter>jsonxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\jsonxx\json_encoding.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_exception.hpp">
@@ -40,25 +55,10 @@
     <ClInclude Include="..\include\jsonxx\json_serializer.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\jsonxx\json_utils.hpp">
+    <ClInclude Include="..\include\jsonxx\json_stream.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\jsonxx\json_value.hpp">
-      <Filter>jsonxx</Filter>
-    </ClInclude>
-    <ClInclude Include="handler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="user_info.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\jsonxx\json_encoding.hpp">
-      <Filter>jsonxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\jsonxx\json_config.hpp">
-      <Filter>jsonxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\jsonxx\json_stream.hpp">
       <Filter>jsonxx</Filter>
     </ClInclude>
   </ItemGroup>

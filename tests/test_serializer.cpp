@@ -1,13 +1,11 @@
 // Copyright (c) 2019 Nomango
 
-#include <cfloat>  // DBL_DIG
-#include <cmath>   // std::acos
-#include <gtest/gtest.h>
-#include <iomanip>  // std::setw, std::fill
-#include <jsonxx/json.hpp>
-#include <sstream>  // std::stringstream
+#include "common.h"
 
-using namespace jsonxx;
+#include <cfloat>   // DBL_DIG
+#include <cmath>    // std::acos
+#include <iomanip>  // std::setw, std::fill
+#include <sstream>  // std::stringstream
 
 class SerializerTest : public testing::Test
 {
@@ -35,8 +33,15 @@ TEST_F(SerializerTest, test_dump)
 
     // dump float
     // issue 7
-    ASSERT_EQ(json(0.0).dump(), "0");
-    ASSERT_EQ(json(1.0).dump(), "1");
+    ASSERT_EQ(json(0.0).dump(), "0.0");
+    ASSERT_EQ(json(1.0).dump(), "1.0");
+    ASSERT_EQ(wjson(0.0).dump(), WIDE("0.0"));
+    ASSERT_EQ(wjson(1.0).dump(), WIDE("1.0"));
+    ASSERT_EQ(u16json(0.0).dump(), U16("0.0"));
+    ASSERT_EQ(u16json(1.0).dump(), U16("1.0"));
+    ASSERT_EQ(u32json(0.0).dump(), U32("0.0"));
+    ASSERT_EQ(u32json(1.0).dump(), U32("1.0"));
+
     ASSERT_EQ(json(1.2).dump(), "1.2");
     ASSERT_EQ(json(1.23).dump(), "1.23");
 
@@ -88,12 +93,36 @@ TEST(test_serializer, test_numeric)
     // dump integer
     ASSERT_EQ(json(0).dump(), "0");
     ASSERT_EQ(json(int32_t(2147483647)).dump(), "2147483647");
-    ASSERT_EQ(json64(int64_t(9223372036854775807)).dump(), "9223372036854775807");
+    ASSERT_EQ(json(int64_t(9223372036854775807)).dump(), "9223372036854775807");
+
+    ASSERT_EQ(wjson(0).dump(), WIDE("0"));
+    ASSERT_EQ(wjson(int32_t(2147483647)).dump(), WIDE("2147483647"));
+    ASSERT_EQ(wjson(int64_t(9223372036854775807)).dump(), WIDE("9223372036854775807"));
+
+    ASSERT_EQ(u16json(0).dump(), U16("0"));
+    ASSERT_EQ(u16json(int32_t(2147483647)).dump(), U16("2147483647"));
+    ASSERT_EQ(u16json(int64_t(9223372036854775807)).dump(), U16("9223372036854775807"));
+
+    ASSERT_EQ(u32json(0).dump(), U32("0"));
+    ASSERT_EQ(u32json(int32_t(2147483647)).dump(), U32("2147483647"));
+    ASSERT_EQ(u32json(int64_t(9223372036854775807)).dump(), U32("9223372036854775807"));
 
     // dump signed integer
     ASSERT_EQ(json(-0).dump(), "0");
     ASSERT_EQ(json(int32_t(-2147483647)).dump(), "-2147483647");
-    ASSERT_EQ(json64(int64_t(-9223372036854775807)).dump(), "-9223372036854775807");
+    ASSERT_EQ(json(int64_t(-9223372036854775807)).dump(), "-9223372036854775807");
+
+    ASSERT_EQ(wjson(-0).dump(), WIDE("0"));
+    ASSERT_EQ(wjson(int32_t(-2147483647)).dump(), WIDE("-2147483647"));
+    ASSERT_EQ(wjson(int64_t(-9223372036854775807)).dump(), WIDE("-9223372036854775807"));
+
+    ASSERT_EQ(u16json(-0).dump(), U16("0"));
+    ASSERT_EQ(u16json(int32_t(-2147483647)).dump(), U16("-2147483647"));
+    ASSERT_EQ(u16json(int64_t(-9223372036854775807)).dump(), U16("-9223372036854775807"));
+
+    ASSERT_EQ(u32json(-0).dump(), U32("0"));
+    ASSERT_EQ(u32json(int32_t(-2147483647)).dump(), U32("-2147483647"));
+    ASSERT_EQ(u32json(int64_t(-9223372036854775807)).dump(), U32("-9223372036854775807"));
 }
 
 TEST(test_serializer, test_dump_intend)
@@ -124,7 +153,7 @@ TEST(test_serializer, test_dump_minimal_float)
 #define PRECISION(DIG) COMBINE(1e-, DIG)
 
     j = json::parse(j.dump());
-    ASSERT_NEAR(j.as_float(), minimal_float, PRECISION(DBL_DIG));
+    ASSERT_NEAR(j.get<double>(), minimal_float, PRECISION(DBL_DIG));
 }
 
 TEST_F(SerializerTest, test_adapter)
@@ -147,7 +176,7 @@ TEST_F(SerializerTest, test_adapter)
 
     std::string output;
     {
-        myadapter ma{ output };
+        myadapter      ma{ output };
         oadapterstream os{ ma };
         ASSERT_NO_THROW(j.dump(os));
         ASSERT_EQ(output, j.dump());
@@ -156,7 +185,7 @@ TEST_F(SerializerTest, test_adapter)
     {
         output.clear();
 
-        myadapter ma{ output };
+        myadapter      ma{ output };
         oadapterstream os{ ma };
 
         os << 'h' << "ello,world";

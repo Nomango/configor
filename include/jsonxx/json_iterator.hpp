@@ -132,12 +132,12 @@ private:
     difference_type it_;
 };
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct iterator
 {
-    friend _BasicJsonTy;
+    friend _JsonTy;
 
-    using value_type        = _BasicJsonTy;
+    using value_type        = _JsonTy;
     using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
     using pointer           = value_type*;
@@ -474,9 +474,9 @@ private:
 private:
     value_type* data_;
 
-    typename _BasicJsonTy::array_type::iterator  array_it_;
-    typename _BasicJsonTy::object_type::iterator object_it_;
-    primitive_iterator                           primitive_it_ = 0;  // for other types
+    typename _JsonTy::array_type::iterator  array_it_;
+    typename _JsonTy::object_type::iterator object_it_;
+    primitive_iterator                      primitive_it_ = 0;  // for other types
 };
 
 template <typename _IterTy>

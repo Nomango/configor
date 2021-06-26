@@ -1,20 +1,18 @@
 // Copyright (c) 2019 Nomango
 
+#include "common.h"
+
 #include <array>
 #include <fstream>
 #include <functional>
-#include <gtest/gtest.h>
-#include <jsonxx/json.hpp>
-
-using namespace jsonxx;
 
 TEST(test_parser, test_parse)
 {
     json j;
     ASSERT_NO_THROW(j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }"));
-    ASSERT_EQ(j["happy"].as_bool(), true);
-    ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
-    ASSERT_EQ(j["name"].as_string(), "中文测试");
+    ASSERT_EQ(j["happy"].get<bool>(), true);
+    ASSERT_DOUBLE_EQ(j["pi"].get<double>(), 3.141);
+    ASSERT_EQ(j["name"].get<std::string>(), "中文测试");
 
     // parse empty object
     // issue 4
@@ -26,40 +24,40 @@ TEST(test_parser, test_parse)
     ASSERT_TRUE(j.is_array() && j.empty());
 
     // parse integer
-    ASSERT_EQ(json::parse("0").as_integer(), 0);
-    ASSERT_EQ(json::parse("2147483647").as_integer(), int32_t(2147483647));
-    ASSERT_EQ(json64::parse("9223372036854775807").as_integer(), int64_t(9223372036854775807));
+    ASSERT_EQ(json::parse("0").get<int>(), 0);
+    ASSERT_EQ(json::parse("2147483647").get<int32_t>(), int32_t(2147483647));
+    ASSERT_EQ(json::parse("9223372036854775807").get<int64_t>(), int64_t(9223372036854775807));
 
     // parse signed integer
-    ASSERT_EQ(json::parse("+0").as_integer(), 0);
-    ASSERT_EQ(json::parse("+2147483647").as_integer(), int32_t(2147483647));
-    ASSERT_EQ(json64::parse("+9223372036854775807").as_integer(), int64_t(9223372036854775807));
-    ASSERT_EQ(json::parse("-0").as_integer(), 0);
-    ASSERT_EQ(json::parse("-2147483647").as_integer(), int32_t(-2147483647));
-    ASSERT_EQ(json64::parse("-9223372036854775807").as_integer(), int64_t(-9223372036854775807));
+    ASSERT_EQ(json::parse("+0").get<int>(), 0);
+    ASSERT_EQ(json::parse("+2147483647").get<int32_t>(), int32_t(2147483647));
+    ASSERT_EQ(json::parse("+9223372036854775807").get<int64_t>(), int64_t(9223372036854775807));
+    ASSERT_EQ(json::parse("-0").get<int>(), 0);
+    ASSERT_EQ(json::parse("-2147483647").get<int32_t>(), int32_t(-2147483647));
+    ASSERT_EQ(json::parse("-9223372036854775807").get<int64_t>(), int64_t(-9223372036854775807));
 
     // parse float
-    ASSERT_DOUBLE_EQ(json::parse("0.25").as_float(), 0.25);
-    ASSERT_DOUBLE_EQ(json::parse("1.25").as_float(), 1.25);
-    ASSERT_DOUBLE_EQ(json::parse("1.125e2").as_float(), 112.5);
-    ASSERT_DOUBLE_EQ(json::parse("0.125e2").as_float(), 12.5);
-    ASSERT_DOUBLE_EQ(json::parse("112.5e-2").as_float(), 1.125);
-    ASSERT_DOUBLE_EQ(json::parse("12.5e-2").as_float(), 0.125);
+    ASSERT_DOUBLE_EQ(json::parse("0.25").get<double>(), 0.25);
+    ASSERT_DOUBLE_EQ(json::parse("1.25").get<double>(), 1.25);
+    ASSERT_DOUBLE_EQ(json::parse("1.125e2").get<double>(), 112.5);
+    ASSERT_DOUBLE_EQ(json::parse("0.125e2").get<double>(), 12.5);
+    ASSERT_DOUBLE_EQ(json::parse("112.5e-2").get<double>(), 1.125);
+    ASSERT_DOUBLE_EQ(json::parse("12.5e-2").get<double>(), 0.125);
 
     // parse signed float
-    ASSERT_DOUBLE_EQ(json::parse("+0.25").as_float(), 0.25);
-    ASSERT_DOUBLE_EQ(json::parse("+1.25").as_float(), 1.25);
-    ASSERT_DOUBLE_EQ(json::parse("+1.125e2").as_float(), 112.5);
-    ASSERT_DOUBLE_EQ(json::parse("+0.125e2").as_float(), 12.5);
-    ASSERT_DOUBLE_EQ(json::parse("+112.5e-2").as_float(), 1.125);
-    ASSERT_DOUBLE_EQ(json::parse("+12.5e-2").as_float(), 0.125);
+    ASSERT_DOUBLE_EQ(json::parse("+0.25").get<double>(), 0.25);
+    ASSERT_DOUBLE_EQ(json::parse("+1.25").get<double>(), 1.25);
+    ASSERT_DOUBLE_EQ(json::parse("+1.125e2").get<double>(), 112.5);
+    ASSERT_DOUBLE_EQ(json::parse("+0.125e2").get<double>(), 12.5);
+    ASSERT_DOUBLE_EQ(json::parse("+112.5e-2").get<double>(), 1.125);
+    ASSERT_DOUBLE_EQ(json::parse("+12.5e-2").get<double>(), 0.125);
 
-    ASSERT_DOUBLE_EQ(json::parse("-0.25").as_float(), -0.25);
-    ASSERT_DOUBLE_EQ(json::parse("-1.25").as_float(), -1.25);
-    ASSERT_DOUBLE_EQ(json::parse("-1.125e2").as_float(), -112.5);
-    ASSERT_DOUBLE_EQ(json::parse("-0.125e2").as_float(), -12.5);
-    ASSERT_DOUBLE_EQ(json::parse("-112.5e-2").as_float(), -1.125);
-    ASSERT_DOUBLE_EQ(json::parse("-12.5e-2").as_float(), -0.125);
+    ASSERT_DOUBLE_EQ(json::parse("-0.25").get<double>(), -0.25);
+    ASSERT_DOUBLE_EQ(json::parse("-1.25").get<double>(), -1.25);
+    ASSERT_DOUBLE_EQ(json::parse("-1.125e2").get<double>(), -112.5);
+    ASSERT_DOUBLE_EQ(json::parse("-0.125e2").get<double>(), -12.5);
+    ASSERT_DOUBLE_EQ(json::parse("-112.5e-2").get<double>(), -1.125);
+    ASSERT_DOUBLE_EQ(json::parse("-12.5e-2").get<double>(), -0.125);
 }
 
 TEST(test_parser, test_parse_error)
@@ -159,16 +157,16 @@ TEST(test_parser, test_comment)
         */"name": "中文测试"
     }// some comments)",
                          args);
-    ASSERT_EQ(j["happy"].as_bool(), true);
-    ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
-    ASSERT_EQ(j["name"].as_string(), "中文测试");
+    ASSERT_EQ(j["happy"].get<bool>(), true);
+    ASSERT_DOUBLE_EQ(j["pi"].get<double>(), 3.141);
+    ASSERT_EQ(j["name"].get<std::string>(), "中文测试");
 }
 
 TEST(test_parser, test_parse_surrogate)
 {
     // issue 8
     auto j = json::parse("\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\"");
-    ASSERT_EQ(j.as_string(), "我是地球🌍");
+    ASSERT_EQ(j.get<std::string>(), "我是地球🌍");
 }
 
 TEST(test_parser, test_read_from_file)
@@ -183,13 +181,13 @@ TEST(test_parser, test_read_from_file)
         {
             // test 1
             auto list = j["glossary"]["GlossDiv"]["GlossList"]["GlossEntry"]["GlossDef"]["GlossSeeAlso"];
-            ASSERT_EQ(list[0].as_string(), "GML");
-            ASSERT_EQ(list[1].as_string(), "XML");
+            ASSERT_EQ(list[0].get<std::string>(), "GML");
+            ASSERT_EQ(list[1].get<std::string>(), "XML");
         },
         [](json& j)
         {
             // test 2
-            ASSERT_EQ(j["menu"]["popup"]["menuitem"][0]["onclick"].as_string(), "CreateNewDoc()");
+            ASSERT_EQ(j["menu"]["popup"]["menuitem"][0]["onclick"].get<std::string>(), "CreateNewDoc()");
         },
         [](json& j)
         {
@@ -203,7 +201,7 @@ TEST(test_parser, test_read_from_file)
         {
             // test 5
             ASSERT_EQ(j["menu"]["items"][2].is_null(), true);
-            ASSERT_EQ(j["menu"]["items"][3]["id"].as_string(), "ZoomIn");
+            ASSERT_EQ(j["menu"]["items"][3]["id"].get<std::string>(), "ZoomIn");
         },
     };
 

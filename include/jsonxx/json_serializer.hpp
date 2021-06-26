@@ -75,7 +75,7 @@ public:
 
     friend inline std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& os, const indent& i)
     {
-        if (i.indent_char_)
+        if (i.indent_char_ && i.length_)
         {
             os.write(i.indent_string_.c_str(), static_cast<std::streamsize>(i.length_));
         }
@@ -90,11 +90,11 @@ private:
 
 }  // namespace detail
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct serializer_args
 {
-    using char_type  = typename _BasicJsonTy::char_type;
-    using float_type = typename _BasicJsonTy::float_type;
+    using char_type  = typename _JsonTy::char_type;
+    using float_type = typename _JsonTy::float_type;
 
     unsigned int indent         = 0;
     char_type    indent_char    = ' ';
@@ -106,17 +106,17 @@ struct serializer_args
 // json_serializer
 //
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct json_serializer
 {
-    using char_type     = typename _BasicJsonTy::char_type;
+    using char_type     = typename _JsonTy::char_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _BasicJsonTy::string_type;
-    using integer_type  = typename _BasicJsonTy::integer_type;
-    using float_type    = typename _BasicJsonTy::float_type;
-    using encoding_type = typename _BasicJsonTy::encoding_type;
-    using args          = serializer_args<_BasicJsonTy>;
+    using string_type   = typename _JsonTy::string_type;
+    using integer_type  = typename _JsonTy::integer_type;
+    using float_type    = typename _JsonTy::float_type;
+    using encoding_type = typename _JsonTy::encoding_type;
+    using args          = serializer_args<_JsonTy>;
 
     json_serializer(std::basic_ostream<char_type>& os, const args& args)
         : fmt_(os)
@@ -135,7 +135,7 @@ struct json_serializer
         }
     }
 
-    void dump(const _BasicJsonTy& json, const unsigned int current_indent = 0)
+    void dump(const _JsonTy& json, const unsigned int current_indent = 0)
     {
         switch (json.type())
         {

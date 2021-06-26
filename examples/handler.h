@@ -21,28 +21,28 @@ struct Response
 template <>
 struct jsonxx::json_bind<Request>
 {
-    void to_json(json& j, const Request& v)
+    static void to_json(json& j, const Request& v)
     {
-        jsonxx::to_json(j["user_id"], v.user_id);
+        j = { { "user_id", v.user_id } };
     }
 
-    void from_json(const json& j, Request& v)
+    static void from_json(const json& j, Request& v)
     {
-        jsonxx::from_json(j["user_id"], v.user_id);
+        v.user_id = j["user_id"];
     }
 };
 
 template <>
 struct jsonxx::json_bind<Response>
 {
-    void to_json(json& j, const Response& v)
+    static void to_json(json& j, const Response& v)
     {
-        jsonxx::to_json(j["user_info"], v.user_info);
+        j = { { "user_info", v.user_info } };
     }
 
-    void from_json(const json& j, Response& v)
+    static void from_json(const json& j, Response& v)
     {
-        jsonxx::from_json(j["user_info"], v.user_info);
+        v.user_info = j["user_info"];
     }
 };
 

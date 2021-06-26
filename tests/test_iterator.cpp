@@ -1,9 +1,6 @@
 // Copyright (c) 2021 Nomango
 
-#include <gtest/gtest.h>
-#include <jsonxx/json.hpp>
-
-using namespace jsonxx;
+#include "common.h"
 
 TEST(test_iterator, string)
 {

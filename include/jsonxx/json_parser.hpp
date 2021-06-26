@@ -31,7 +31,7 @@
 namespace jsonxx
 {
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct parser_args
 {
     bool allow_comments = false;  // allow comments
@@ -66,17 +66,17 @@ enum class token_type
     end_of_input
 };
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct json_lexer
 {
-    using char_type     = typename _BasicJsonTy::char_type;
+    using char_type     = typename _JsonTy::char_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _BasicJsonTy::string_type;
-    using integer_type  = typename _BasicJsonTy::integer_type;
-    using float_type    = typename _BasicJsonTy::float_type;
-    using encoding_type = typename _BasicJsonTy::encoding_type;
-    using args          = parser_args<_BasicJsonTy>;
+    using string_type   = typename _JsonTy::string_type;
+    using integer_type  = typename _JsonTy::integer_type;
+    using float_type    = typename _JsonTy::float_type;
+    using encoding_type = typename _JsonTy::encoding_type;
+    using args          = parser_args<_JsonTy>;
 
     json_lexer(std::basic_istream<char_type>& is, const args& args)
         : is_negative_(false)
@@ -562,12 +562,12 @@ private:
 // json_parser
 //
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct json_parser
 {
-    using char_type  = typename _BasicJsonTy::char_type;
-    using lexer_type = json_lexer<_BasicJsonTy>;
-    using args       = parser_args<_BasicJsonTy>;
+    using char_type  = typename _JsonTy::char_type;
+    using lexer_type = json_lexer<_JsonTy>;
+    using args       = parser_args<_JsonTy>;
 
     json_parser(std::basic_istream<char_type>& is, const args& args)
         : lexer_(is, args)
@@ -575,7 +575,7 @@ struct json_parser
     {
     }
 
-    void parse(_BasicJsonTy& json)
+    void parse(_JsonTy& json)
     {
         parse_value(json);
 
@@ -590,7 +590,7 @@ private:
         return last_token_;
     }
 
-    void parse_value(_BasicJsonTy& json, bool read_next = true)
+    void parse_value(_JsonTy& json, bool read_next = true)
     {
         token_type token = last_token_;
         if (read_next)
@@ -601,11 +601,11 @@ private:
         switch (token)
         {
         case token_type::literal_true:
-            json.value_ = true;
+            json = true;
             break;
 
         case token_type::literal_false:
-            json.value_ = false;
+            json = false;
             break;
 
         case token_type::literal_null:
@@ -649,7 +649,7 @@ private:
                 if (is_end)
                     break;
 
-                json.value_.data.vector->push_back(_BasicJsonTy());
+                json.value_.data.vector->push_back(_JsonTy());
                 parse_value(json.value_.data.vector->back(), false);
 
                 // read ','
@@ -671,7 +671,7 @@ private:
                 if (get_token() != token_type::name_separator)
                     break;
 
-                _BasicJsonTy object;
+                _JsonTy object;
                 parse_value(object);
                 json.value_.data.object->insert(std::make_pair(key, object));
 

@@ -19,6 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
+#include <algorithm>    // std::none_of
+#include <cmath>        // std::ceil, std::floor
 #include <cstdio>       // std::FILE, std::fgetc, std::fgets, std::fgetwc, std::fgetws, std::snprintf
 #include <iomanip>      // std::fill, std::setw
 #include <ios>          // std::basic_ios, std::streamsize, std::hex, std::dec, std::uppercase, std::nouppercase
@@ -345,6 +347,7 @@ public:
 
     fast_cfile_istreambuf(std::FILE* file)
         : file_(file)
+        , last_char_(0)
     {
     }
 
@@ -387,6 +390,7 @@ public:
 
     fast_cfile_istreambuf(std::FILE* file)
         : file_(file)
+        , last_char_(0)
     {
     }
 
@@ -539,43 +543,107 @@ struct snprintf_t
 {
     using char_type = _CharTy;
 
-    template <typename _IntTy>
-    static inline void one_integer(std::basic_ostream<char_type>& os, const _IntTy val)
+    static inline void one_integer(std::basic_ostream<char_type>& os, const signed char val)
     {
-        char buffer[32] = {};
-        internal_snprintf(os, buffer, sizeof(buffer), "%d", val);
+        internal_one_integer(os, "%hhd", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const short val)
+    {
+        internal_one_integer(os, "%hd", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const int val)
+    {
+        internal_one_integer(os, "%d", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const long val)
+    {
+        internal_one_integer(os, "%ld", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const long long val)
+    {
+        internal_one_integer(os, "%lld", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned char val)
+    {
+        internal_one_integer(os, "%hhu", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned short val)
+    {
+        internal_one_integer(os, "%hu", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned int val)
+    {
+        internal_one_integer(os, "%u", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned long val)
+    {
+        internal_one_integer(os, "%lu", val);
+    }
+
+    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned long long val)
+    {
+        internal_one_integer(os, "%llu", val);
     }
 
     template <typename _IntTy>
     static inline void one_hex(std::basic_ostream<char_type>& os, const _IntTy val)
     {
-        char buffer[7] = {};
-        internal_snprintf(os, buffer, sizeof(buffer), "\\u%04X", val);
+        std::array<char, 7> buffer = {};
+        internal_snprintf(os, buffer.data(), sizeof(buffer), "\\u%04X", val);
     }
 
     template <typename _FloatTy>
     static inline void one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
     {
-        char buffer[32] = {};
-        internal_snprintf(os, buffer, sizeof(buffer), "%.*g", static_cast<int>(os.precision()), val);
+        std::array<char, 32> buffer = {};
+
+        const auto p   = static_cast<int>(os.precision());
+        const auto len = internal_snprintf(os, buffer.data(), sizeof(buffer), "%.*g", p, val);
+        // determine if need to append ".0"
+        if (std::none_of(buffer.data(), buffer.data() + len + 1, [](char c) { return c == '.'; }))
+        {
+            os.put(char_type('.')).put(char_type('0'));
+        }
     }
 
 private:
+    template <typename _IntTy>
+    static inline void internal_one_integer(std::basic_ostream<char_type>& os, const char* format, const _IntTy val)
+    {
+        std::array<char, 32> buffer = {};
+        internal_snprintf(os, buffer.data(), sizeof(buffer), format, val);
+    }
+
     template <typename... _Args>
-    static inline void internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
-                                         const char* format, _Args&&... args)
+    static inline int internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
+                                        const char* format, _Args&&... args)
     {
         const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
         if (len > 0)
             copy_simple_string(os, buffer, static_cast<size_t>(len));
         else
             os.setstate(std::ios_base::failbit);
+        return len;
     }
 
-    static inline void copy_simple_string(std::basic_ostream<char_type>& os, const char* str, size_t len)
+    static inline void copy_simple_string(std::basic_ostream<char>& os, const char* str, size_t len)
+    {
+        os.write(str, static_cast<std::streamsize>(len));
+    }
+
+    template <typename _UCharTy>
+    static inline void copy_simple_string(std::basic_ostream<_UCharTy>& os, const char* str, size_t len)
     {
         for (size_t i = 0; i < len; i++)
-            os.put(static_cast<char_type>(str[i]));
+            os.put(static_cast<_UCharTy>(str[i]));
     }
 };
 
@@ -646,11 +714,21 @@ struct serializable_float
 
     friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_float& f)
     {
+        if (std::ceil(f.f) == std::floor(f.f))
+        {
+            // integer
+            return os << static_cast<int64_t>(f.f) << ".0";
+        }
         return os << f.f;
     }
 
     friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_float& f)
     {
+        if (std::ceil(f.f) == std::floor(f.f))
+        {
+            // integer
+            return os << static_cast<int64_t>(f.f) << L".0";
+        }
         return os << f.f;
     }
 };

@@ -1,15 +1,18 @@
 // Copyright (c) 2019 Nomango
 
-#include <gtest/gtest.h>
-#include <jsonxx/json.hpp>
-
-using namespace jsonxx;
+#include "common.h"
 
 class BasicJsonTest : public testing::Test
 {
 protected:
     void SetUp() override
     {
+        j = json({ json("123"), 3.14 });
+        j = json({ "123", 3.14 });
+        j = { "123", 3.14 };
+        j = { nullptr };
+        j = { true };
+
         j = { { "pi", 3.141 },
               { "happy", true },
               { "name", "Nomango" },
@@ -49,68 +52,76 @@ TEST_F(BasicJsonTest, test_type)
 
 TEST_F(BasicJsonTest, test_get)
 {
-    ASSERT_DOUBLE_EQ(j["pi"].as_float(), 3.141);
-    ASSERT_EQ(j["happy"].as_bool(), true);
-    ASSERT_EQ(j["name"].as_string(), "Nomango");
-    ASSERT_EQ(j["list"][0].as_integer(), 1);
-    ASSERT_EQ(j["list"][1].as_integer(), 0);
-    ASSERT_EQ(j["list"][2].as_integer(), 2);
-    ASSERT_EQ(j["single_object"]["number"].as_integer(), 123);
+    ASSERT_DOUBLE_EQ(j["pi"].get<double>(), 3.141);
+    ASSERT_EQ(j["happy"].get<bool>(), true);
+    ASSERT_EQ(j["name"].get<std::string>(), "Nomango");
+    ASSERT_EQ(j["list"][0].get<int64_t>(), 1);
+    ASSERT_EQ(j["list"][1].get<int64_t>(), 0);
+    ASSERT_EQ(j["list"][2].get<int64_t>(), 2);
+    ASSERT_EQ(j["single_object"]["number"].get<int64_t>(), 123);
 }
 
 TEST_F(BasicJsonTest, test_numeric_type)
 {
-#define TEST_NUMERIC_GET_VALUE(j, NUMERIC_TYPE, EXPECT_VALUE) \
-    { \
-        NUMERIC_TYPE tmp = {}; \
-        bool ret = j.get_value(tmp); \
-        ASSERT_TRUE(ret); \
-        ASSERT_EQ(tmp, EXPECT_VALUE); \
+#define TEST_NUMERIC_GET_VALUE(j, NUMERIC_TYPE, EXPECT_VALUE)                      \
+    {                                                                              \
+        ASSERT_EQ(j.get<NUMERIC_TYPE>(), static_cast<NUMERIC_TYPE>(EXPECT_VALUE)); \
     }
 
-#define TEST_NUMERIC_COMPATIBLE(NUMERIC_TYPE) \
-    { \
-        auto i = NUMERIC_TYPE(1); \
-        json j = i; \
-        ASSERT_TRUE(j.is_number()); \
-        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(i)); \
-        ASSERT_EQ(j.as_float(), static_cast<double>(i)); \
-        TEST_NUMERIC_GET_VALUE(j, NUMERIC_TYPE, i); \
-        TEST_NUMERIC_GET_VALUE(j, int8_t, i); \
-        TEST_NUMERIC_GET_VALUE(j, int16_t, i); \
-        TEST_NUMERIC_GET_VALUE(j, int32_t, i); \
-        TEST_NUMERIC_GET_VALUE(j, float, i); \
-        TEST_NUMERIC_GET_VALUE(j, double, i); \
+#define TEST_INTEGER_COMPATIBLE(INT_TYPE)               \
+    {                                                   \
+        auto i = INT_TYPE(123);                         \
+        json j = i;                                     \
+        ASSERT_TRUE(j.is_integer());                    \
+        ASSERT_FALSE(j.is_float());                     \
+        ASSERT_TRUE(j.is_number());                     \
+        TEST_NUMERIC_GET_VALUE(j, int8_t, i);           \
+        TEST_NUMERIC_GET_VALUE(j, int16_t, i);          \
+        TEST_NUMERIC_GET_VALUE(j, int32_t, i);          \
+        TEST_NUMERIC_GET_VALUE(j, int64_t, i);          \
+        TEST_NUMERIC_GET_VALUE(j, uint8_t, i);          \
+        TEST_NUMERIC_GET_VALUE(j, uint16_t, i);         \
+        TEST_NUMERIC_GET_VALUE(j, uint32_t, i);         \
+        TEST_NUMERIC_GET_VALUE(j, uint64_t, i);         \
+        ASSERT_THROW(j.get<double>(), json_type_error); \
     }
 
-    TEST_NUMERIC_COMPATIBLE(int8_t);
-    TEST_NUMERIC_COMPATIBLE(int16_t);
-    TEST_NUMERIC_COMPATIBLE(int32_t);
-    TEST_NUMERIC_COMPATIBLE(float);
-    TEST_NUMERIC_COMPATIBLE(double);
+#define TEST_FLOAT_COMPATIBLE(FLOAT_TYPE)                \
+    {                                                    \
+        auto i = FLOAT_TYPE(123.0);                      \
+        json j = i;                                      \
+        ASSERT_FALSE(j.is_integer());                    \
+        ASSERT_TRUE(j.is_float());                       \
+        ASSERT_TRUE(j.is_number());                      \
+        TEST_NUMERIC_GET_VALUE(j, float, i);             \
+        TEST_NUMERIC_GET_VALUE(j, double, i);            \
+        ASSERT_THROW(j.get<int64_t>(), json_type_error); \
+    }
+
+    TEST_INTEGER_COMPATIBLE(int8_t);
+    TEST_INTEGER_COMPATIBLE(int16_t);
+    TEST_INTEGER_COMPATIBLE(int32_t);
+    TEST_FLOAT_COMPATIBLE(float);
+    TEST_FLOAT_COMPATIBLE(double);
 
     // int to float
     {
-        json j = 1;
+        json j = 0;
+        ASSERT_DOUBLE_EQ(j.as_float(), 0);
+        j = 1;
         ASSERT_DOUBLE_EQ(j.as_float(), 1.0);
-        j = 2;
-        ASSERT_DOUBLE_EQ(j.as_float(), 2.0);
-
-        const int32_t imax = std::numeric_limits<int32_t>::max();
-        j = imax;
-        ASSERT_DOUBLE_EQ(j.as_float(), static_cast<double>(imax));
     }
 
     // float to int
     {
         json j = 0.0;
-        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(0.0));
+        ASSERT_EQ(j.as_integer(), static_cast<int64_t>(0.0));
         j = 1.0;
-        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(1.0));
+        ASSERT_EQ(j.as_integer(), static_cast<int64_t>(1.0));
         j = 1.49;
-        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(1.49));
+        ASSERT_EQ(j.as_integer(), static_cast<int64_t>(1.49));
         j = 1.51;
-        ASSERT_EQ(j.as_integer(), static_cast<int32_t>(1.51));
+        ASSERT_EQ(j.as_integer(), static_cast<int64_t>(1.51));
     }
 }
 
@@ -143,22 +154,22 @@ TEST_F(BasicJsonTest, test_explicit_convert)
     ASSERT_TRUE((float)j["pi"] == 3.141f);
     ASSERT_TRUE((bool)j["happy"] == true);
     ASSERT_TRUE((std::string)j["name"] == "Nomango");
-    ASSERT_TRUE((int)j["list"][0].as_integer() == 1);
-    ASSERT_TRUE((unsigned int)j["list"][0].as_integer() == 1u);
-    ASSERT_TRUE((long)j["list"][0].as_integer() == 1l);
-    ASSERT_TRUE((int64_t)j["list"][0].as_integer() == int64_t(1));
+    ASSERT_TRUE((int)j["list"][0].get<int64_t>() == 1);
+    ASSERT_TRUE((unsigned int)j["list"][0].get<int64_t>() == 1u);
+    ASSERT_TRUE((long)j["list"][0].get<int64_t>() == 1l);
+    ASSERT_TRUE((int64_t)j["list"][0].get<int64_t>() == int64_t(1));
 }
 
 TEST_F(BasicJsonTest, test_assign)
 {
     j["happy"] = false;
-    ASSERT_EQ(j["happy"].as_bool(), false);
+    ASSERT_EQ(j["happy"].get<bool>(), false);
 
     j["list"][0] = -1;
-    ASSERT_EQ(j["list"][0].as_integer(), -1);
+    ASSERT_EQ(j["list"][0].get<int64_t>(), -1);
 
     j["new_item"] = "string";
-    ASSERT_EQ(j["new_item"].as_string(), "string");
+    ASSERT_EQ(j["new_item"].get<std::string>(), "string");
 }
 
 TEST_F(BasicJsonTest, test_dump)
@@ -177,10 +188,10 @@ TEST(test_basic_json, test_object)
     ASSERT_NO_THROW(json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } }));
 
     // not an object
-    ASSERT_THROW(json::object({ {"1", 1}, {""} }), json_type_error);
-    ASSERT_THROW(json::object({ {1, ""} }), json_type_error);
+    ASSERT_THROW(json::object({ { "1", 1 }, { "" } }), json_type_error);
+    ASSERT_THROW(json::object({ { 1, "" } }), json_type_error);
 
-    json j = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
+    json j  = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
     json j2 = j;
     ASSERT_TRUE(j == j2);
 
@@ -269,19 +280,19 @@ TEST(test_basic_json, test_method_clear)
     // string
     j = "string";
     ASSERT_NO_THROW(j.clear());
-    ASSERT_EQ(j.as_string(), "");
+    ASSERT_EQ(j.get<std::string>(), "");
     // integer
     j = 100;
     ASSERT_NO_THROW(j.clear());
-    ASSERT_EQ(j.as_integer(), 0);
+    ASSERT_EQ(j.get<int64_t>(), 0);
     // floating
     j = 100.0;
     ASSERT_NO_THROW(j.clear());
-    ASSERT_EQ(j.as_float(), 0);
+    ASSERT_EQ(j.get<double>(), 0);
     // boolean
     j = true;
     ASSERT_NO_THROW(j.clear());
-    ASSERT_EQ(j.as_bool(), false);
+    ASSERT_EQ(j.get<bool>(), false);
     // null
     j = nullptr;
     ASSERT_NO_THROW(j.clear());
@@ -300,8 +311,8 @@ TEST(test_basic_json, test_int64)
 {
     // issue 12
     int64_t max64 = std::numeric_limits<int64_t>::max();
-    json64  j     = max64;
-    ASSERT_EQ(j.as_integer(), max64);
+    json    j     = max64;
+    ASSERT_EQ(j.get<int64_t>(), max64);
 }
 
 TEST(test_basic_json, test_json_value)
