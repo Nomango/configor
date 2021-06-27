@@ -166,6 +166,8 @@ struct iterator
             return object_it_->second;
         case json_type::array:
             return *array_it_;
+        default:
+            break;
         }
         return *data_;
     }

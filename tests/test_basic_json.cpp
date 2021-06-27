@@ -150,14 +150,13 @@ TEST_F(BasicJsonTest, test_equal)
 
 TEST_F(BasicJsonTest, test_explicit_convert)
 {
-    ASSERT_TRUE((double)j["pi"] == 3.141);
-    ASSERT_TRUE((float)j["pi"] == 3.141f);
-    ASSERT_TRUE((bool)j["happy"] == true);
-    ASSERT_TRUE((std::string)j["name"] == "Nomango");
-    ASSERT_TRUE((int)j["list"][0].get<int64_t>() == 1);
-    ASSERT_TRUE((unsigned int)j["list"][0].get<int64_t>() == 1u);
-    ASSERT_TRUE((long)j["list"][0].get<int64_t>() == 1l);
-    ASSERT_TRUE((int64_t)j["list"][0].get<int64_t>() == int64_t(1));
+    ASSERT_TRUE(j["pi"] == 3.141);
+    ASSERT_TRUE(j["happy"] == true);
+    ASSERT_TRUE(j["name"] == "Nomango");
+    ASSERT_TRUE(j["list"][0].get<int64_t>() == 1);
+    ASSERT_TRUE(j["list"][0].get<int64_t>() == 1u);
+    ASSERT_TRUE(j["list"][0].get<int64_t>() == 1l);
+    ASSERT_TRUE(j["list"][0].get<int64_t>() == int64_t(1));
 }
 
 TEST_F(BasicJsonTest, test_assign)
@@ -317,36 +316,32 @@ TEST(test_basic_json, test_int64)
 
 TEST(test_basic_json, test_json_value)
 {
-    using value = json_value<json>;
-    value v;
+    json j;
 
-    ASSERT_NO_THROW(v = json_type::null);
-    ASSERT_EQ(v.type, json_type::null);
+    ASSERT_NO_THROW(j = json_type::null);
+    ASSERT_EQ(j.type(), json_type::null);
 
-    ASSERT_NO_THROW(v = json_type::boolean);
-    ASSERT_EQ(v.type, json_type::boolean);
-    ASSERT_EQ(v.data.boolean, false);
+    ASSERT_NO_THROW(j = json_type::boolean);
+    ASSERT_EQ(j.type(), json_type::boolean);
+    ASSERT_EQ(j.get<bool>(), false);
 
-    ASSERT_NO_THROW(v = json_type::number_integer);
-    ASSERT_EQ(v.type, json_type::number_integer);
-    ASSERT_EQ(v.data.number_integer, 0);
+    ASSERT_NO_THROW(j = json_type::number_integer);
+    ASSERT_EQ(j.type(), json_type::number_integer);
+    ASSERT_EQ(j.get<json::integer_type>(), 0);
 
-    ASSERT_NO_THROW(v = json_type::number_float);
-    ASSERT_EQ(v.type, json_type::number_float);
-    ASSERT_EQ(v.data.number_float, 0);
+    ASSERT_NO_THROW(j = json_type::number_float);
+    ASSERT_EQ(j.type(), json_type::number_float);
+    ASSERT_EQ(j.get<json::float_type>(), 0.0);
 
-    ASSERT_NO_THROW(v = json_type::string);
-    ASSERT_EQ(v.type, json_type::string);
-    ASSERT_TRUE(v.data.string != nullptr);
-    ASSERT_EQ(*v.data.string, std::string{});
+    ASSERT_NO_THROW(j = json_type::string);
+    ASSERT_EQ(j.type(), json_type::string);
+    ASSERT_EQ(j.get<json::string_type>(), std::string{});
 
-    ASSERT_NO_THROW(v = json_type::object);
-    ASSERT_EQ(v.type, json_type::object);
-    ASSERT_TRUE(v.data.object != nullptr);
-    ASSERT_EQ(*v.data.object, json::object_type{});
+    ASSERT_NO_THROW(j = json_type::object);
+    ASSERT_EQ(j.type(), json_type::object);
+    ASSERT_EQ(j.get<json::object_type>(), json::object_type{});
 
-    ASSERT_NO_THROW(v = json_type::array);
-    ASSERT_EQ(v.type, json_type::array);
-    ASSERT_TRUE(v.data.vector != nullptr);
-    ASSERT_EQ(*v.data.vector, json::array_type{});
+    ASSERT_NO_THROW(j = json_type::array);
+    ASSERT_EQ(j.type(), json_type::array);
+    ASSERT_EQ(j.get<json::array_type>(), json::array_type{});
 }

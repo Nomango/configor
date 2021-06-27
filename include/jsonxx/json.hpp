@@ -27,6 +27,16 @@ namespace jsonxx
 using json  = basic_json<>;
 using wjson = basic_json<std::map, std::vector, std::wstring>;
 
+inline void swap(::jsonxx::json& lhs, ::jsonxx::json& rhs)
+{
+    lhs.swap(rhs);
+}
+
+inline void swap(::jsonxx::wjson& lhs, ::jsonxx::wjson& rhs)
+{
+    lhs.swap(rhs);
+}
+
 }  // namespace jsonxx
 
 namespace std
@@ -34,16 +44,24 @@ namespace std
 template <>
 struct hash<::jsonxx::json>
 {
-    std::size_t operator()(const ::jsonxx::json& json) const
+    using argument_type = ::jsonxx::json;
+    using result_type   = size_t;
+
+    result_type operator()(argument_type const& json) const
     {
-        return hash<::jsonxx::json::string_type>{}(json.dump());
+        return hash<argument_type::string_type>{}(json.dump());
     }
 };
 
 template <>
-inline void swap<::jsonxx::json>(::jsonxx::json& lhs, ::jsonxx::json& rhs)
+struct hash<::jsonxx::wjson>
 {
-    lhs.swap(rhs);
-}
+    using argument_type = ::jsonxx::wjson;
+    using result_type   = size_t;
 
+    result_type operator()(argument_type const& json) const
+    {
+        return hash<argument_type::string_type>{}(json.dump());
+    }
+};
 }  // namespace std

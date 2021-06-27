@@ -77,8 +77,6 @@ inline const char* to_string(json_type t) noexcept
     return "unknown";
 }
 
-}  // namespace detail
-
 //
 // json_value
 //
@@ -279,25 +277,21 @@ struct json_value
         }
         else if (lhs.type == json_type::number_integer && rhs.type == json_type::number_float)
         {
-            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer),
-                                                    rhs.data.number_float);
+            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer), rhs.data.number_float);
         }
         else if (lhs.type == json_type::number_float && rhs.type == json_type::number_integer)
         {
-            return detail::nearly_equal<float_type>(lhs.data.number_float,
-                                                    static_cast<float_type>(rhs.data.number_integer));
+            return detail::nearly_equal<float_type>(lhs.data.number_float, static_cast<float_type>(rhs.data.number_integer));
         }
         return false;
     }
 };
 
-namespace detail
-{
 namespace
 {
 inline json_type_error make_conversion_error(json_type t, json_type want)
 {
-    detail::fast_ostringstream ss;
+    fast_ostringstream ss;
     ss << "cannot convert type '" << to_string(t) << "' to type '" << to_string(want) << "' (implicitly)";
     return json_type_error(ss.str());
 }

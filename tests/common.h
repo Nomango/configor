@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ctype.h"
+
 #include <gtest/gtest.h>
 #include <jsonxx/json.hpp>
 

@@ -24,6 +24,7 @@
 #include "json_value.hpp"
 
 #include <initializer_list>  // std::initializer_list
+#include <ios>               // std::noskipws
 #include <istream>           // std::basic_istream
 #include <streambuf>         // std::basic_streambuf
 #include <type_traits>       // std::char_traits
@@ -90,6 +91,7 @@ struct json_lexer
         , fmt_(is)
         , is_(is)
     {
+        is_ >> std::noskipws;
         // read first char
         read_next();
     }
@@ -345,8 +347,7 @@ struct json_lexer
 
                         if (!encoding::unicode::is_trail_surrogate(trail_surrogate))
                         {
-                            fail("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF, but got",
-                                 trail_surrogate);
+                            fail("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF, but got", trail_surrogate);
                         }
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }

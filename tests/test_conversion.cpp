@@ -22,6 +22,20 @@ public:
     }
 };
 
+template <>
+struct jsonxx::json_bind<Driver>
+{
+    static void to_json(json& j, const Driver& v)
+    {
+        j["name"] = v.name_;
+    }
+
+    static Driver from_json(const json& j)
+    {
+        return Driver(j["name"].get<std::string>());
+    }
+};
+
 class Passenger
 {
     friend json_bind<Passenger>;
@@ -40,6 +54,22 @@ public:
     bool operator==(const Passenger& rhs) const
     {
         return name_ == rhs.name_ && age_ == rhs.age_;
+    }
+};
+
+template <>
+struct jsonxx::json_bind<Passenger>
+{
+    static void to_json(json& j, const Passenger& v)
+    {
+        j["name"] = v.name_;
+        j["age"]  = v.age_;
+    }
+
+    static void from_json(const json& j, Passenger& v)
+    {
+        v.name_ = j["name"].get<std::string>();
+        v.age_  = (int)j["age"];
     }
 };
 
@@ -95,56 +125,9 @@ public:
         olders_     = rhs.olders_;
         return *this;
     }
-};
 
-template <>
-struct jsonxx::json_bind<Driver>
-{
-    static void to_json(json& j, const Driver& v)
-    {
-        j["name"] = v.name_;
-    }
-
-    static Driver from_json(const json& j)
-    {
-        return Driver(j["name"].get<std::string>());
-    }
-};
-
-template <>
-struct jsonxx::json_bind<Passenger>
-{
-    static void to_json(json& j, const Passenger& v)
-    {
-        j["name"] = v.name_;
-        j["age"]  = v.age_;
-    }
-
-    static void from_json(const json& j, Passenger& v)
-    {
-        v.name_ = j["name"].get<std::string>();
-        v.age_  = (int)j["age"];
-    }
-};
-
-template <>
-struct jsonxx::json_bind<Bus>
-{
-    static void to_json(json& j, const Bus& v)
-    {
-        j["license"]    = v.license_;
-        j["driver"]     = v.driver_;
-        j["passengers"] = v.passengers_;
-        j["olders"]     = v.olders_;
-    }
-
-    static void from_json(const json& j, Bus& v)
-    {
-        v.license_    = (int)j["license"];
-        v.driver_     = j["driver"];
-        v.passengers_ = j["passengers"];
-        v.olders_     = j["olders"];
-    }
+public:
+    JSONXX_BIND(Bus, license_, driver_, passengers_, olders_)
 };
 
 class ConversionTest : public testing::Test
@@ -163,15 +146,15 @@ protected:
         };
 
         expect_json = {
-            { "license", 100 },
-            { "driver", { { "name", "driver" } } },
-            { "passengers",
+            { "license_", 100 },
+            { "driver_", { { "name", "driver" } } },
+            { "passengers_",
               {
                   { { "name", "p1" }, { "age", 18 } },
                   { { "name", "p2" }, { "age", 54 } },
                   nullptr,
               } },
-            { "olders",
+            { "olders_",
               {
                   { "p2", { { "name", "p2" }, { "age", 54 } } },
               } },
@@ -183,20 +166,7 @@ TEST_F(ConversionTest, test_to_json)
 {
     json j = expect_bus;
 
-    ASSERT_TRUE(j.is_object());
-    ASSERT_EQ(j.size(), 4);
-    ASSERT_EQ(j["license"], 100);
-    ASSERT_EQ(j["driver"]["name"], "driver");
-    ASSERT_TRUE(j["passengers"].is_array());
-    ASSERT_EQ(j["passengers"].size(), 3);
-    ASSERT_EQ(j["passengers"][0]["name"], "p1");
-    ASSERT_EQ(j["passengers"][0]["age"], 18);
-    ASSERT_EQ(j["passengers"][1]["name"], "p2");
-    ASSERT_EQ(j["passengers"][1]["age"], 54);
-    ASSERT_TRUE(j["passengers"][2].is_null());
-    ASSERT_EQ(j["olders"].size(), 1);
-    ASSERT_EQ(j["olders"]["p2"]["name"], "p2");
-    ASSERT_EQ(j["olders"]["p2"]["age"], 54);
+    ASSERT_TRUE(j == expect_json);
 }
 
 TEST_F(ConversionTest, test_from_json)
