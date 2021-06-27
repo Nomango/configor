@@ -30,9 +30,6 @@ namespace jsonxx
 {
 namespace detail
 {
-//
-// iterator for basic_json
-//
 
 struct primitive_iterator
 {

@@ -88,8 +88,6 @@ private:
     string_type  indent_string_;
 };
 
-}  // namespace detail
-
 template <typename _JsonTy>
 struct serializer_args
 {
@@ -233,13 +231,13 @@ struct json_serializer
 
         case json_type::number_integer:
         {
-            os_ << detail::serialize_integer(json.value_.data.number_integer);
+            os_ << serialize_integer(json.value_.data.number_integer);
             return;
         }
 
         case json_type::number_float:
         {
-            os_ << detail::serialize_float(json.value_.data.number_float);
+            os_ << serialize_float(json.value_.data.number_float);
             return;
         }
 
@@ -254,8 +252,8 @@ struct json_serializer
 private:
     void dump_string(const string_type& val)
     {
-        detail::fast_string_istreambuf<char_type> buf{ val };
-        std::basic_istream<char_type>             iss{ &buf };
+        fast_string_istreambuf<char_type> buf{ val };
+        std::basic_istream<char_type>     iss{ &buf };
 
         uint32_t codepoint = 0;
         while (encoding_type::decode(iss, codepoint))
@@ -324,14 +322,14 @@ private:
                     if (codepoint <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        os_ << detail::serialize_hex(static_cast<uint16_t>(codepoint));
+                        os_ << serialize_hex(static_cast<uint16_t>(codepoint));
                     }
                     else
                     {
                         // supplementary planes: U+10000...U+10FFFF
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
                         encoding::unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-                        os_ << detail::serialize_hex(lead_surrogate) << detail::serialize_hex(trail_surrogate);
+                        os_ << serialize_hex(lead_surrogate) << serialize_hex(trail_surrogate);
                     }
                 }
 
@@ -368,17 +366,18 @@ private:
 
     inline void fail(const std::string& msg, uint32_t codepoint)
     {
-        detail::fast_ostringstream ss;
-        ss << msg << " '" << detail::serialize_hex(codepoint) << "'";
+        fast_ostringstream ss;
+        ss << msg << " '" << serialize_hex(codepoint) << "'";
         throw json_serialization_error(ss.str());
     }
 
 private:
     const args& args_;
 
-    detail::format_keeper<char_type> fmt_;
-    std::basic_ostream<char_type>&   os_;
-    detail::indent<string_type>      indent_;
+    format_keeper<char_type>       fmt_;
+    std::basic_ostream<char_type>& os_;
+    indent<string_type>            indent_;
 };
 
+}  // namespace detail
 }  // namespace jsonxx

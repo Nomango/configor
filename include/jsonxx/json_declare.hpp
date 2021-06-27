@@ -63,4 +63,19 @@ struct is_json<basic_json<DECLARE_BASIC_JSON_TPL_ARGS>> : std::true_type
 {
 };
 
+namespace detail
+{
+
+template <int p>
+struct priority : priority<p - 1>
+{
+};
+
+template <>
+struct priority<0>
+{
+};
+
+}  // namespace detail
+
 }  // namespace jsonxx

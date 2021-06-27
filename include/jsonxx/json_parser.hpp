@@ -30,13 +30,8 @@
 
 namespace jsonxx
 {
-
-template <typename _JsonTy>
-struct parser_args
+namespace detail
 {
-    bool allow_comments = false;  // allow comments
-    bool check_document = false;  // only allow object or array type
-};
 
 //
 // json_lexer
@@ -64,6 +59,13 @@ enum class token_type
     value_separator,
 
     end_of_input
+};
+
+template <typename _JsonTy>
+struct parser_args
+{
+    bool allow_comments = false;  // allow comments
+    bool check_document = false;  // only allow object or array type
 };
 
 template <typename _JsonTy>
@@ -742,4 +744,5 @@ private:
     token_type last_token_;
 };
 
+}  // namespace detail
 }  // namespace jsonxx

@@ -38,8 +38,8 @@ class basic_json
 {
     friend struct detail::iterator<basic_json>;
     friend struct detail::iterator<const basic_json>;
-    friend struct json_serializer<basic_json>;
-    friend struct json_parser<basic_json>;
+    friend struct detail::json_serializer<basic_json>;
+    friend struct detail::json_parser<basic_json>;
 
 public:
     template <typename _Ty>
@@ -62,8 +62,8 @@ public:
 
     using encoding_type = _Encoding<char_type>;
 
-    using dump_args  = serializer_args<basic_json>;
-    using parse_args = parser_args<basic_json>;
+    using dump_args  = detail::serializer_args<basic_json>;
+    using parse_args = detail::parser_args<basic_json>;
 
 public:
     basic_json(std::nullptr_t = nullptr) {}
@@ -119,7 +119,7 @@ public:
 
     template <typename _CompatibleTy,
               typename _UTy = typename std::remove_cv<typename std::remove_reference<_CompatibleTy>::type>::type,
-              typename std::enable_if<has_to_json<basic_json, _UTy>::value, int>::type = 0>
+              typename std::enable_if<detail::has_to_json<basic_json, _UTy>::value, int>::type = 0>
     basic_json(_CompatibleTy&& value)
     {
         json_bind<_UTy>::to_json(*this, std::forward<_CompatibleTy>(value));
@@ -182,7 +182,7 @@ public:
 
     inline const char* type_name() const
     {
-        return to_string(type());
+        return detail::to_string(type());
     }
 
     inline void swap(basic_json& rhs)
@@ -524,7 +524,8 @@ public:
     }
 
     template <typename _Ty, typename _UTy = typename std::remove_cv<typename std::remove_reference<_Ty>::type>::type>
-    inline auto get() const -> decltype(std::declval<const basic_json&>().template internal_get<_UTy>(detail::priority<2>{}))
+    inline auto get() const
+        -> decltype(std::declval<const basic_json&>().template internal_get<_UTy>(detail::priority<2>{}))
     {
         return internal_get<_UTy>(detail::priority<2>{});
     }
@@ -736,8 +737,9 @@ public:
 public:
     // conversion
 
-    template <typename _Ty, typename std::enable_if<
-                                has_from_json<basic_json, _Ty>::value && !std::is_pointer<_Ty>::value, int>::type = 0>
+    template <typename _Ty,
+              typename std::enable_if<detail::has_from_json<basic_json, _Ty>::value && !std::is_pointer<_Ty>::value,
+                                      int>::type = 0>
     inline operator _Ty() const
     {
         return get<_Ty>();
@@ -868,14 +870,15 @@ private:
         return *this;
     }
 
-    template <typename _Ty, typename std::enable_if<has_non_default_from_json<basic_json, _Ty>::value, int>::type = 0>
+    template <typename _Ty,
+              typename std::enable_if<detail::has_non_default_from_json<basic_json, _Ty>::value, int>::type = 0>
     inline _Ty internal_get(detail::priority<1>) const
     {
         return json_bind<_Ty>::from_json(*this);
     }
 
     template <typename _Ty, typename std::enable_if<std::is_default_constructible<_Ty>::value
-                                                        && has_default_from_json<basic_json, _Ty>::value,
+                                                        && detail::has_default_from_json<basic_json, _Ty>::value,
                                                     int>::type = 0>
     inline _Ty internal_get(detail::priority<0>) const
     {
@@ -923,7 +926,7 @@ public:
     {
         try
         {
-            json_serializer<basic_json>{ os, args }.dump(*this);
+            detail::json_serializer<basic_json>{ os, args }.dump(*this);
         }
         catch (...)
         {
@@ -979,7 +982,7 @@ public:
     {
         try
         {
-            json_parser<basic_json>{ is, args }.parse(j);
+            detail::json_parser<basic_json>{ is, args }.parse(j);
             if (args.check_document && !j.is_array() && !j.is_object())
             {
                 std::string name = j.type_name();

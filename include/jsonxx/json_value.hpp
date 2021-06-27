@@ -52,6 +52,9 @@ enum class json_type
     null,
 };
 
+namespace detail
+{
+
 inline const char* to_string(json_type t) noexcept
 {
     switch (t)
@@ -73,6 +76,8 @@ inline const char* to_string(json_type t) noexcept
     }
     return "unknown";
 }
+
+}  // namespace detail
 
 //
 // json_value
