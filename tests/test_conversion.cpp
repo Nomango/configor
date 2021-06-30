@@ -87,8 +87,7 @@ class Bus
 
 public:
     Bus() = default;
-    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers,
-        const std::map<std::string, PassengerPtr>& olders)
+    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers, const std::map<std::string, PassengerPtr>& olders)
         : license_(license)
         , driver_(std::move(driver))
         , passengers_(passengers)
@@ -109,12 +108,10 @@ public:
         using pair = std::pair<const std::string, PassengerPtr const>;
         return license_ == rhs.license_ && *driver_ == *rhs.driver_ && passengers_.size() == rhs.passengers_.size()
                && std::equal(passengers_.cbegin(), passengers_.cend(), rhs.passengers_.cbegin(),
-                             [](const PassengerPtr& p1, const PassengerPtr& p2)
-                             { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
+                             [](const PassengerPtr& p1, const PassengerPtr& p2) { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
                && olders_.size() == rhs.olders_.size()
                && std::equal(olders_.cbegin(), olders_.cend(), rhs.olders_.cbegin(),
-                             [](const pair& p1, const pair& p2)
-                             { return p1.first == p2.first && *p1.second == *p2.second; });
+                             [](const pair& p1, const pair& p2) { return p1.first == p2.first && *p1.second == *p2.second; });
     }
 
     Bus& operator=(const Bus& rhs)
@@ -130,13 +127,13 @@ public:
     JSONXX_BIND(Bus, license_, driver_, passengers_, olders_)
 };
 
-class ConversionTest : public testing::Test
+class ConversionTest
 {
 protected:
     Bus  expect_bus;
     json expect_json;
 
-    void SetUp() override
+    ConversionTest()
     {
         expect_bus = Bus{
             100,
@@ -162,46 +159,46 @@ protected:
     }
 };
 
-TEST_F(ConversionTest, test_to_json)
+TEST_CASE_METHOD(ConversionTest, "test_to_json")
 {
     json j = expect_bus;
 
-    ASSERT_TRUE(j == expect_json);
+    CHECK(j == expect_json);
 }
 
-TEST_F(ConversionTest, test_from_json)
+TEST_CASE_METHOD(ConversionTest, "test_from_json")
 {
     Bus bus = Bus(expect_json);
 
-    ASSERT_TRUE(bus == expect_bus);
+    CHECK(bus == expect_bus);
 }
 
-TEST_F(ConversionTest, test_json_wrap)
+TEST_CASE_METHOD(ConversionTest, "test_json_wrap")
 {
     std::stringstream s;
     s << json_wrap(expect_bus);
-    ASSERT_EQ(s.str(), expect_json.dump());
+    CHECK(s.str() == expect_json.dump());
 
     Bus bus;
     s >> json_wrap(bus);
-    ASSERT_TRUE(bus == expect_bus);
+    CHECK(bus == expect_bus);
 }
 
-TEST_F(ConversionTest, test_containers)
+TEST_CASE_METHOD(ConversionTest, "test_containers")
 {
     {
         std::array<Bus, 1> v;
         v[0] = expect_bus;
 
         json j;
-        ASSERT_NO_THROW(j = v);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 1);
-        ASSERT_EQ(j[0], expect_json);
+        CHECK_NOTHROW(j = v);
+        CHECK(j.is_array());
+        CHECK(j.size() == 1);
+        CHECK(j[0] == expect_json);
 
         v[0] = Bus{};
-        ASSERT_NO_THROW(v = j);
-        ASSERT_EQ(v[0], expect_bus);
+        CHECK_NOTHROW(v = j);
+        CHECK(v[0] == expect_bus);
     }
 
     {
@@ -209,15 +206,15 @@ TEST_F(ConversionTest, test_containers)
         v.push_back(expect_bus);
 
         json j;
-        ASSERT_NO_THROW(j = v);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 1);
-        ASSERT_EQ(j[0], expect_json);
+        CHECK_NOTHROW(j = v);
+        CHECK(j.is_array());
+        CHECK(j.size() == 1);
+        CHECK(j[0] == expect_json);
 
         v.clear();
-        ASSERT_NO_THROW(v = j);
-        ASSERT_EQ(v.size(), 1);
-        ASSERT_EQ(v[0], expect_bus);
+        CHECK_NOTHROW(v = j);
+        CHECK(v.size() == 1);
+        CHECK(v[0] == expect_bus);
     }
 
     {
@@ -225,15 +222,15 @@ TEST_F(ConversionTest, test_containers)
         v.push_back(expect_bus);
 
         json j;
-        ASSERT_NO_THROW(j = v);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 1);
-        ASSERT_EQ(j[0], expect_json);
+        CHECK_NOTHROW(j = v);
+        CHECK(j.is_array());
+        CHECK(j.size() == 1);
+        CHECK(j[0] == expect_json);
 
         v.clear();
-        ASSERT_NO_THROW(v = j);
-        ASSERT_EQ(v.size(), 1);
-        ASSERT_EQ(v[0], expect_bus);
+        CHECK_NOTHROW(v = j);
+        CHECK(v.size() == 1);
+        CHECK(v[0] == expect_bus);
     }
 
     {
@@ -241,15 +238,15 @@ TEST_F(ConversionTest, test_containers)
         v.push_back(expect_bus);
 
         json j;
-        ASSERT_NO_THROW(j = v);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 1);
-        ASSERT_EQ(j[0], expect_json);
+        CHECK_NOTHROW(j = v);
+        CHECK(j.is_array());
+        CHECK(j.size() == 1);
+        CHECK(j[0] == expect_json);
 
         v.clear();
-        ASSERT_NO_THROW(v = j);
-        ASSERT_EQ(v.size(), 1);
-        ASSERT_EQ(v.front(), expect_bus);
+        CHECK_NOTHROW(v = j);
+        CHECK(v.size() == 1);
+        CHECK(v.front() == expect_bus);
     }
 
     {
@@ -257,98 +254,100 @@ TEST_F(ConversionTest, test_containers)
         v.push_front(expect_bus);
 
         json j;
-        ASSERT_NO_THROW(j = v);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 1);
-        ASSERT_EQ(j[0], expect_json);
+        CHECK_NOTHROW(j = v);
+        CHECK(j.is_array());
+        CHECK(j.size() == 1);
+        CHECK(j[0] == expect_json);
 
         v.clear();
-        ASSERT_NO_THROW(v = j);
-        ASSERT_EQ(v.front(), expect_bus);
+        CHECK_NOTHROW(v = j);
+        CHECK(v.front() == expect_bus);
     }
 
     {
         std::set<int> expect = { 1, 1, 2, 3 };
 
         json j;
-        ASSERT_NO_THROW(j = expect);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 3);
-        ASSERT_EQ(j, expect);
+        CHECK_NOTHROW(j = expect);
+        CHECK(j.is_array());
+        CHECK(j.size() == 3);
+        CHECK(j == expect);
 
         std::set<int> actual;
-        ASSERT_NO_THROW(actual = j);
-        ASSERT_EQ(actual, expect);
+        CHECK_NOTHROW(actual = j);
+        CHECK(actual == expect);
     }
 
     {
         std::unordered_set<int> expect = { 1, 1, 2, 3 };
 
         json j;
-        ASSERT_NO_THROW(j = expect);
-        ASSERT_TRUE(j.is_array());
-        ASSERT_EQ(j.size(), 3);
-        ASSERT_EQ(j, expect);
+        CHECK_NOTHROW(j = expect);
+        CHECK(j.is_array());
+        CHECK(j.size() == 3);
+        CHECK(j == expect);
 
         std::unordered_set<int> actual;
-        ASSERT_NO_THROW(actual = j);
-        ASSERT_EQ(actual, expect);
+        CHECK_NOTHROW(actual = j);
+        CHECK(actual == expect);
     }
 
     {
         std::map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
 
         json j;
-        ASSERT_NO_THROW(j = expect);
-        ASSERT_TRUE(j.is_object());
-        ASSERT_EQ(j.size(), 2);
-        ASSERT_EQ(j["one"], 1);
-        ASSERT_EQ(j["two"], 2);
+        CHECK_NOTHROW(j = expect);
+        CHECK(j.is_object());
+        CHECK(j.size() == 2);
+        CHECK(j["one"] == 1);
+        CHECK(j["two"] == 2);
 
         std::map<std::string, int> actual;
-        ASSERT_NO_THROW(actual = j);
-        ASSERT_EQ(actual, expect);
+        CHECK_NOTHROW(actual = j);
+        CHECK(actual == expect);
     }
 
     {
         std::unordered_map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
 
         json j;
-        ASSERT_NO_THROW(j = expect);
-        ASSERT_TRUE(j.is_object());
-        ASSERT_EQ(j.size(), 2);
-        ASSERT_EQ(j["one"], 1);
-        ASSERT_EQ(j["two"], 2);
+        CHECK_NOTHROW(j = expect);
+        CHECK(j.is_object());
+        CHECK(j.size() == 2);
+        CHECK(j["one"] == 1);
+        CHECK(j["two"] == 2);
 
         std::unordered_map<std::string, int> actual;
-        ASSERT_NO_THROW(actual = j);
-        ASSERT_EQ(actual, expect);
+        CHECK_NOTHROW(actual = j);
+        CHECK(actual == expect);
     }
 }
 
-TEST(test_conversion, test_nullptr)
+TEST_CASE("test_conversion")
 {
+    SECTION("test unique_ptr")
     {
         json j;
 
         std::unique_ptr<Passenger> pnull = nullptr;
-        ASSERT_NO_THROW(j = pnull);
-        ASSERT_TRUE(j.is_null());
+        CHECK_NOTHROW(j = pnull);
+        CHECK(j.is_null());
 
         auto pnotnull = std::unique_ptr<Passenger>(new Passenger);
-        ASSERT_NO_THROW(pnotnull = j);
-        ASSERT_TRUE(pnotnull == nullptr);
+        CHECK_NOTHROW(pnotnull = j);
+        CHECK(pnotnull == nullptr);
     }
 
+    SECTION("test shared_ptr")
     {
         json j;
 
         std::shared_ptr<Passenger> pnull = nullptr;
-        ASSERT_NO_THROW(j = pnull);
-        ASSERT_TRUE(j.is_null());
+        CHECK_NOTHROW(j = pnull);
+        CHECK(j.is_null());
 
         auto pnotnull = std::shared_ptr<Passenger>(new Passenger);
-        ASSERT_NO_THROW(pnotnull = j);
-        ASSERT_TRUE(pnotnull == nullptr);
+        CHECK_NOTHROW(pnotnull = j);
+        CHECK(pnotnull == nullptr);
     }
 }

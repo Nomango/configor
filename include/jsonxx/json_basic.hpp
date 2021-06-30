@@ -72,7 +72,7 @@ public:
     {
     }
 
-    basic_json(basic_json const& other)
+    basic_json(const basic_json& other)
         : value_(other.value_)
     {
     }
@@ -112,7 +112,7 @@ public:
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
-              typename std::enable_if<detail::has_to_json<basic_json, _UTy>::value, int>::type = 0>
+              typename = typename std::enable_if<!std::is_same<basic_json, _UTy>::value && detail::has_to_json<basic_json, _UTy>::value>::type>
     basic_json(_CompatibleTy&& value)
     {
         json_bind<_UTy>::to_json(*this, std::forward<_CompatibleTy>(value));
@@ -307,7 +307,7 @@ public:
         value_.data.vector->erase(value_.data.vector->begin() + static_cast<difference_type>(index));
     }
 
-    template <class _IterTy, typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value, int>::type = 0>
+    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
     inline _IterTy erase(_IterTy pos)
     {
         _IterTy result = end();
@@ -333,7 +333,7 @@ public:
         return result;
     }
 
-    template <class _IterTy, typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value, int>::type = 0>
+    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
     inline _IterTy erase(_IterTy first, _IterTy last)
     {
         _IterTy result = end();
@@ -428,19 +428,19 @@ public:
 private:
     // GET value functions
 
-    template <typename _Ty, typename std::enable_if<std::is_same<basic_json, _Ty>::value, int>::type = 0>
+    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_json, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<2>) const
     {
         return *this;
     }
 
-    template <typename _Ty, typename std::enable_if<detail::has_non_default_from_json<basic_json, _Ty>::value, int>::type = 0>
+    template <typename _Ty, typename = typename std::enable_if<detail::has_non_default_from_json<basic_json, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<1>) const
     {
         return json_bind<_Ty>::from_json(*this);
     }
 
-    template <typename _Ty, typename std::enable_if<std::is_default_constructible<_Ty>::value && detail::has_default_from_json<basic_json, _Ty>::value, int>::type = 0>
+    template <typename _Ty, typename = typename std::enable_if<std::is_default_constructible<_Ty>::value && detail::has_default_from_json<basic_json, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<0>) const
     {
         _Ty value{};
@@ -455,7 +455,7 @@ public:
         return do_get<_UTy>(detail::priority<2>{});
     }
 
-    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type, typename std::enable_if<detail::is_json_getable<basic_json, _Ty>::value, int>::type = 0>
+    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type, typename = typename std::enable_if<detail::is_json_getable<basic_json, _Ty>::value>::type>
     inline bool get(_Ty& value) const
     {
         try
@@ -549,15 +549,9 @@ public:
 public:
     // operator= functions
 
-    inline basic_json& operator=(basic_json const& other)
+    inline basic_json& operator=(basic_json rhs)
     {
-        value_ = other.value_;
-        return (*this);
-    }
-
-    inline basic_json& operator=(basic_json&& other)
-    {
-        value_ = std::move(other.value_);
+        swap(rhs);
         return (*this);
     }
 
@@ -676,7 +670,7 @@ public:
 public:
     // conversion
 
-    template <typename _Ty, typename std::enable_if<detail::is_json_getable<basic_json, _Ty>::value && !std::is_pointer<_Ty>::value, int>::type = 0>
+    template <typename _Ty, typename = typename std::enable_if<!is_json<_Ty>::value && detail::is_json_getable<basic_json, _Ty>::value && !std::is_pointer<_Ty>::value>::type>
     inline operator _Ty() const
     {
         return get<_Ty>();
@@ -684,7 +678,7 @@ public:
 
     // to_json functions
 
-    template <typename _BoolTy, typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value, int>::type = 0>
+    template <typename _BoolTy, typename = typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value>::type>
     friend inline void to_json(basic_json& j, _BoolTy value)
     {
         j.value_.type         = json_type::boolean;
@@ -737,7 +731,7 @@ public:
 
     // from_json functions
 
-    template <typename _BoolTy, typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value, int>::type = 0>
+    template <typename _BoolTy, typename = typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value>::type>
     friend inline void from_json(const basic_json& j, _BoolTy& value)
     {
         if (!j.is_bool())
@@ -910,13 +904,13 @@ public:
         return lhs.value_ == rhs.value_;
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator==(const basic_json& lhs, _ScalarTy rhs)
     {
         return lhs == basic_json(rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator==(_ScalarTy lhs, const basic_json& rhs)
     {
         return basic_json(lhs) == rhs;
@@ -929,13 +923,13 @@ public:
         return !(lhs == rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator!=(const basic_json& lhs, _ScalarTy rhs)
     {
         return lhs != basic_json(rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator!=(_ScalarTy lhs, const basic_json& rhs)
     {
         return basic_json(lhs) != rhs;
@@ -989,13 +983,13 @@ public:
         return false;
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator<(const basic_json& lhs, _ScalarTy rhs)
     {
         return lhs < basic_json(rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator<(_ScalarTy lhs, const basic_json& rhs)
     {
         return basic_json(lhs) < rhs;
@@ -1008,13 +1002,13 @@ public:
         return !(rhs < lhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator<=(const basic_json& lhs, _ScalarTy rhs)
     {
         return lhs <= basic_json(rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator<=(_ScalarTy lhs, const basic_json& rhs)
     {
         return basic_json(lhs) <= rhs;
@@ -1027,13 +1021,13 @@ public:
         return rhs < lhs;
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator>(const basic_json& lhs, _ScalarTy rhs)
     {
         return lhs > basic_json(rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator>(_ScalarTy lhs, const basic_json& rhs)
     {
         return basic_json(lhs) > rhs;
@@ -1046,13 +1040,13 @@ public:
         return !(lhs < rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator>=(const basic_json& lhs, _ScalarTy rhs)
     {
         return lhs >= basic_json(rhs);
     }
 
-    template <typename _ScalarTy, typename std::enable_if<std::is_scalar<_ScalarTy>::value, int>::type = 0>
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
     friend inline bool operator>=(_ScalarTy lhs, const basic_json& rhs)
     {
         return basic_json(lhs) >= rhs;

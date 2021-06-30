@@ -63,14 +63,14 @@ template <typename _Ty>
 struct json_bind
 {
     template <typename _JsonTy, typename _UTy = _Ty,
-              typename std::enable_if<std::is_void<decltype(::jsonxx::detail::adl_to_json(std::declval<_JsonTy&>(), std::declval<const _UTy&>()))>::value, int>::type = 0>
+              typename = typename std::enable_if<std::is_void<decltype(::jsonxx::detail::adl_to_json(std::declval<_JsonTy&>(), std::declval<const _UTy&>()))>::value>::type>
     static inline void to_json(_JsonTy& j, const _UTy& value)
     {
         ::jsonxx::detail::adl_to_json(j, value);
     }
 
     template <typename _JsonTy, typename _UTy = _Ty,
-              typename std::enable_if<std::is_void<decltype(::jsonxx::detail::adl_from_json(std::declval<const _JsonTy&>(), std::declval<_UTy&>()))>::value, int>::type = 0>
+              typename = typename std::enable_if<std::is_void<decltype(::jsonxx::detail::adl_from_json(std::declval<const _JsonTy&>(), std::declval<_UTy&>()))>::value>::type>
     static inline void from_json(const _JsonTy& j, _UTy& value)
     {
         ::jsonxx::detail::adl_from_json(j, value);
@@ -150,7 +150,7 @@ struct is_json_setable<_JsonTy, _Ty, typename std::enable_if<std::is_same<_JsonT
 template <typename _Ty>
 struct json_bind<std::unique_ptr<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::unique_ptr<_Ty>& v)
     {
         if (v != nullptr)
@@ -164,7 +164,7 @@ struct json_bind<std::unique_ptr<_Ty>>
     }
 
     template <typename _JsonTy,
-              typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value && std::is_copy_constructible<_Ty>::value, int>::type = 0>
+              typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value && std::is_copy_constructible<_Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::unique_ptr<_Ty>& v)
     {
         if (j.is_null())
@@ -188,7 +188,7 @@ struct json_bind<std::unique_ptr<_Ty>>
 template <typename _Ty>
 struct json_bind<std::shared_ptr<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::shared_ptr<_Ty>& v)
     {
         if (v != nullptr)
@@ -202,7 +202,7 @@ struct json_bind<std::shared_ptr<_Ty>>
     }
 
     template <typename _JsonTy,
-              typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value && std::is_copy_constructible<_Ty>::value, int>::type = 0>
+              typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value && std::is_copy_constructible<_Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::shared_ptr<_Ty>& v)
     {
         if (j.is_null())
@@ -226,7 +226,7 @@ struct json_bind<std::shared_ptr<_Ty>>
 template <typename _Ty, size_t _Num>
 struct json_bind<std::array<_Ty, _Num>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::array<_Ty, _Num>& v)
     {
         j = nullptr;
@@ -236,7 +236,7 @@ struct json_bind<std::array<_Ty, _Num>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::array<_Ty, _Num>& v)
     {
         for (size_t i = 0; i < j.size() && i < _Num; i++)
@@ -249,7 +249,7 @@ struct json_bind<std::array<_Ty, _Num>>
 template <typename _Ty>
 struct json_bind<std::vector<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::vector<_Ty>& v)
     {
         j = nullptr;
@@ -259,7 +259,7 @@ struct json_bind<std::vector<_Ty>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::vector<_Ty>& v)
     {
         v.resize(j.size());
@@ -273,7 +273,7 @@ struct json_bind<std::vector<_Ty>>
 template <typename _Ty>
 struct json_bind<std::deque<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::deque<_Ty>& v)
     {
         j = nullptr;
@@ -283,7 +283,7 @@ struct json_bind<std::deque<_Ty>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::deque<_Ty>& v)
     {
         v.resize(j.size());
@@ -297,7 +297,7 @@ struct json_bind<std::deque<_Ty>>
 template <typename _Ty>
 struct json_bind<std::list<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::list<_Ty>& v)
     {
         j         = nullptr;
@@ -308,7 +308,7 @@ struct json_bind<std::list<_Ty>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::list<_Ty>& v)
     {
         v.clear();
@@ -322,7 +322,7 @@ struct json_bind<std::list<_Ty>>
 template <typename _Ty>
 struct json_bind<std::forward_list<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::forward_list<_Ty>& v)
     {
         j         = nullptr;
@@ -333,7 +333,7 @@ struct json_bind<std::forward_list<_Ty>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::forward_list<_Ty>& v)
     {
         v.clear();
@@ -348,7 +348,7 @@ struct json_bind<std::forward_list<_Ty>>
 template <typename _Ty>
 struct json_bind<std::set<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::set<_Ty>& v)
     {
         j         = nullptr;
@@ -359,7 +359,7 @@ struct json_bind<std::set<_Ty>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::set<_Ty>& v)
     {
         v.clear();
@@ -373,7 +373,7 @@ struct json_bind<std::set<_Ty>>
 template <typename _Ty>
 struct json_bind<std::unordered_set<_Ty>>
 {
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_setable<_JsonTy, _Ty>::value>::type>
     static void to_json(_JsonTy& j, const std::unordered_set<_Ty>& v)
     {
         j         = nullptr;
@@ -384,7 +384,7 @@ struct json_bind<std::unordered_set<_Ty>>
         }
     }
 
-    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value, int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value>::type>
     static void from_json(const _JsonTy& j, std::unordered_set<_Ty>& v)
     {
         v.clear();
@@ -410,14 +410,23 @@ struct json_bind<std::map<_KeyTy, _Ty>>
         }
     }
 
-    template <typename _JsonTy,
-              typename std::enable_if<is_json<_JsonTy>::value && std::is_same<_KeyTy, typename _JsonTy::string_type>::value && detail::is_json_getable<_JsonTy, _Ty>::value,
-                                      int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+    static void from_json(const _JsonTy& j, std::map<typename _JsonTy::string_type, _JsonTy>& v)
+    {
+        for (auto iter = j.cbegin(); iter != j.cend(); iter++)
+        {
+            v.emplace(iter.key(), iter.value());
+        }
+    }
+
+    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && !std::is_same<_JsonTy, _Ty>::value
+                                                            && std::is_constructible<typename _JsonTy::string_type, _KeyTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value,
+                                                        int>::type = 0>
     static void from_json(const _JsonTy& j, std::map<_KeyTy, _Ty>& v)
     {
         for (auto iter = j.cbegin(); iter != j.cend(); iter++)
         {
-            v.insert(std::make_pair(iter.key(), iter.value().template get<_Ty>()));
+            v.emplace(iter.key(), iter.value().template get<_Ty>());
         }
     }
 };
@@ -437,14 +446,23 @@ struct json_bind<std::unordered_map<_KeyTy, _Ty>>
         }
     }
 
-    template <typename _JsonTy,
-              typename std::enable_if<is_json<_JsonTy>::value && std::is_same<_KeyTy, typename _JsonTy::string_type>::value && detail::is_json_getable<_JsonTy, _Ty>::value,
-                                      int>::type = 0>
+    template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+    static void from_json(const _JsonTy& j, std::unordered_map<typename _JsonTy::string_type, _JsonTy>& v)
+    {
+        for (auto iter = j.cbegin(); iter != j.cend(); iter++)
+        {
+            v.emplace(iter.key(), iter.value());
+        }
+    }
+
+    template <typename _JsonTy, typename std::enable_if<is_json<_JsonTy>::value && !std::is_same<_JsonTy, _Ty>::value
+                                                            && std::is_constructible<typename _JsonTy::string_type, _KeyTy>::value && detail::is_json_getable<_JsonTy, _Ty>::value,
+                                                        int>::type = 0>
     static void from_json(const _JsonTy& j, std::unordered_map<_KeyTy, _Ty>& v)
     {
         for (auto iter = j.cbegin(); iter != j.cend(); iter++)
         {
-            v.insert(std::make_pair(iter.key(), iter.value().template get<_Ty>()));
+            v.emplace(iter.key(), iter.value().template get<_Ty>());
         }
     }
 };
@@ -507,13 +525,13 @@ private:
 // json_wrap
 //
 
-template <typename _Ty, typename _JsonTy = basic_json<>, typename std::enable_if<is_json<_JsonTy>::value, int>::type = 0>
+template <typename _Ty, typename _JsonTy = basic_json<>, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
 inline detail::write_json_wrapper<_Ty, _JsonTy> json_wrap(_Ty& v)
 {
     return detail::write_json_wrapper<_Ty, _JsonTy>(v);
 }
 
-template <typename _Ty, typename _JsonTy = basic_json<>, typename std::enable_if<is_json<_JsonTy>::value, int>::type = 0>
+template <typename _Ty, typename _JsonTy = basic_json<>, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
 inline detail::read_json_wrapper<_Ty, _JsonTy> json_wrap(const _Ty& v)
 {
     return detail::read_json_wrapper<_Ty, _JsonTy>(v);
@@ -526,13 +544,13 @@ inline detail::read_json_wrapper<_Ty, _JsonTy> json_wrap(const _Ty& v)
 namespace detail
 {
 
-template <typename _JsonTy, typename _Ty, typename std::enable_if<is_json_getable<_JsonTy, typename remove_cvref<_Ty>::type>::value, int>::type = 0>
+template <typename _JsonTy, typename _Ty, typename = typename std::enable_if<is_json_getable<_JsonTy, typename remove_cvref<_Ty>::type>::value>::type>
 inline void json_get(const _JsonTy& j, _Ty& value)
 {
     value = j.template get<_Ty>();
 }
 
-template <typename _JsonTy, typename _Ty, typename std::enable_if<is_json_setable<_JsonTy, typename remove_cvref<_Ty>::type>::value, int>::type = 0>
+template <typename _JsonTy, typename _Ty, typename = typename std::enable_if<is_json_setable<_JsonTy, typename remove_cvref<_Ty>::type>::value>::type>
 inline void json_set(_JsonTy& j, _Ty&& value)
 {
     j.operator=(std::forward<_Ty>(value));

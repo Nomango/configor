@@ -676,7 +676,7 @@ private:
 
                 _JsonTy object;
                 parse_value(object);
-                json.value_.data.object->insert(std::make_pair(key, object));
+                json.value_.data.object->emplace(key, object);
 
                 // read ','
                 if (get_token() != token_type::value_separator)

@@ -2,184 +2,187 @@
 
 #include "common.h"
 
-TEST(test_iterator, string)
+TEST_CASE("test_iterator")
 {
-    json j = "string";
-
-    auto iter = j.begin();
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-    ASSERT_TRUE(*iter == j);
-
-    ASSERT_THROW(iter.key(), json_invalid_iterator);
-
-    ASSERT_NO_THROW(iter++);
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter != j.begin());
-    ASSERT_NO_THROW(iter--);
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-
-    ASSERT_THROW(j.end().operator*(), std::out_of_range);
-
-    ASSERT_EQ(std::distance(j.begin(), j.end()), j.size());
-    ASSERT_EQ(std::distance(j.rbegin(), j.rend()), j.size());
-}
-
-TEST(test_iterator, integer)
-{
-    json j = 100;
-
-    auto iter = j.begin();
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-    ASSERT_TRUE(*iter == j);
-
-    ASSERT_THROW(iter.key(), json_invalid_iterator);
-
-    ASSERT_NO_THROW(iter++);
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter != j.begin());
-    ASSERT_NO_THROW(iter--);
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-
-    ASSERT_THROW(j.end().operator*(), std::out_of_range);
-
-    ASSERT_EQ(std::distance(j.begin(), j.end()), j.size());
-    ASSERT_EQ(std::distance(j.rbegin(), j.rend()), j.size());
-}
-
-TEST(test_iterator, double)
-{
-    json j = 100.0;
-
-    auto iter = j.begin();
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-    ASSERT_TRUE(*iter == j);
-
-    ASSERT_THROW(iter.key(), json_invalid_iterator);
-
-    ASSERT_NO_THROW(iter++);
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter != j.begin());
-    ASSERT_NO_THROW(iter--);
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-
-    ASSERT_THROW(j.end().operator*(), std::out_of_range);
-
-    ASSERT_EQ(std::distance(j.begin(), j.end()), j.size());
-    ASSERT_EQ(std::distance(j.rbegin(), j.rend()), j.size());
-}
-
-TEST(test_iterator, boolean)
-{
-    json j = true;
-
-    auto iter = j.begin();
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-    ASSERT_TRUE(*iter == j);
-
-    ASSERT_THROW(iter.key(), json_invalid_iterator);
-
-    ASSERT_NO_THROW(iter++);
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter != j.begin());
-    ASSERT_NO_THROW(iter--);
-    ASSERT_TRUE(iter != j.end());
-    ASSERT_TRUE(iter == j.begin());
-
-    ASSERT_THROW(j.end().operator*(), std::out_of_range);
-
-    ASSERT_EQ(std::distance(j.begin(), j.end()), j.size());
-    ASSERT_EQ(std::distance(j.rbegin(), j.rend()), j.size());
-}
-
-TEST(test_iterator, null)
-{
-    json j = nullptr;
-
-    auto iter = j.begin();
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter == j.begin());
-    ASSERT_THROW(*iter, std::out_of_range);
-
-    ASSERT_THROW(iter.operator*(), std::out_of_range);
-
-    ASSERT_NO_THROW(iter++);
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter == j.begin());
-    ASSERT_NO_THROW(iter--);
-    ASSERT_TRUE(iter == j.end());
-    ASSERT_TRUE(iter == j.begin());
-
-    ASSERT_EQ(std::distance(j.begin(), j.end()), j.size());
-    ASSERT_EQ(std::distance(j.rbegin(), j.rend()), j.size());
-}
-
-TEST(test_iterator, object)
-{
-    const json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
-    for (auto iter = obj.begin(); iter != obj.end(); iter++)
+    SECTION("string")
     {
-        ASSERT_EQ(iter, obj.find(iter.key()));
-        ASSERT_EQ(iter.value(), obj[iter.key()]);
-        ASSERT_EQ(iter.value(), *iter);
+        json j = "string";
+
+        auto iter = j.begin();
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+        CHECK(*iter == j);
+
+        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+
+        CHECK_NOTHROW(iter++);
+        CHECK(iter == j.end());
+        CHECK(iter != j.begin());
+        CHECK_NOTHROW(iter--);
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+
+        CHECK_THROWS_AS(j.end().operator*(), std::out_of_range);
+
+        CHECK(std::distance(j.begin(), j.end()) == j.size());
+        CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
     }
 
-    for (auto riter = obj.rbegin(); riter != obj.rend(); riter++)
+    SECTION("integer")
     {
-        ASSERT_EQ(riter.value(), obj[riter.key()]);
+        json j = 100;
+
+        auto iter = j.begin();
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+        CHECK(*iter == j);
+
+        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+
+        CHECK_NOTHROW(iter++);
+        CHECK(iter == j.end());
+        CHECK(iter != j.begin());
+        CHECK_NOTHROW(iter--);
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+
+        CHECK_THROWS_AS(j.end().operator*(), std::out_of_range);
+
+        CHECK(std::distance(j.begin(), j.end()) == j.size());
+        CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
     }
 
-    ASSERT_THROW(obj.end().operator*(), std::out_of_range);
-
-    ASSERT_TRUE(obj.find("user") != obj.end());
-    ASSERT_TRUE(obj.find("missing") == obj.end());
-
-    ASSERT_EQ(std::distance(obj.begin(), obj.end()), obj.size());
-    ASSERT_EQ(std::distance(obj.rbegin(), obj.rend()), obj.size());
-}
-
-TEST(test_iterator, array)
-{
-    const json arr = json::array({ 1, 2, 3 });
-
-    size_t idx = 0;
-    for (auto iter = arr.begin(); iter != arr.end(); iter++, idx++)
+    SECTION("double")
     {
-        auto temp_iter = arr.begin();
-        std::advance(temp_iter, idx);
-        ASSERT_EQ(iter, temp_iter);
-        ASSERT_EQ(iter.value(), arr[idx]);
-        ASSERT_THROW(iter.key(), json_invalid_iterator);
+        json j = 100.0;
+
+        auto iter = j.begin();
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+        CHECK(*iter == j);
+
+        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+
+        CHECK_NOTHROW(iter++);
+        CHECK(iter == j.end());
+        CHECK(iter != j.begin());
+        CHECK_NOTHROW(iter--);
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+
+        CHECK_THROWS_AS(j.end().operator*(), std::out_of_range);
+
+        CHECK(std::distance(j.begin(), j.end()) == j.size());
+        CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
     }
 
-    idx = 0;
-    for (auto elem : arr)
+    SECTION("boolean")
     {
-        ASSERT_EQ(elem, arr[idx]);
-        idx++;
+        json j = true;
+
+        auto iter = j.begin();
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+        CHECK(*iter == j);
+
+        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+
+        CHECK_NOTHROW(iter++);
+        CHECK(iter == j.end());
+        CHECK(iter != j.begin());
+        CHECK_NOTHROW(iter--);
+        CHECK(iter != j.end());
+        CHECK(iter == j.begin());
+
+        CHECK_THROWS_AS(j.end().operator*(), std::out_of_range);
+
+        CHECK(std::distance(j.begin(), j.end()) == j.size());
+        CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
     }
 
-    idx = arr.size() - 1;
-    for (auto riter = arr.rbegin(); riter != arr.rend(); riter++, idx--)
+    SECTION("null")
     {
-        ASSERT_EQ(riter.value(), arr[idx]);
+        json j = nullptr;
+
+        auto iter = j.begin();
+        CHECK(iter == j.end());
+        CHECK(iter == j.begin());
+        CHECK_THROWS_AS(*iter, std::out_of_range);
+
+        CHECK_THROWS_AS(iter.operator*(), std::out_of_range);
+
+        CHECK_NOTHROW(iter++);
+        CHECK(iter == j.end());
+        CHECK(iter == j.begin());
+        CHECK_NOTHROW(iter--);
+        CHECK(iter == j.end());
+        CHECK(iter == j.begin());
+
+        CHECK(std::distance(j.begin(), j.end()) == j.size());
+        CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
     }
 
-    ASSERT_THROW(arr.end().operator*(), std::out_of_range);
+    SECTION("object")
+    {
+        const json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
+        for (auto iter = obj.begin(); iter != obj.end(); iter++)
+        {
+            CHECK(iter == obj.find(iter.key()));
+            CHECK(iter.value() == obj[iter.key()]);
+            CHECK(iter.value() == *iter);
+        }
 
-    ASSERT_EQ(std::distance(arr.begin(), arr.end()), arr.size());
-    ASSERT_EQ(std::distance(arr.rbegin(), arr.rend()), arr.size());
-}
+        for (auto riter = obj.rbegin(); riter != obj.rend(); riter++)
+        {
+            CHECK(riter.value() == obj[riter.key()]);
+        }
 
-TEST(test_iterator, others)
-{
-    ASSERT_TRUE(json::object({}).begin() != json::array({}).begin());
-    ASSERT_THROW((json::iterator{ nullptr }).key(), json_invalid_iterator);
-    ASSERT_FALSE(json::iterator{ nullptr } == json::iterator{ nullptr });
+        CHECK_THROWS_AS(obj.end().operator*(), std::out_of_range);
+
+        CHECK(obj.find("user") != obj.end());
+        CHECK(obj.find("missing") == obj.end());
+
+        CHECK(std::distance(obj.begin(), obj.end()) == obj.size());
+        CHECK(std::distance(obj.rbegin(), obj.rend()) == obj.size());
+    }
+
+    SECTION("array")
+    {
+        const json arr = json::array({ 1, 2, 3 });
+
+        size_t idx = 0;
+        for (auto iter = arr.begin(); iter != arr.end(); iter++, idx++)
+        {
+            auto temp_iter = arr.begin();
+            std::advance(temp_iter, idx);
+            CHECK(iter == temp_iter);
+            CHECK(iter.value() == arr[idx]);
+            CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+        }
+
+        idx = 0;
+        for (auto elem : arr)
+        {
+            CHECK(elem == arr[idx]);
+            idx++;
+        }
+
+        idx = arr.size() - 1;
+        for (auto riter = arr.rbegin(); riter != arr.rend(); riter++, idx--)
+        {
+            CHECK(riter.value() == arr[idx]);
+        }
+
+        CHECK_THROWS_AS(arr.end().operator*(), std::out_of_range);
+
+        CHECK(std::distance(arr.begin(), arr.end()) == arr.size());
+        CHECK(std::distance(arr.rbegin(), arr.rend()) == arr.size());
+    }
+
+    SECTION("others")
+    {
+        CHECK(json::object({}).begin() != json::array({}).begin());
+        CHECK_THROWS_AS((json::iterator{ nullptr }).key(), json_invalid_iterator);
+        CHECK_FALSE(json::iterator{ nullptr } == json::iterator{ nullptr });
+    }
 }
