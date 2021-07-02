@@ -7,62 +7,27 @@ on:
     branches: [ master ]
 
 jobs:
-  unit_test_on_gcc:
+  ci_coverage:
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [ ubuntu-latest ]  # [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest ]
         build_type: [ Debug ]
-
     env:
       COVERAGE_DIR: ${{github.workspace}}/coverage
-
     steps:
     - uses: actions/checkout@v2
-
-    - name: Install gtest on linux
-      if: ${{ !startsWith(matrix.os, 'macos') }}
+    - name: Install lcov
       run: |
-        sudo apt-get install libgtest-dev
-        cd /usr/src/gtest
-        sudo cmake CMakeLists.txt
-        sudo make
-        sudo cp */*.a /usr/lib
-        sudo ln -s /usr/lib/libgtest.a /usr/local/lib/libgtest.a
-        sudo ln -s /usr/lib/libgtest_main.a /usr/local/lib/libgtest_main.a
-
-    # - name: Install gtest on mac
-    #   if: ${{ startsWith(matrix.os, 'macos') }}
-    #   run: |
-    #     git clone https://github.com/google/googletest
-    #     cd googletest
-    #     mkdir build
-    #     cd build
-    #     cmake ..
-    #     make
-    #     make install
-
-    - name: Install other deps on linux
-      if: ${{ !startsWith(matrix.os, 'macos') }}
-      run: |
+        sudo apt-get update
         sudo apt-get install -y lcov
-
-    # - name: Install other deps on mac
-    #   if: ${{ startsWith(matrix.os, 'macos') }}
-    #   run: |
-    #     brew install lcov
-
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DENABLE_COVERAGE=ON
-
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
-
     - name: Run tests
       working-directory: ${{github.workspace}}
       run: ${{github.workspace}}/build/tests/jsonxx_test
-
     - name: Generate coverage files
       run: |
         mkdir ${{env.COVERAGE_DIR}}
@@ -71,7 +36,6 @@ jobs:
         lcov --remove ${{env.COVERAGE_DIR}}/coverage.info '*/examples/*' --output-file ${{env.COVERAGE_DIR}}/coverage.info
         lcov --remove ${{env.COVERAGE_DIR}}/coverage.info '*/tests/*' --output-file ${{env.COVERAGE_DIR}}/coverage.info
         lcov --list ${{env.COVERAGE_DIR}}/coverage.info # debug info
-
     - uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -84,33 +48,113 @@ jobs:
         fail_ci_if_error: true
         verbose: true
 
-  unit_test_on_msvc:
-    runs-on: windows-latest
-
-    env:
-      MSVC_SOLUTION_FILE_PATH: .
-
+  ci_gcc:
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        configuration: [ Debug ]
-        platform: [ x86, x64 ]
-
+        os: [ ubuntu-20.04, macos-10.15 ]
+        compiler: [ g++-9, g++-10, g++-11 ]
+        build_type: [ Debug ]
+        exclude:
+          - os: ubuntu-20.04
+            compiler: g++-11
     steps:
     - uses: actions/checkout@v2
-
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
-
-    - name: Restore NuGet packages
-      working-directory: ${{github.workspace}}
-      run: nuget restore ${{env.MSVC_SOLUTION_FILE_PATH}}
-
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="${{matrix.compiler}}" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
     - name: Build
-      working-directory: ${{github.workspace}}
-      # Add additional options to the MSBuild command line here (like platform or verbosity level).
-      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{matrix.configuration}} /p:Platform=${{matrix.platform}} ${{env.MSVC_SOLUTION_FILE_PATH}}
-
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
     - name: Run tests
       working-directory: ${{github.workspace}}
-      run: '& "${{github.workspace}}/tests/output/jsonxx_test.exe"'
+      run: cd build ; ctest -C Debug --output-on-failure
+
+  ci_clang:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04 ]
+        compiler: [ clang++-10, clang++-11, clang++-12 ]
+        build_type: [ Debug ]
+        include:
+          - compiler: clang++-10
+            clang_version: 10
+          - compiler: clang++-11
+            clang_version: 11
+          - compiler: clang++-12
+            clang_version: 12
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install LLVM and Clang
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: ${{ matrix.clang_version }}
+    - name: Configure CMake
+      run: |
+        clang++ --version
+        cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="clang++" -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+    - name: Run tests
+      working-directory: ${{github.workspace}}
+      run: cd build ; ctest -C Debug --output-on-failure
+
+  ci_xcode:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-10.15 ]
+        build_type: [ Debug ]
+        xcode_version: [ 12.4, 11.7, 10.3 ]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
+    steps:
+    - uses: actions/checkout@v2
+    - name: Configure CMake
+      run: |
+        clang++ --version
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+    - name: Run tests
+      working-directory: ${{github.workspace}}
+      run: cd build ; ctest -C Debug --output-on-failure
+
+  ci_mingw:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-2019 ]
+        architecture: [ x64, x86 ]
+        build_type: [ Debug ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: ${{ matrix.architecture }}
+      - name: Configure CMake
+        run: cmake -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+      - name: Build
+        run: cmake --build build --config ${{matrix.build_type}}
+      - name: Run tests
+        run: cd build ; ctest -C Debug --output-on-failure
+
+  ci_msvc:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-2019 ]
+        vsversion: [ Visual Studio 16 2019 ]
+        build_type: [ Debug ]
+        architecture: [ Win32, x64 ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Configure CMake
+      run: cmake -B build -G "${{ matrix.vsversion }}" -A ${{ matrix.architecture }}
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }}
+    - name: Run tests
+      run: cd build ; ctest -C ${{ matrix.build_type }} --output-on-failure

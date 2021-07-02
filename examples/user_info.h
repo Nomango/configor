@@ -33,33 +33,30 @@ extern std::shared_ptr<UserInfo> QueryUser(int user_id);
 template <>
 struct jsonxx::json_bind<UserRole>
 {
-    void to_json(json& j, const UserRole& v)
+    static void to_json(json& j, const UserRole& v)
     {
-        jsonxx::to_json(j["code"], v.code);
-        jsonxx::to_json(j["permission_list"], v.permission_list);
+        j = { { "code", v.code }, { "permission_list", v.permission_list } };
     }
 
-    void from_json(const json& j, UserRole& v)
+    static void from_json(const json& j, UserRole& v)
     {
-        jsonxx::from_json(j["code"], v.code);
-        jsonxx::from_json(j["permission_list"], v.permission_list);
+        v.code            = j["code"];
+        v.permission_list = j["permission_list"];
     }
 };
 
 template <>
 struct jsonxx::json_bind<UserInfo>
 {
-    void to_json(json& j, const UserInfo& v)
+    static void to_json(json& j, const UserInfo& v)
     {
-        jsonxx::to_json(j["user_id"], v.user_id);
-        jsonxx::to_json(j["user_name"], v.user_name);
-        jsonxx::to_json(j["role_list"], v.role_list);
+        j = { { "user_id", v.user_id }, { "user_name", v.user_name }, { "role_list", v.role_list } };
     }
 
-    void from_json(const json& j, UserInfo& v)
+    static void from_json(const json& j, UserInfo& v)
     {
-        jsonxx::from_json(j["user_id"], v.user_id);
-        jsonxx::from_json(j["user_name"], v.user_name);
-        jsonxx::from_json(j["role_list"], v.role_list);
+        v.user_id   = j["user_id"];
+        v.user_name = (std::string)j["user_name"];
+        v.role_list = j["role_list"];
     }
 };

@@ -3,7 +3,7 @@
 Language: Cpp
 BasedOnStyle: Google
 
-ColumnLimit: 120
+ColumnLimit: 180
 
 ##
 ## Indent Style

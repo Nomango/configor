@@ -34,34 +34,34 @@ namespace encoding
 namespace unicode
 {
 
-template <typename _Dummy>
+template <typename _Ty>
 struct constants_t
 {
-    static constexpr uint32_t surrogate_base        = static_cast<uint32_t>(0x10000);
-    static constexpr uint32_t lead_surrogate_begin  = static_cast<uint32_t>(0xD800);
-    static constexpr uint32_t lead_surrogate_end    = static_cast<uint32_t>(0xDBFF);
-    static constexpr uint32_t trail_surrogate_begin = static_cast<uint32_t>(0xDC00);
-    static constexpr uint32_t trail_surrogate_end   = static_cast<uint32_t>(0xDFFF);
-    static constexpr uint32_t trail_surrogate_max   = static_cast<uint32_t>(0x3FF);
-    static constexpr uint32_t surrogate_bits        = static_cast<uint32_t>(10);
+    static const _Ty surrogate_base        = static_cast<_Ty>(0x10000);
+    static const _Ty lead_surrogate_begin  = static_cast<_Ty>(0xD800);
+    static const _Ty lead_surrogate_end    = static_cast<_Ty>(0xDBFF);
+    static const _Ty trail_surrogate_begin = static_cast<_Ty>(0xDC00);
+    static const _Ty trail_surrogate_end   = static_cast<_Ty>(0xDFFF);
+    static const _Ty trail_surrogate_max   = static_cast<_Ty>(0x3FF);
+    static const _Ty surrogate_bits        = static_cast<_Ty>(10);
 };
 
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::surrogate_base;
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::lead_surrogate_begin;
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::lead_surrogate_end;
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::trail_surrogate_begin;
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::trail_surrogate_end;
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::trail_surrogate_max;
-template <typename _Dummy>
-const uint32_t constants_t<_Dummy>::surrogate_bits;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::surrogate_base;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::lead_surrogate_begin;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::lead_surrogate_end;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::trail_surrogate_begin;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::trail_surrogate_end;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::trail_surrogate_max;
+template <typename _Ty>
+const _Ty constants_t<_Ty>::surrogate_bits;
 
-using constants = constants_t<int>;
+using constants = constants_t<uint32_t>;
 
 inline bool is_lead_surrogate(const uint32_t codepoint)
 {
@@ -83,10 +83,9 @@ inline uint32_t decode_surrogates(uint32_t lead_surrogate, uint32_t trail_surrog
 
 inline void encode_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint32_t& trail_surrogate)
 {
-    codepoint      = codepoint - constants::surrogate_base;
-    lead_surrogate = static_cast<uint16_t>(constants::lead_surrogate_begin + (codepoint >> constants::surrogate_bits));
-    trail_surrogate =
-        static_cast<uint16_t>(constants::trail_surrogate_begin + (codepoint & constants::trail_surrogate_max));
+    codepoint       = codepoint - constants::surrogate_base;
+    lead_surrogate  = static_cast<uint16_t>(constants::lead_surrogate_begin + (codepoint >> constants::surrogate_bits));
+    trail_surrogate = static_cast<uint16_t>(constants::trail_surrogate_begin + (codepoint & constants::trail_surrogate_max));
 }
 
 }  // namespace unicode
@@ -110,28 +109,28 @@ public:
         if (codepoint < 0x80)
         {
             // 0xxxxxxx
-            os << static_cast<char_type>(codepoint);
+            os.put(static_cast<char_type>(codepoint));
         }
         else if (codepoint <= 0x7FF)
         {
             // 110xxxxx 10xxxxxx
-            os << static_cast<char_type>(0xC0 | (codepoint >> 6));
-            os << static_cast<char_type>(0x80 | (codepoint & 0x3F));
+            os.put(static_cast<char_type>(0xC0 | (codepoint >> 6)));
+            os.put(static_cast<char_type>(0x80 | (codepoint & 0x3F)));
         }
         else if (codepoint <= 0xFFFF)
         {
             // 1110xxxx 10xxxxxx 10xxxxxx
-            os << static_cast<char_type>(0xE0 | (codepoint >> 12));
-            os << static_cast<char_type>(0x80 | ((codepoint >> 6) & 0x3F));
-            os << static_cast<char_type>(0x80 | (codepoint & 0x3F));
+            os.put(static_cast<char_type>(0xE0 | (codepoint >> 12)));
+            os.put(static_cast<char_type>(0x80 | ((codepoint >> 6) & 0x3F)));
+            os.put(static_cast<char_type>(0x80 | (codepoint & 0x3F)));
         }
         else if (codepoint <= 0x10FFFF)
         {
             // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-            os << static_cast<char_type>(0xF0 | (codepoint >> 18));
-            os << static_cast<char_type>(0x80 | ((codepoint >> 12) & 0x3F));
-            os << static_cast<char_type>(0x80 | ((codepoint >> 6) & 0x3F));
-            os << static_cast<char_type>(0x80 | (codepoint & 0x3F));
+            os.put(static_cast<char_type>(0xF0 | (codepoint >> 18)));
+            os.put(static_cast<char_type>(0x80 | ((codepoint >> 12) & 0x3F)));
+            os.put(static_cast<char_type>(0x80 | ((codepoint >> 6) & 0x3F)));
+            os.put(static_cast<char_type>(0x80 | (codepoint & 0x3F)));
         }
         else
         {
@@ -147,14 +146,11 @@ public:
         // U+0800...U+FFFF      1110xxxx 10xxxxxx 10xxxxxx
         // U+10000...U+10FFFF   11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
         static const std::array<std::uint8_t, 256> utf8_extra_bytes = {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5,
         };
 
         static const std::array<std::uint32_t, 6> utf8_offsets = {
@@ -215,14 +211,14 @@ public:
     {
         if (codepoint <= 0xFFFF)
         {
-            os << char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint));
+            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint)));
         }
         else if (codepoint <= 0x10FFFF)
         {
             uint32_t lead_surrogate = 0, trail_surrogate = 0;
             unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-            os << char_traits::to_char_type(static_cast<typename char_traits::int_type>(lead_surrogate));
-            os << char_traits::to_char_type(static_cast<typename char_traits::int_type>(trail_surrogate));
+            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(lead_surrogate)));
+            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(trail_surrogate)));
         }
         else
         {
@@ -277,7 +273,7 @@ public:
         {
             os.setstate(std::ios_base::failbit);
         }
-        os << char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint));
+        os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint)));
     }
 
     static inline bool decode(istream_type& is, uint32_t& codepoint)

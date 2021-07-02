@@ -21,328 +21,22 @@
 #pragma once
 #include "json_basic.hpp"
 
-#include <memory>  // std::unique_ptr, std::shared_ptr, std::make_unique, std::make_shared
-
 namespace jsonxx
 {
-using json    = basic_json<>;
-using json64  = basic_json<std::map, std::vector, std::string, int64_t>;
-using wjson   = basic_json<std::map, std::vector, std::wstring>;
-using wjson64 = basic_json<std::map, std::vector, std::wstring, int64_t>;
 
-//
-// Implements
-//
+using json  = basic_json<>;
+using wjson = basic_json<std::map, std::vector, std::wstring>;
 
-#if defined(JSONXX_ENABLE_RAW_POINTER)
-template <typename _Ty>
-struct json_bind<_Ty*>
+inline void swap(::jsonxx::json& lhs, ::jsonxx::json& rhs)
 {
-    void to_json(json& j, _Ty* const& v)
-    {
-        if (v != nullptr)
-        {
-            ::jsonxx::to_json(j, *v);
-        }
-        else
-        {
-            j = nullptr;
-        }
-    }
+    lhs.swap(rhs);
+}
 
-    void from_json(const json& j, _Ty*& v)
-    {
-        if (j.is_null())
-        {
-            v = nullptr;
-        }
-        else
-        {
-            if (v == nullptr)
-            {
-                v = new _Ty;
-            }
-            ::jsonxx::from_json(j, *v);
-        }
-    }
-};
-#endif
-
-template <typename _Ty>
-struct json_bind<std::unique_ptr<_Ty>>
+inline void swap(::jsonxx::wjson& lhs, ::jsonxx::wjson& rhs)
 {
-    void to_json(json& j, std::unique_ptr<_Ty> const& v)
-    {
-        if (v != nullptr)
-        {
-            ::jsonxx::to_json(j, *v);
-        }
-        else
-        {
-            j = nullptr;
-        }
-    }
+    lhs.swap(rhs);
+}
 
-    void from_json(const json& j, std::unique_ptr<_Ty>& v)
-    {
-        if (j.is_null())
-        {
-            v = nullptr;
-        }
-        else
-        {
-            if (v == nullptr)
-            {
-                v.reset(new _Ty);
-            }
-            ::jsonxx::from_json(j, *v);
-        }
-    }
-};
-
-template <typename _Ty>
-struct json_bind<std::shared_ptr<_Ty>>
-{
-    void to_json(json& j, std::shared_ptr<_Ty> const& v)
-    {
-        if (v != nullptr)
-        {
-            ::jsonxx::to_json(j, *v);
-        }
-        else
-        {
-            j = nullptr;
-        }
-    }
-
-    void from_json(const json& j, std::shared_ptr<_Ty>& v)
-    {
-        if (j.is_null())
-        {
-            v = nullptr;
-        }
-        else
-        {
-            if (v == nullptr)
-            {
-                v = std::make_shared<_Ty>();
-            }
-            ::jsonxx::from_json(j, *v);
-        }
-    }
-};
-
-template <typename _Ty>
-struct json_bind<std::vector<_Ty>>
-{
-    void to_json(json& j, const std::vector<_Ty>& v)
-    {
-        j = json_type::array;
-        for (size_t i = 0; i < v.size(); i++)
-        {
-            ::jsonxx::to_json(j[i], v[i]);
-        }
-    }
-
-    template <typename std::enable_if<std::is_default_constructible<_Ty>::value, int>::type = 0>
-    void from_json(const json& j, std::vector<_Ty>& v)
-    {
-        v.resize(j.size());
-        for (size_t i = 0; i < j.size(); i++)
-        {
-            ::jsonxx::from_json(j[i], v[i]);
-        }
-    }
-};
-
-template <typename _Ty>
-struct json_bind<std::map<std::string, _Ty>>
-{
-    void to_json(json& j, const std::map<std::string, _Ty>& v)
-    {
-        j = json_type::object;
-        for (const auto& p : v)
-        {
-            ::jsonxx::to_json(j[p.first], p.second);
-        }
-    }
-
-    template <typename std::enable_if<std::is_default_constructible<_Ty>::value, int>::type = 0>
-    void from_json(const json& j, std::map<std::string, _Ty>& v)
-    {
-        for (auto iter = j.cbegin(); iter != j.cend(); iter++)
-        {
-            _Ty item{};
-            ::jsonxx::from_json(iter.value(), item);
-            v.insert(std::make_pair(iter.key(), item));
-        }
-    }
-};
-
-template <>
-struct json_bind<std::string>
-{
-    using value_type = std::string;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<int>
-{
-    using value_type = int;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<unsigned int>
-{
-    using value_type = unsigned int;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<short>
-{
-    using value_type = short;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<unsigned short>
-{
-    using value_type = unsigned short;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<long>
-{
-    using value_type = long;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<unsigned long>
-{
-    using value_type = unsigned long;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<float>
-{
-    using value_type = float;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<double>
-{
-    using value_type = double;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<bool>
-{
-    using value_type = bool;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = static_cast<value_type>(j);
-    }
-};
-
-template <>
-struct json_bind<json>
-{
-    using value_type = json;
-
-    void to_json(json& j, const value_type& v)
-    {
-        j = v;
-    }
-    void from_json(const json& j, value_type& v)
-    {
-        v = j;
-    }
-};
 }  // namespace jsonxx
 
 namespace std
@@ -350,15 +44,24 @@ namespace std
 template <>
 struct hash<::jsonxx::json>
 {
-    std::size_t operator()(const ::jsonxx::json& json) const
+    using argument_type = ::jsonxx::json;
+    using result_type   = size_t;
+
+    result_type operator()(argument_type const& json) const
     {
-        return hash<::jsonxx::json::string_type>{}(json.dump());
+        return hash<argument_type::string_type>{}(json.dump());
     }
 };
 
 template <>
-inline void swap<::jsonxx::json>(::jsonxx::json& lhs, ::jsonxx::json& rhs)
+struct hash<::jsonxx::wjson>
 {
-    lhs.swap(rhs);
-}
+    using argument_type = ::jsonxx::wjson;
+    using result_type   = size_t;
+
+    result_type operator()(argument_type const& json) const
+    {
+        return hash<argument_type::string_type>{}(json.dump());
+    }
+};
 }  // namespace std

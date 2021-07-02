@@ -19,14 +19,16 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "json_conversion.hpp"
+#include "json_declare.hpp"
 #include "json_iterator.hpp"
 #include "json_parser.hpp"
 #include "json_serializer.hpp"
-#include "json_utils.hpp"
 #include "json_value.hpp"
 
 #include <algorithm>    // std::for_each, std::all_of
-#include <type_traits>  // std::enable_if, std::is_constructible, std::is_same, std::is_integral, std::is_floating_point
+#include <type_traits>  // std::enable_if, std::is_same, std::is_integral, std::is_floating_point
+#include <utility>      // std::forward, std::declval
 
 namespace jsonxx
 {
@@ -36,24 +38,21 @@ class basic_json
 {
     friend struct detail::iterator<basic_json>;
     friend struct detail::iterator<const basic_json>;
-    friend struct json_value_getter<basic_json>;
-    friend struct json_serializer<basic_json>;
-    friend struct json_parser<basic_json>;
+    friend struct detail::json_serializer<basic_json>;
+    friend struct detail::json_parser<basic_json>;
 
 public:
     template <typename _Ty>
-    using allocator_type   = _Allocator<_Ty>;
-    using size_type        = std::size_t;
-    using difference_type  = std::ptrdiff_t;
-    using string_type      = _StringTy;
-    using char_type        = typename _StringTy::value_type;
-    using integer_type     = _IntegerTy;
-    using float_type       = _FloatTy;
-    using boolean_type     = _BooleanTy;
-    using array_type       = _ArrayTy<basic_json, allocator_type<basic_json>>;
-    using object_type      = _ObjectTy<string_type, basic_json, std::less<string_type>,
-                                  allocator_type<std::pair<const string_type, basic_json>>>;
-    using initializer_list = std::initializer_list<basic_json>;
+    using allocator_type  = _Allocator<_Ty>;
+    using size_type       = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using string_type     = _StringTy;
+    using char_type       = typename _StringTy::value_type;
+    using integer_type    = _IntegerTy;
+    using float_type      = _FloatTy;
+    using boolean_type    = _BooleanTy;
+    using array_type      = _ArrayTy<basic_json, allocator_type<basic_json>>;
+    using object_type     = _ObjectTy<string_type, basic_json, std::less<string_type>, allocator_type<std::pair<const string_type, basic_json>>>;
 
     using iterator               = detail::iterator<basic_json>;
     using const_iterator         = detail::iterator<const basic_json>;
@@ -62,20 +61,18 @@ public:
 
     using encoding_type = _Encoding<char_type>;
 
-    using dump_args  = serializer_args<basic_json>;
-    using parse_args = parser_args<basic_json>;
+    using dump_args  = detail::serializer_args<basic_json>;
+    using parse_args = detail::parser_args<basic_json>;
 
 public:
-    basic_json() {}
-
-    basic_json(std::nullptr_t) {}
+    basic_json(std::nullptr_t = nullptr) {}
 
     basic_json(const json_type type)
         : value_(type)
     {
     }
 
-    basic_json(basic_json const& other)
+    basic_json(const basic_json& other)
         : value_(other.value_)
     {
     }
@@ -88,61 +85,9 @@ public:
         other.value_.data.object = nullptr;
     }
 
-    basic_json(string_type const& value)
-        : value_(value)
+    basic_json(const std::initializer_list<basic_json>& init_list, json_type exact_type = json_type::null)
     {
-    }
-
-    template <typename _CompatibleTy,
-              typename std::enable_if<std::is_constructible<string_type, _CompatibleTy>::value, int>::type = 0>
-    basic_json(const _CompatibleTy& value)
-    {
-        value_.type        = json_type::string;
-        value_.data.string = value_.template create<string_type>(value);
-    }
-
-    basic_json(array_type const& arr)
-        : value_(arr)
-    {
-    }
-
-    basic_json(object_type const& object)
-        : value_(object)
-    {
-    }
-
-    basic_json(integer_type value)
-        : value_(value)
-    {
-    }
-
-    template <typename _IntegerUTy, typename std::enable_if<std::is_integral<_IntegerUTy>::value, int>::type = 0>
-    basic_json(_IntegerUTy value)
-        : value_(static_cast<integer_type>(value))
-    {
-    }
-
-    basic_json(float_type value)
-        : value_(value)
-    {
-    }
-
-    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-    basic_json(_FloatingTy value)
-        : value_(static_cast<float_type>(value))
-    {
-    }
-
-    basic_json(boolean_type value)
-        : value_(value)
-    {
-    }
-
-    basic_json(initializer_list const& init_list, json_type exact_type = json_type::null)
-    {
-        bool is_an_object = std::all_of(init_list.begin(), init_list.end(),
-                                        [](const basic_json& json)
-                                        { return (json.is_array() && json.size() == 2 && json[0].is_string()); });
+        bool is_an_object = std::all_of(init_list.begin(), init_list.end(), [](const basic_json& json) { return (json.is_array() && json.size() == 2 && json[0].is_string()); });
 
         if (exact_type != json_type::object && exact_type != json_type::array)
         {
@@ -156,10 +101,7 @@ public:
 
             value_ = json_type::object;
             std::for_each(init_list.begin(), init_list.end(),
-                          [this](const basic_json& json) {
-                              value_.data.object->emplace(*((*json.value_.data.vector)[0].value_.data.string),
-                                                          (*json.value_.data.vector)[1]);
-                          });
+                          [this](const basic_json& json) { value_.data.object->emplace(*((*json.value_.data.vector)[0].value_.data.string), (*json.value_.data.vector)[1]); });
         }
         else
         {
@@ -169,12 +111,19 @@ public:
         }
     }
 
-    static inline basic_json object(initializer_list const& init_list)
+    template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
+              typename = typename std::enable_if<!std::is_same<basic_json, _UTy>::value && detail::has_to_json<basic_json, _UTy>::value>::type>
+    basic_json(_CompatibleTy&& value)
+    {
+        json_bind<_UTy>::to_json(*this, std::forward<_CompatibleTy>(value));
+    }
+
+    static inline basic_json object(const std::initializer_list<basic_json>& init_list)
     {
         return basic_json(init_list, json_type::object);
     }
 
-    static inline basic_json array(initializer_list const& init_list)
+    static inline basic_json array(const std::initializer_list<basic_json>& init_list)
     {
         return basic_json(init_list, json_type::array);
     }
@@ -226,24 +175,7 @@ public:
 
     inline const char* type_name() const
     {
-        switch (type())
-        {
-        case json_type::object:
-            return "object";
-        case json_type::array:
-            return "array";
-        case json_type::string:
-            return "string";
-        case json_type::number_integer:
-            return "integer";
-        case json_type::number_float:
-            return "float";
-        case json_type::boolean:
-            return "boolean";
-        case json_type::null:
-            return "null";
-        }
-        return "unknown";
+        return detail::to_string(type());
     }
 
     inline void swap(basic_json& rhs)
@@ -375,12 +307,10 @@ public:
         value_.data.vector->erase(value_.data.vector->begin() + static_cast<difference_type>(index));
     }
 
-    template <class _IteratorTy, typename std::enable_if<std::is_same<_IteratorTy, iterator>::value
-                                                             || std::is_same<_IteratorTy, const_iterator>::value,
-                                                         int>::type = 0>
-    inline _IteratorTy erase(_IteratorTy pos)
+    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
+    inline _IterTy erase(_IterTy pos)
     {
-        _IteratorTy result = end();
+        _IterTy result = end();
 
         switch (type())
         {
@@ -403,12 +333,10 @@ public:
         return result;
     }
 
-    template <class _IteratorTy, typename std::enable_if<std::is_same<_IteratorTy, iterator>::value
-                                                             || std::is_same<_IteratorTy, const_iterator>::value,
-                                                         int>::type = 0>
-    inline _IteratorTy erase(_IteratorTy first, _IteratorTy last)
+    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
+    inline _IterTy erase(_IterTy first, _IterTy last)
     {
-        _IteratorTy result = end();
+        _IterTy result = end();
 
         switch (type())
         {
@@ -497,184 +425,140 @@ public:
         }
     }
 
-public:
+private:
     // GET value functions
 
-    inline bool get_value(boolean_type& val) const
+    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_json, _Ty>::value>::type>
+    inline _Ty do_get(detail::priority<2>) const
     {
-        if (is_bool())
-        {
-            val = value_.data.boolean;
-            return true;
-        }
-        return false;
+        return *this;
     }
 
-    inline bool get_value(integer_type& val) const
+    template <typename _Ty, typename = typename std::enable_if<detail::has_non_default_from_json<basic_json, _Ty>::value>::type>
+    inline _Ty do_get(detail::priority<1>) const
     {
-        if (is_integer())
-        {
-            val = value_.data.number_integer;
-            return true;
-        }
-        if (is_float())
-        {
-            val = static_cast<integer_type>(value_.data.number_float);
-            return true;
-        }
-        return false;
+        return json_bind<_Ty>::from_json(*this);
     }
 
-    inline bool get_value(float_type& val) const
+    template <typename _Ty, typename = typename std::enable_if<std::is_default_constructible<_Ty>::value && detail::has_default_from_json<basic_json, _Ty>::value>::type>
+    inline _Ty do_get(detail::priority<0>) const
     {
-        if (is_float())
-        {
-            val = value_.data.number_float;
-            return true;
-        }
-        if (is_integer())
-        {
-            val = static_cast<float_type>(value_.data.number_integer);
-            return true;
-        }
-        return false;
+        _Ty value{};
+        json_bind<_Ty>::from_json(*this, value);
+        return value;
     }
 
-    template <typename _IntegerUTy, typename std::enable_if<std::is_integral<_IntegerUTy>::value, int>::type = 0>
-    inline bool get_value(_IntegerUTy& val) const
+public:
+    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type>
+    inline auto get() const -> decltype(std::declval<const basic_json&>().template do_get<_UTy>(detail::priority<2>{}))
     {
-        if (is_integer())
-        {
-            val = static_cast<_IntegerUTy>(value_.data.number_integer);
-            return true;
-        }
-        if (is_float())
-        {
-            val = static_cast<_IntegerUTy>(value_.data.number_float);
-            return true;
-        }
-        return false;
+        return do_get<_UTy>(detail::priority<2>{});
     }
 
-    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-    inline bool get_value(_FloatingTy& val) const
+    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type, typename = typename std::enable_if<detail::is_json_getable<basic_json, _Ty>::value>::type>
+    inline bool get(_Ty& value) const
     {
-        if (is_float())
+        try
         {
-            val = static_cast<_FloatingTy>(value_.data.number_float);
+            value = get<_UTy>();
             return true;
         }
-        if (is_integer())
+        catch (...)
         {
-            val = static_cast<_FloatingTy>(value_.data.number_integer);
-            return true;
-        }
-        return false;
-    }
-
-    inline bool get_value(array_type& val) const
-    {
-        if (is_array())
-        {
-            val.assign((*value_.data.vector).begin(), (*value_.data.vector).end());
-            return true;
-        }
-        return false;
-    }
-
-    inline bool get_value(string_type& val) const
-    {
-        if (is_string())
-        {
-            val.assign(*value_.data.string);
-            return true;
-        }
-        return false;
-    }
-
-    inline bool get_value(object_type& val) const
-    {
-        if (is_object())
-        {
-            val.assign(*value_.data.object);
-            return true;
         }
         return false;
     }
 
     boolean_type as_bool() const
     {
-        if (!is_bool())
-            throw json_type_error("json value must be boolean");
-        return value_.data.boolean;
+        switch (type())
+        {
+        case json_type::number_integer:
+            return value_.data.number_integer != 0;
+        case json_type::number_float:
+            return value_.data.number_float != 0;
+        case json_type::string:
+        case json_type::array:
+        case json_type::object:
+            return !empty();
+        case json_type::boolean:
+            return value_.data.boolean;
+        case json_type::null:
+            break;
+        }
+        return false;
     }
 
     integer_type as_integer() const
     {
-        if (!is_number())
-            throw json_type_error("json value must be integer");
-        if (is_float())
+        switch (type())
+        {
+        case json_type::number_integer:
+            return value_.data.number_integer;
+        case json_type::number_float:
             return static_cast<integer_type>(value_.data.number_float);
-        return value_.data.number_integer;
+        case json_type::boolean:
+            return value_.data.boolean ? integer_type(1) : integer_type(0);
+        case json_type::string:
+        case json_type::array:
+        case json_type::object:
+        case json_type::null:
+            throw detail::make_conversion_error(type(), json_type::number_integer);
+        }
+        return 0;
     }
 
     float_type as_float() const
     {
-        if (!is_number())
-            throw json_type_error("json value must be float");
-        if (is_integer())
+        switch (type())
+        {
+        case json_type::number_integer:
             return static_cast<float_type>(value_.data.number_integer);
-        return value_.data.number_float;
+        case json_type::number_float:
+            return value_.data.number_float;
+        case json_type::boolean:
+            return value_.data.boolean ? float_type(1) : float_type(0);
+        case json_type::string:
+        case json_type::array:
+        case json_type::object:
+        case json_type::null:
+            throw detail::make_conversion_error(type(), json_type::number_integer);
+        }
+        return 0;
     }
 
-    const array_type& as_array() const
+    string_type as_string() const
     {
-        if (!is_array())
-            throw json_type_error("json value must be array");
-        return *value_.data.vector;
-    }
-
-    const string_type& as_string() const
-    {
-        if (!is_string())
-            throw json_type_error("json value must be string");
-        return *value_.data.string;
-    }
-
-    const object_type& as_object() const
-    {
-        if (!is_object())
-            throw json_type_error("json value must be object");
-        return *value_.data.object;
-    }
-
-    template <typename _Ty>
-    _Ty get() const
-    {
-        _Ty value;
-        json_value_getter<basic_json>::assign(*this, value);
-        return value;
+        switch (type())
+        {
+        case json_type::string:
+            return *value_.data.string;
+        case json_type::number_integer:
+        case json_type::number_float:
+        case json_type::boolean:
+            return dump();
+        case json_type::array:
+        case json_type::object:
+            throw detail::make_conversion_error(type(), json_type::number_integer);
+        case json_type::null:
+            break;
+        }
+        return string_type{};
     }
 
 public:
     // operator= functions
 
-    inline basic_json& operator=(basic_json const& other)
+    inline basic_json& operator=(basic_json rhs)
     {
-        value_ = other.value_;
-        return (*this);
-    }
-
-    inline basic_json& operator=(basic_json&& other)
-    {
-        value_ = std::move(other.value_);
+        swap(rhs);
         return (*this);
     }
 
 public:
     // operator[] functions
 
-    inline basic_json& operator[](size_type index)
+    inline basic_json& operator[](const size_type index)
     {
         if (is_null())
         {
@@ -693,18 +577,9 @@ public:
         return (*value_.data.vector)[index];
     }
 
-    inline basic_json& operator[](size_type index) const
+    inline basic_json& operator[](const size_type index) const
     {
-        if (!is_array())
-        {
-            throw json_invalid_key("operator[] called on a non-array type");
-        }
-
-        if (index >= value_.data.vector->size())
-        {
-            throw std::out_of_range("operator[] index out of range");
-        }
-        return (*value_.data.vector)[index];
+        return at(index);
     }
 
     inline basic_json& operator[](const typename object_type::key_type& key)
@@ -723,21 +598,25 @@ public:
 
     inline basic_json& operator[](const typename object_type::key_type& key) const
     {
-        if (!is_object())
-        {
-            throw json_invalid_key("operator[] called on a non-object object");
-        }
-
-        auto iter = value_.data.object->find(key);
-        if (iter == value_.data.object->end())
-        {
-            throw std::out_of_range("operator[] key out of range");
-        }
-        return iter->second;
+        return at(key);
     }
 
-    template <typename _CharT>
-    inline basic_json& operator[](_CharT* key)
+    inline basic_json& at(const size_type index) const
+    {
+        if (!is_array())
+        {
+            throw json_invalid_key("operator[] called on a non-array type");
+        }
+
+        if (index >= value_.data.vector->size())
+        {
+            throw std::out_of_range("operator[] index out of range");
+        }
+        return (*value_.data.vector)[index];
+    }
+
+    template <typename _CharTy>
+    inline basic_json& operator[](_CharTy* key)
     {
         if (is_null())
         {
@@ -751,8 +630,29 @@ public:
         return (*value_.data.object)[key];
     }
 
-    template <typename _CharT>
-    inline basic_json& operator[](_CharT* key) const
+    template <typename _CharTy>
+    inline basic_json& operator[](_CharTy* key) const
+    {
+        return at(key);
+    }
+
+    inline basic_json& at(const typename object_type::key_type& key) const
+    {
+        if (!is_object())
+        {
+            throw json_invalid_key("operator[] called on a non-object object");
+        }
+
+        auto iter = value_.data.object->find(key);
+        if (iter == value_.data.object->end())
+        {
+            throw std::out_of_range("operator[] key out of range");
+        }
+        return iter->second;
+    }
+
+    template <typename _CharTy>
+    inline basic_json& at(_CharTy* key) const
     {
         if (!is_object())
         {
@@ -768,12 +668,126 @@ public:
     }
 
 public:
-    // explicitly convert functions
+    // conversion
 
-    template <typename _Ty>
-    inline explicit operator _Ty() const
+    template <typename _Ty, typename = typename std::enable_if<!is_json<_Ty>::value && detail::is_json_getable<basic_json, _Ty>::value && !std::is_pointer<_Ty>::value>::type>
+    inline operator _Ty() const
     {
         return get<_Ty>();
+    }
+
+    // to_json functions
+
+    template <typename _BoolTy, typename = typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value>::type>
+    friend inline void to_json(basic_json& j, _BoolTy value)
+    {
+        j.value_.type         = json_type::boolean;
+        j.value_.data.boolean = value;
+    }
+
+    friend inline void to_json(basic_json& j, integer_type value)
+    {
+        j.value_.type                = json_type::number_integer;
+        j.value_.data.number_integer = value;
+    }
+
+    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value && std::is_integral<_IntegerUTy>::value, int>::type = 0>
+    friend inline void to_json(basic_json& j, _IntegerUTy value)
+    {
+        j.value_.type                = json_type::number_integer;
+        j.value_.data.number_integer = static_cast<integer_type>(value);
+    }
+
+    friend inline void to_json(basic_json& j, float_type value)
+    {
+        j.value_.type              = json_type::number_float;
+        j.value_.data.number_float = value;
+    }
+
+    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
+    friend inline void to_json(basic_json& j, _FloatingTy value)
+    {
+        j.value_.type              = json_type::number_float;
+        j.value_.data.number_float = static_cast<float_type>(value);
+    }
+
+    friend inline void to_json(basic_json& j, const string_type& value)
+    {
+        j.value_.type        = json_type::string;
+        j.value_.data.string = j.value_.template create<string_type>(value);
+    }
+
+    friend inline void to_json(basic_json& j, const array_type& value)
+    {
+        j.value_.type        = json_type::array;
+        j.value_.data.vector = j.value_.template create<array_type>(value);
+    }
+
+    friend inline void to_json(basic_json& j, const object_type& value)
+    {
+        j.value_.type        = json_type::object;
+        j.value_.data.object = j.value_.template create<object_type>(value);
+    }
+
+    // from_json functions
+
+    template <typename _BoolTy, typename = typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value>::type>
+    friend inline void from_json(const basic_json& j, _BoolTy& value)
+    {
+        if (!j.is_bool())
+            throw detail::make_conversion_error(j.type(), json_type::boolean);
+        value = j.value_.data.boolean;
+    }
+
+    friend inline void from_json(const basic_json& j, integer_type& value)
+    {
+        if (!j.is_integer())
+            throw detail::make_conversion_error(j.type(), json_type::number_integer);
+        value = j.value_.data.number_integer;
+    }
+
+    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value && std::is_integral<_IntegerUTy>::value, int>::type = 0>
+    friend inline void from_json(const basic_json& j, _IntegerUTy& value)
+    {
+        if (!j.is_integer())
+            throw detail::make_conversion_error(j.type(), json_type::number_integer);
+        value = static_cast<_IntegerUTy>(j.value_.data.number_integer);
+    }
+
+    friend inline void from_json(const basic_json& j, float_type& value)
+    {
+        if (!j.is_float())
+            throw detail::make_conversion_error(j.type(), json_type::number_float);
+        value = j.value_.data.number_float;
+    }
+
+    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
+    friend inline void from_json(const basic_json& j, _FloatingTy& value)
+    {
+        if (!j.is_float())
+            throw detail::make_conversion_error(j.type(), json_type::number_float);
+        value = static_cast<_FloatingTy>(j.value_.data.number_float);
+    }
+
+    friend inline void from_json(const basic_json& j, string_type& value)
+    {
+        if (!j.is_string())
+            throw detail::make_conversion_error(j.type(), json_type::string);
+        value = *j.value_.data.string;
+    }
+
+    friend inline void from_json(const basic_json& j, array_type& value)
+    {
+        if (!j.is_array())
+            throw detail::make_conversion_error(j.type(), json_type::array);
+        value.assign((*j.value_.data.vector).begin(), (*j.value_.data.vector).end());
+    }
+
+    friend inline void from_json(const basic_json& j, object_type& value)
+    {
+        if (!j.is_object())
+            throw detail::make_conversion_error(j.type(), json_type::object);
+        value = j.value_.data.object;
     }
 
 public:
@@ -801,8 +815,7 @@ public:
         return result;
     }
 
-    string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false,
-                     error_handler* eh = nullptr) const
+    string_type dump(unsigned int indent, char_type indent_char = ' ', bool escape_unicode = false, error_handler* eh = nullptr) const
     {
         dump_args args;
         args.indent         = indent;
@@ -815,7 +828,7 @@ public:
     {
         try
         {
-            json_serializer<basic_json>{ os, args }.dump(*this);
+            detail::json_serializer<basic_json>{ os, args }.dump(*this);
         }
         catch (...)
         {
@@ -835,16 +848,14 @@ public:
         return is;
     }
 
-    static inline basic_json parse(const string_type& str, const parse_args& args = parse_args{},
-                                   error_handler* eh = nullptr)
+    static inline basic_json parse(const string_type& str, const parse_args& args = parse_args{}, error_handler* eh = nullptr)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
         return basic_json::parse(is, args, eh);
     }
 
-    static inline basic_json parse(const char_type* str, const parse_args& args = parse_args{},
-                                   error_handler* eh = nullptr)
+    static inline basic_json parse(const char_type* str, const parse_args& args = parse_args{}, error_handler* eh = nullptr)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
@@ -858,20 +869,18 @@ public:
         return basic_json::parse(is, args, eh);
     }
 
-    static inline basic_json parse(std::basic_istream<char_type>& is, const parse_args& args = parse_args{},
-                                   error_handler* eh = nullptr)
+    static inline basic_json parse(std::basic_istream<char_type>& is, const parse_args& args = parse_args{}, error_handler* eh = nullptr)
     {
         basic_json result;
         basic_json::parse(result, is, args, eh);
         return result;
     }
 
-    static inline void parse(basic_json& j, std::basic_istream<char_type>& is, const parse_args& args = parse_args{},
-                             error_handler* eh = nullptr)
+    static inline void parse(basic_json& j, std::basic_istream<char_type>& is, const parse_args& args = parse_args{}, error_handler* eh = nullptr)
     {
         try
         {
-            json_parser<basic_json>{ is, args }.parse(j);
+            detail::json_parser<basic_json>{ is, args }.parse(j);
             if (args.check_document && !j.is_array() && !j.is_object())
             {
                 std::string name = j.type_name();
@@ -888,17 +897,45 @@ public:
     }
 
 public:
-    // compare functions
+    // eq functions
 
-    friend bool operator==(const basic_json& lhs, const basic_json& rhs)
+    friend inline bool operator==(const basic_json& lhs, const basic_json& rhs)
     {
         return lhs.value_ == rhs.value_;
     }
 
-    friend bool operator!=(const basic_json& lhs, const basic_json& rhs)
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator==(const basic_json& lhs, _ScalarTy rhs)
+    {
+        return lhs == basic_json(rhs);
+    }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator==(_ScalarTy lhs, const basic_json& rhs)
+    {
+        return basic_json(lhs) == rhs;
+    }
+
+    // ne functions
+
+    friend inline bool operator!=(const basic_json& lhs, const basic_json& rhs)
     {
         return !(lhs == rhs);
     }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator!=(const basic_json& lhs, _ScalarTy rhs)
+    {
+        return lhs != basic_json(rhs);
+    }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator!=(_ScalarTy lhs, const basic_json& rhs)
+    {
+        return basic_json(lhs) != rhs;
+    }
+
+    // lt functions
 
     friend bool operator<(const basic_json& lhs, const basic_json& rhs)
     {
@@ -946,23 +983,77 @@ public:
         return false;
     }
 
-    friend bool operator<=(const basic_json& lhs, const basic_json& rhs)
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator<(const basic_json& lhs, _ScalarTy rhs)
+    {
+        return lhs < basic_json(rhs);
+    }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator<(_ScalarTy lhs, const basic_json& rhs)
+    {
+        return basic_json(lhs) < rhs;
+    }
+
+    // lte functions
+
+    friend inline bool operator<=(const basic_json& lhs, const basic_json& rhs)
     {
         return !(rhs < lhs);
     }
 
-    friend bool operator>(const basic_json& lhs, const basic_json& rhs)
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator<=(const basic_json& lhs, _ScalarTy rhs)
+    {
+        return lhs <= basic_json(rhs);
+    }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator<=(_ScalarTy lhs, const basic_json& rhs)
+    {
+        return basic_json(lhs) <= rhs;
+    }
+
+    // gt functions
+
+    friend inline bool operator>(const basic_json& lhs, const basic_json& rhs)
     {
         return rhs < lhs;
     }
 
-    friend bool operator>=(const basic_json& lhs, const basic_json& rhs)
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator>(const basic_json& lhs, _ScalarTy rhs)
+    {
+        return lhs > basic_json(rhs);
+    }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator>(_ScalarTy lhs, const basic_json& rhs)
+    {
+        return basic_json(lhs) > rhs;
+    }
+
+    // gte functions
+
+    friend inline bool operator>=(const basic_json& lhs, const basic_json& rhs)
     {
         return !(lhs < rhs);
     }
 
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator>=(const basic_json& lhs, _ScalarTy rhs)
+    {
+        return lhs >= basic_json(rhs);
+    }
+
+    template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
+    friend inline bool operator>=(_ScalarTy lhs, const basic_json& rhs)
+    {
+        return basic_json(lhs) >= rhs;
+    }
+
 private:
-    json_value<basic_json> value_;
+    detail::json_value<basic_json> value_;
 };
 
 }  // namespace jsonxx

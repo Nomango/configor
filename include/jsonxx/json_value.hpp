@@ -20,6 +20,7 @@
 
 #pragma once
 #include "json_exception.hpp"
+#include "json_stream.hpp"
 
 #include <cmath>   // std::fabs
 #include <limits>  // std::numeric_limits
@@ -51,85 +52,61 @@ enum class json_type
     null,
 };
 
+namespace detail
+{
+
+inline const char* to_string(json_type t) noexcept
+{
+    switch (t)
+    {
+    case json_type::object:
+        return "object";
+    case json_type::array:
+        return "array";
+    case json_type::string:
+        return "string";
+    case json_type::number_integer:
+        return "integer";
+    case json_type::number_float:
+        return "float";
+    case json_type::boolean:
+        return "boolean";
+    case json_type::null:
+        return "null";
+    }
+    return "unknown";
+}
+
 //
 // json_value
 //
 
-template <typename _BasicJsonTy>
+template <typename _JsonTy>
 struct json_value
 {
-    using string_type  = typename _BasicJsonTy::string_type;
-    using char_type    = typename _BasicJsonTy::char_type;
-    using integer_type = typename _BasicJsonTy::integer_type;
-    using float_type   = typename _BasicJsonTy::float_type;
-    using boolean_type = typename _BasicJsonTy::boolean_type;
-    using array_type   = typename _BasicJsonTy::array_type;
-    using object_type  = typename _BasicJsonTy::object_type;
+    using string_type  = typename _JsonTy::string_type;
+    using char_type    = typename _JsonTy::char_type;
+    using integer_type = typename _JsonTy::integer_type;
+    using float_type   = typename _JsonTy::float_type;
+    using boolean_type = typename _JsonTy::boolean_type;
+    using array_type   = typename _JsonTy::array_type;
+    using object_type  = typename _JsonTy::object_type;
 
     json_type type;
     union
     {
-        object_type* object;
-        array_type*  vector;
-        string_type* string;
+        boolean_type boolean;
         integer_type number_integer;
         float_type   number_float;
-        boolean_type boolean;
+        string_type* string;
+        object_type* object;
+        array_type*  vector;
     } data;
 
     json_value()
+        : type(json_type::null)
+        , data{}
     {
-        type        = json_type::null;
-        data.object = nullptr;
-    }
-
-    json_value(std::nullptr_t)
-    {
-        type        = json_type::null;
-        data.object = nullptr;
-    }
-
-    json_value(const object_type& value)
-    {
-        type        = json_type::object;
-        data.object = create<object_type>(value);
-    }
-
-    json_value(const array_type& value)
-    {
-        type        = json_type::array;
-        data.vector = create<array_type>(value);
-    }
-
-    json_value(const string_type& value)
-    {
-        type        = json_type::string;
-        data.string = create<string_type>(value);
-    }
-
-    template <typename _CharT>
-    json_value(const _CharT* str)
-    {
-        type        = json_type::string;
-        data.string = create<string_type>(str);
-    }
-
-    json_value(const integer_type value)
-    {
-        type                = json_type::number_integer;
-        data.number_integer = value;
-    }
-
-    json_value(const float_type value)
-    {
-        type              = json_type::number_float;
-        data.number_float = value;
-    }
-
-    json_value(const boolean_type value)
-    {
-        type         = json_type::boolean;
-        data.boolean = value;
     }
 
     json_value(const json_type value_type)
@@ -156,7 +133,6 @@ struct json_value
             data.boolean = boolean_type(false);
             break;
         default:
-            data.object = nullptr;
             break;
         }
     }
@@ -231,7 +207,7 @@ struct json_value
     template <typename _Ty, typename... _Args>
     inline _Ty* create(_Args&&... args)
     {
-        using allocator_type   = typename _BasicJsonTy::template allocator_type<_Ty>;
+        using allocator_type   = typename _JsonTy::template allocator_type<_Ty>;
         using allocator_traits = std::allocator_traits<allocator_type>;
 
         allocator_type allocator;
@@ -243,7 +219,7 @@ struct json_value
     template <typename _Ty>
     inline void destroy(_Ty* ptr)
     {
-        using allocator_type   = typename _BasicJsonTy::template allocator_type<_Ty>;
+        using allocator_type   = typename _JsonTy::template allocator_type<_Ty>;
         using allocator_traits = std::allocator_traits<allocator_type>;
 
         allocator_type allocator;
@@ -301,89 +277,25 @@ struct json_value
         }
         else if (lhs.type == json_type::number_integer && rhs.type == json_type::number_float)
         {
-            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer),
-                                                    rhs.data.number_float);
+            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer), rhs.data.number_float);
         }
         else if (lhs.type == json_type::number_float && rhs.type == json_type::number_integer)
         {
-            return detail::nearly_equal<float_type>(lhs.data.number_float,
-                                                    static_cast<float_type>(rhs.data.number_integer));
+            return detail::nearly_equal<float_type>(lhs.data.number_float, static_cast<float_type>(rhs.data.number_integer));
         }
         return false;
     }
 };
 
-//
-// json_value_getter
-//
-
-template <typename _BasicJsonTy>
-struct json_value_getter
+namespace
 {
-    using string_type  = typename _BasicJsonTy::string_type;
-    using char_type    = typename _BasicJsonTy::char_type;
-    using integer_type = typename _BasicJsonTy::integer_type;
-    using float_type   = typename _BasicJsonTy::float_type;
-    using boolean_type = typename _BasicJsonTy::boolean_type;
-    using array_type   = typename _BasicJsonTy::array_type;
-    using object_type  = typename _BasicJsonTy::object_type;
+inline json_type_error make_conversion_error(json_type t, json_type want)
+{
+    fast_ostringstream ss;
+    ss << "cannot convert type '" << to_string(t) << "' to type '" << to_string(want) << "' (implicitly)";
+    return json_type_error(ss.str());
+}
+}  // namespace
+}  // namespace detail
 
-    static inline void assign(const _BasicJsonTy& json, object_type& value)
-    {
-        if (!json.is_object())
-            throw json_type_error("json value type must be object");
-        value = *json.value_.data.object;
-    }
-
-    static inline void assign(const _BasicJsonTy& json, array_type& value)
-    {
-        if (!json.is_array())
-            throw json_type_error("json value type must be array");
-        value = *json.value_.data.vector;
-    }
-
-    static inline void assign(const _BasicJsonTy& json, string_type& value)
-    {
-        if (!json.is_string())
-            throw json_type_error("json value type must be string");
-        value = *json.value_.data.string;
-    }
-
-    static inline void assign(const _BasicJsonTy& json, boolean_type& value)
-    {
-        if (!json.is_bool())
-            throw json_type_error("json value type must be boolean");
-        value = json.value_.data.boolean;
-    }
-
-    static inline void assign(const _BasicJsonTy& json, integer_type& value)
-    {
-        if (!json.is_integer())
-            throw json_type_error("json value type must be integer");
-        value = json.value_.data.number_integer;
-    }
-
-    template <typename _IntegerTy, typename std::enable_if<std::is_integral<_IntegerTy>::value, int>::type = 0>
-    static inline void assign(const _BasicJsonTy& json, _IntegerTy& value)
-    {
-        if (!json.is_integer())
-            throw json_type_error("json value type must be integer");
-        value = static_cast<_IntegerTy>(json.value_.data.number_integer);
-    }
-
-    static inline void assign(const _BasicJsonTy& json, float_type& value)
-    {
-        if (!json.is_float())
-            throw json_type_error("json value type must be float");
-        value = json.value_.data.number_float;
-    }
-
-    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-    static inline void assign(const _BasicJsonTy& json, _FloatingTy& value)
-    {
-        if (!json.is_float())
-            throw json_type_error("json value type must be float");
-        value = static_cast<_FloatingTy>(json.value_.data.number_float);
-    }
-};
 }  // namespace jsonxx

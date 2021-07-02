@@ -19,11 +19,11 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <cassert>    // assert
 #include <stdexcept>  // std::runtime_error, std::exception_ptr, std::rethrow_exception
 #include <string>     // std::string
 
 #ifndef JSONXX_ASSERT
+#include <cassert>  // assert
 #define JSONXX_ASSERT(...) assert(__VA_ARGS__)
 #endif
 
