@@ -87,26 +87,79 @@ bool is_null();
 bool is_bool();
 bool is_integer();
 bool is_float();
+bool is_number(); // is_integer() || is_float()
 bool is_array();
 bool is_object();
 ```
 
-- JSON 对象的类型转换
+- JSON 对象的取值与类型转换
+
+通过 get 函数可以直接取值：
 
 ```cpp
-// 显式转换
-auto b = j["boolean"].as_bool();           // bool
-auto i = j["number"].as_integer();         // int32_t
-auto f = j["float"].as_float();            // double
-const auto& arr = j["array"].as_array();   // arr 实际是 std::vector<json> 类型
-const auto& obj = j["user"].as_object();   // obj 实际是 std::map<std::string, json> 类型
+auto b = j.get<bool>();                 // bool，仅当 j.is_bool() 时可用
+auto i = j.get<int>();                  // int，仅当 j.is_integer() 时可用
+auto i = j.get<int64_t>();              // int64_t，仅当 j.is_integer() 时可用
+auto f = j.get<float>();                // float，仅当 j.is_float() 时可用
+auto f = j.get<double>();               // double，仅当 j.is_float() 时可用
+auto arr = j.get<json::array_type>();   // arr 实际是 std::vector<json> 类型，仅当 j.is_array() 时可用
+auto obj = j.get<json::object_type>();  // obj 实际是 std::map<std::string, json> 类型，仅当 j.is_object() 时可用
+
+// 对于实现了 json_bind 的自定义数据类型，也可以直接取值
+// 详情请参考下方 `JSON 与任意类型的转换`
+class MyObject;
+auto myObj = j.get<MyObject>();
 ```
+
+> 注意：get函数会强校验数据类型，所以整形和浮点数不能自动转换。
+
+通过有参数的 get 函数，可以传入对象引用来取值：
+
+```cpp
+int n = 0;
+j.get(n);  // 取值失败时抛出
+```
+
+通过 try_get 函数，可以判断是否成功取值：
+
+```cpp
+int n = 0;
+if (j.try_get(n))
+{
+    // 成功读取到 n 的值
+}
+else
+{
+    // 读取 n 值失败
+}
+```
+
+通过 as 系列函数可以将数据类型尽可能的转换：
+
+```cpp
+bool as_bool();           // 对bool直接返回，对数字类型判断是否非0，对null返回false，对其他类型返回empty()
+int64_t as_integer();     // 对数字类型直接返回，对bool类型强转，对其他类型抛出
+double as_float();        // 对数字类型直接返回，对bool类型强转，对其他类型抛出
+std::string as_string();  // 对字符串类型直接返回，对数字类型和bool转换为字符串，对null返回空串，对其他类型抛出
+```
+
+类型转换：
 
 ```cpp
 // 显式转换
 bool b = (bool)j["boolean"];
 int i = (int)j["number"];
 float d = (float)j["float"];
+// 隐式转换（不推荐）
+bool b = j["boolean"];
+int i = j["number"];
+float d = j["float"];
+
+// 对于实现了 json_bind 的自定义数据类型，也可以直接转换
+// 详情请参考下方 `JSON 与任意类型的转换`
+class MyObject;
+MyObject myObj = (MyObject)j;
+MyObject myObj = j;
 ```
 
 > 若 JSON 值类型与待转换类型不相同也不协变，会引发 json_type_error 异常
@@ -119,13 +172,6 @@ j["number"] == 1
 j["number"] != 2
 j["number"] > 0
 j["float"] < 3
-```
-
-- 取值的同时判断类型
-
-```cpp
-int n;
-bool ret = j["boolean"].get_value(&n); // 若取值成功，ret 为 true
 ```
 
 - JSON 对象类型和数组类型的遍历
@@ -192,15 +238,15 @@ json j;
 std::cin >> j;
 ```
 
-- Unicode与int64支持
+- Unicode 与多编码支持
 
-jsonxx 对宽字符 `wchar_t` 类型和 `int64` 进行了支持，通过不同的别名使用不同的类型支持。
+jsonxx 具有完备的 unicode 支持，同时对不同平台的不同字符类型进行了支持。
+
+对于 `wchar_t` 类型，可使用下面的别名来使用宽字符版本：
 
 ```cpp
-json     // char + int32_t
-json64   // char + int64_t
-wjson    // wchar_t + int32_t
-wjson64  // wchar_t + int64_t
+json   // char
+wjson  // wchar_t
 ```
 
 宽字符版本示例代码：
@@ -218,6 +264,9 @@ using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
 using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
 ```
 
+> 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。
+> 对于 Clang 编译器来说，您可能需要自己实现 std::ctype<char16_t> 和 std::ctype<char32_t> 才能让 jsonxx 正常工作。
+
 - JSON 与任意类型的转换
 
 通过特化实现 json_bind 类，可以非侵入式的实现任意对象与 JSON 的转换。
@@ -230,10 +279,10 @@ json j;
 MyClass obj;
 
 // 将 MyClass 转换为 json
-jsonxx::to_json(j, obj);
+j = obj;
 
 // 将 json 转换为 MyClass
-jsonxx::from_json(j, obj);
+obj = (MyClass)j;
 ```
 
 特化实现 json_bind 的例子：
@@ -247,30 +296,52 @@ struct User
 };
 
 // 与 json 绑定
-template<>
+template <>
 struct jsonxx::json_bind<User>
 {
-    void to_json(json& j, const User& v)
+    static void to_json(json& j, const User& v)
     {
-        jsonxx::to_json(j["user_id"], v.user_id);
-        jsonxx::to_json(j["user_name"], v.user_name);
+        j = { { "user_id", v.user_id }, { "user_name", v.user_name } };
     }
 
-    void from_json(const json& j, User& v)
+    static void from_json(const json& j, User& v)
     {
-        jsonxx::from_json(j["user_id"], v.user_id);
-        jsonxx::from_json(j["user_name"], v.user_name);
+        j["user_id"].get(v.user_id);
+        j["user_name"].get(v.user_name);
     }
 };
 ```
 
-特化实现 `json_bind<Role>` 后，会默认支持 User的智能指针、vector\<User\>、map\<string, User\> 的类型转换。
+jsonxx 提供了 JSONXX_BIND 宏，可以用一行代码快速完成 json 绑定：
+
+```cpp
+struct User
+{
+    int user_id;
+    string user_name;
+
+    JSONXX_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
+};
+
+// 对私有成员变量同样适用
+class User
+{
+private:
+    int user_id;
+    string user_name;
+
+public:
+    JSONXX_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
+};
+```
+
+特化实现 `json_bind<User>` 后，会默认支持 User 的智能指针、vector\<User\>、map\<string, User\> 等类型的自动转换。
 
 例如，下面的代码是正确的：
 
 ```cpp
 std::vector<std::shared_ptr<User>> user_list;
-jsonxx::to_json(j, user_list);  // 可以正确处理复合类型的转换
+j = user_list;  // 可以正确处理复合类型的转换
 ```
 
 - 任意类型的序列化与反序列化
@@ -301,35 +372,25 @@ using namespace std;
 using namespace jsonxx;
 
 // 用户类
-struct User {
-	int user_id;
-	string user_name;
-};
+struct User
+{
+    int user_id;
+    string user_name;
 
-// 绑定User类到json
-template<>
-struct jsonxx::json_bind<User> {
-	void to_json(json& j, const User& u) {
-		jsonxx::to_json(j["user_id"], u.user_id);
-		jsonxx::to_json(j["user_name"], u.user_name);
-	}
-	void from_json(const json& j, User& u) {
-		jsonxx::from_json(j["user_id"], u.user_id);
-		jsonxx::from_json(j["user_name"], u.user_name);
-	}
+    JSONXX_BIND(User, user_id, user_name);
 };
 
 int main(int argc, char** argv)
 {
-	stringstream s("{\"user_id\": 10001, \"user_name\": \"John\"}");
+    stringstream s("{\"user_id\": 10001, \"user_name\": \"John\"}");
 
-	// 解析json内容，并反序列化到user对象
-	User user;
-	s >> json_wrap(user);
+    // 解析json内容，并反序列化到user对象
+    User user;
+    s >> json_wrap(user);
 
-	// 序列化user对象并输出
-	std::cout << json_wrap(user) << std::endl; // {"user_id":10001,"user_name":"John"}
-	return 0;
+    // 序列化user对象并输出
+    cout << json_wrap(user) << endl; // {"user_id":10001,"user_name":"John"}
+    return 0;
 }
 ```
 
@@ -408,9 +469,9 @@ json j = json::parse(is);  // 将 input 字符串反序列化到 json
 - [x] 完全的 unicode 支持
 - [x] 单测覆盖率达到 85% 以上
 - [x] 支持注释
-- [ ] 支持 json 和自定义类型的隐式转换（has_to_json限定）
+- [x] 支持 json 和自定义类型的隐式转换（has_to_json限定）
 - [ ] optional 返回值的支持（作为模板参数并允许替换）
-- [ ] 错误信息完善
+- [x] 错误信息完善
 - [ ] SAX工具
 
 ### 鸣谢

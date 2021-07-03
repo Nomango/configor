@@ -55,6 +55,17 @@ TEST_CASE_METHOD(BasicJsonTest, "test_get")
     CHECK(j["single_object"]["number"].get<int64_t>() == 123);
 }
 
+TEST_CASE_METHOD(BasicJsonTest, "test_try_get")
+{
+    double d = 0;
+    CHECK(j["pi"].try_get(d));
+    CHECK(d == Approx(3.141));
+
+    int i = 1;
+    CHECK_FALSE(j["pi"].try_get(i));
+    CHECK(i == 1);
+}
+
 TEST_CASE_METHOD(BasicJsonTest, "test_numeric_type")
 {
 #define TEST_NUMERIC_GET_VALUE(j, NUMERIC_TYPE, EXPECT_VALUE)                    \

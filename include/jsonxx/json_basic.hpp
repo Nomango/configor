@@ -448,6 +448,26 @@ private:
         return value;
     }
 
+    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_json, _Ty>::value>::type>
+    inline _Ty& do_get(_Ty& value, detail::priority<2>) const
+    {
+        return (value = *this);
+    }
+
+    template <typename _Ty, typename = typename std::enable_if<std::is_default_constructible<_Ty>::value && detail::has_default_from_json<basic_json, _Ty>::value>::type>
+    inline _Ty& do_get(_Ty& value, detail::priority<1>) const
+    {
+        json_bind<_Ty>::from_json(*this, value);
+        return value;
+    }
+
+    template <typename _Ty, typename = typename std::enable_if<detail::has_non_default_from_json<basic_json, _Ty>::value>::type>
+    inline _Ty& do_get(_Ty& value, detail::priority<0>) const
+    {
+        value = json_bind<_Ty>::from_json(*this);
+        return value;
+    }
+
 public:
     template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type>
     inline auto get() const -> decltype(std::declval<const basic_json&>().template do_get<_UTy>(detail::priority<2>{}))
@@ -455,12 +475,18 @@ public:
         return do_get<_UTy>(detail::priority<2>{});
     }
 
-    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type, typename = typename std::enable_if<detail::is_json_getable<basic_json, _Ty>::value>::type>
-    inline bool get(_Ty& value) const
+    template <typename _Ty>
+    inline auto get(_Ty& value) const -> decltype(std::declval<const basic_json&>().template do_get<_Ty>(std::declval<_Ty&>(), detail::priority<2>{}))
+    {
+        return do_get<_Ty>(value, detail::priority<2>{});
+    }
+
+    template <typename _Ty>
+    auto try_get(_Ty& value) const -> typename std::enable_if<!std::is_void<decltype(std::declval<const basic_json&>().template get<_Ty>(std::declval<_Ty&>()))>::value, bool>::type
     {
         try
         {
-            value = get<_UTy>();
+            get<_Ty>(value);
             return true;
         }
         catch (...)
