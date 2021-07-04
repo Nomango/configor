@@ -111,7 +111,7 @@ class MyObject;
 auto myObj = j.get<MyObject>();
 ```
 
-> 注意：get函数会强校验数据类型，所以整形和浮点数不能自动转换。
+> 注意：get函数会强校验数据类型（例如整形和浮点数不能自动转换），参数类型与值类型不同时会引发 json_type_error 异常。
 
 通过有参数的 get 函数，可以传入对象引用来取值：
 
@@ -161,8 +161,6 @@ class MyObject;
 MyObject myObj = (MyObject)j;
 MyObject myObj = j;
 ```
-
-> 若 JSON 值类型与待转换类型不相同也不协变，会引发 json_type_error 异常
 
 - JSON 对象的比较操作符
 
