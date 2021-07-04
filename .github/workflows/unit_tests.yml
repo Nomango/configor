@@ -24,10 +24,10 @@ jobs:
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DENABLE_COVERAGE=ON
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} --parallel 10
     - name: Run tests
       working-directory: ${{github.workspace}}
-      run: ${{github.workspace}}/build/tests/jsonxx_test
+      run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
     - name: Generate coverage files
       run: |
         mkdir ${{env.COVERAGE_DIR}}
@@ -39,8 +39,8 @@ jobs:
     - uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ${{env.COVERAGE_DIR}}/coverage.info
-        # directory: ${{env.COVERAGE_DIR}}
+        files: ${{ env.COVERAGE_DIR }}/coverage.info
+        # directory: ${{ env.COVERAGE_DIR }}
         # functionalities: gcov,gcovout
         env_vars: OS
         flags: unittests
@@ -64,10 +64,10 @@ jobs:
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="${{matrix.compiler}}" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} --parallel 10
     - name: Run tests
       working-directory: ${{github.workspace}}
-      run: cd build ; ctest -C Debug --output-on-failure
+      run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_clang:
     runs-on: ${{ matrix.os }}
@@ -95,10 +95,10 @@ jobs:
         clang++ --version
         cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="clang++" -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} --parallel 10
     - name: Run tests
       working-directory: ${{github.workspace}}
-      run: cd build ; ctest -C Debug --output-on-failure
+      run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_xcode:
     runs-on: ${{ matrix.os }}
@@ -117,10 +117,10 @@ jobs:
         clang++ --version
         cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} --parallel 10
     - name: Run tests
       working-directory: ${{github.workspace}}
-      run: cd build ; ctest -C Debug --output-on-failure
+      run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_mingw:
     runs-on: ${{ matrix.os }}
@@ -138,9 +138,9 @@ jobs:
       - name: Configure CMake
         run: cmake -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
       - name: Build
-        run: cmake --build build --config ${{matrix.build_type}}
+        run: cmake --build build --config ${{matrix.build_type}} --parallel 10
       - name: Run tests
-        run: cd build ; ctest -C Debug --output-on-failure
+        run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_msvc:
     runs-on: ${{ matrix.os }}
@@ -155,6 +155,6 @@ jobs:
     - name: Configure CMake
       run: cmake -B build -G "${{ matrix.vsversion }}" -A ${{ matrix.architecture }}
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }}
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel 10
     - name: Run tests
-      run: cd build ; ctest -C ${{ matrix.build_type }} --output-on-failure
+      run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10

@@ -68,8 +68,8 @@ struct jsonxx::json_bind<Passenger>
 
     static void from_json(const json& j, Passenger& v)
     {
-        v.name_ = j["name"].get<std::string>();
-        v.age_  = (int)j["age"];
+        j["name"].get(v.name_);
+        j["age"].get(v.age_);
     }
 };
 

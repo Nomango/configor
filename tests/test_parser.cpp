@@ -212,7 +212,7 @@ TEST_CASE("test_parser")
             std::ifstream ifs(files[i]);
 
             json j;
-            ifs >> j;
+            CHECK_NOTHROW((ifs >> j));
 
             // run tests
             tests[i](j);

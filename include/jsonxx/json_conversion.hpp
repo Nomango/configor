@@ -537,27 +537,6 @@ inline detail::read_json_wrapper<_Ty, _JsonTy> json_wrap(const _Ty& v)
     return detail::read_json_wrapper<_Ty, _JsonTy>(v);
 }
 
-//
-// for JSON_BIND macro
-//
-
-namespace detail
-{
-
-template <typename _JsonTy, typename _Ty, typename = typename std::enable_if<is_json_getable<_JsonTy, typename remove_cvref<_Ty>::type>::value>::type>
-inline void json_get(const _JsonTy& j, _Ty& value)
-{
-    value = j.template get<_Ty>();
-}
-
-template <typename _JsonTy, typename _Ty, typename = typename std::enable_if<is_json_setable<_JsonTy, typename remove_cvref<_Ty>::type>::value>::type>
-inline void json_set(_JsonTy& j, _Ty&& value)
-{
-    j.operator=(std::forward<_Ty>(value));
-}
-
-}  // namespace detail
-
 }  // namespace jsonxx
 
 #define JSONXX_EXPAND(x) x
@@ -798,8 +777,8 @@ inline void json_set(_JsonTy& j, _Ty&& value)
     JSONXX_PASTE63(func, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, v32, v33,  \
                    v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45, v46, v47, v48, v49, v50, v51, v52, v53, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63)
 
-#define JSONXX_TO_JSON(field) ::jsonxx::detail::json_set(j[#field], v.field);
-#define JSONXX_FROM_JSON(field) ::jsonxx::detail::json_get(j.at(#field), v.field);
+#define JSONXX_TO_JSON(field) j[#field].operator=(v.field);
+#define JSONXX_FROM_JSON(field) j.at(#field).get(v.field);
 
 #define JSONXX_BIND(value_type, ...) JSONXX_BIND_WITH_JSON(basic_json<>, value_type, __VA_ARGS__)
 
