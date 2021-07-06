@@ -33,35 +33,16 @@ namespace encoding
 
 namespace unicode
 {
-
-template <typename _Ty>
-struct constants_t
+namespace constants
 {
-    static const _Ty surrogate_base        = static_cast<_Ty>(0x10000);
-    static const _Ty lead_surrogate_begin  = static_cast<_Ty>(0xD800);
-    static const _Ty lead_surrogate_end    = static_cast<_Ty>(0xDBFF);
-    static const _Ty trail_surrogate_begin = static_cast<_Ty>(0xDC00);
-    static const _Ty trail_surrogate_end   = static_cast<_Ty>(0xDFFF);
-    static const _Ty trail_surrogate_max   = static_cast<_Ty>(0x3FF);
-    static const _Ty surrogate_bits        = static_cast<_Ty>(10);
-};
-
-template <typename _Ty>
-const _Ty constants_t<_Ty>::surrogate_base;
-template <typename _Ty>
-const _Ty constants_t<_Ty>::lead_surrogate_begin;
-template <typename _Ty>
-const _Ty constants_t<_Ty>::lead_surrogate_end;
-template <typename _Ty>
-const _Ty constants_t<_Ty>::trail_surrogate_begin;
-template <typename _Ty>
-const _Ty constants_t<_Ty>::trail_surrogate_end;
-template <typename _Ty>
-const _Ty constants_t<_Ty>::trail_surrogate_max;
-template <typename _Ty>
-const _Ty constants_t<_Ty>::surrogate_bits;
-
-using constants = constants_t<uint32_t>;
+constexpr auto surrogate_base        = static_cast<uint32_t>(0x10000);
+constexpr auto lead_surrogate_begin  = static_cast<uint32_t>(0xD800);
+constexpr auto lead_surrogate_end    = static_cast<uint32_t>(0xDBFF);
+constexpr auto trail_surrogate_begin = static_cast<uint32_t>(0xDC00);
+constexpr auto trail_surrogate_end   = static_cast<uint32_t>(0xDFFF);
+constexpr auto trail_surrogate_max   = static_cast<uint32_t>(0x3FF);
+constexpr auto surrogate_bits        = static_cast<uint32_t>(10);
+}  // namespace constants
 
 inline bool is_lead_surrogate(const uint32_t codepoint)
 {
