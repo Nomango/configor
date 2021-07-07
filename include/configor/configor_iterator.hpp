@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 jsonxx - Nomango
+// Copyright (c) 2018-2020 configor - Nomango
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,14 +19,14 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "json_exception.hpp"
-#include "json_value.hpp"
+#include "configor_exception.hpp"
+#include "configor_value.hpp"
 
 #include <cstddef>   // std::ptrdiff_t
 #include <iterator>  // std::reverse_iterator, std::prev
 #include <memory>    // std::addressof
 
-namespace jsonxx
+namespace configor
 {
 namespace detail
 {
@@ -129,19 +129,19 @@ private:
     difference_type it_;
 };
 
-template <typename _JsonTy>
+template <typename _ConfTy>
 struct iterator
 {
-    friend _JsonTy;
+    friend _ConfTy;
 
-    using value_type        = _JsonTy;
+    using value_type        = _ConfTy;
     using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
     using pointer           = value_type*;
     using reference         = value_type&;
 
-    inline explicit iterator(value_type* json)
-        : data_(json)
+    inline explicit iterator(value_type* config)
+        : data_(config)
     {
     }
 
@@ -150,8 +150,8 @@ struct iterator
         check_data();
         check_iterator();
 
-        if (data_->type() != json_type::object)
-            throw json_invalid_iterator("cannot use key() with non-object type");
+        if (data_->type() != config_value_type::object)
+            throw configor_invalid_iterator("cannot use key() with non-object type");
         return object_it_->first;
     }
 
@@ -162,9 +162,9 @@ struct iterator
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
             return object_it_->second;
-        case json_type::array:
+        case config_value_type::array:
             return *array_it_;
         default:
             break;
@@ -195,17 +195,17 @@ struct iterator
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
         {
             std::advance(object_it_, 1);
             break;
         }
-        case json_type::array:
+        case config_value_type::array:
         {
             std::advance(array_it_, 1);
             break;
         }
-        case json_type::null:
+        case config_value_type::null:
         {
             // DO NOTHING
             break;
@@ -232,17 +232,17 @@ struct iterator
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
         {
             std::advance(object_it_, -1);
             break;
         }
-        case json_type::array:
+        case config_value_type::array:
         {
             std::advance(array_it_, -1);
             break;
         }
-        case json_type::null:
+        case config_value_type::null:
         {
             // DO NOTHING
             break;
@@ -277,17 +277,17 @@ struct iterator
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
         {
-            throw json_invalid_iterator("cannot compute offsets with object type");
+            throw configor_invalid_iterator("cannot compute offsets with object type");
             break;
         }
-        case json_type::array:
+        case config_value_type::array:
         {
             std::advance(array_it_, off);
             break;
         }
-        case json_type::null:
+        case config_value_type::null:
         {
             // DO NOTHING
             break;
@@ -307,10 +307,10 @@ struct iterator
         rhs.check_data();
 
         if (data_ != rhs.data_)
-            throw json_invalid_iterator("cannot compute iterator offsets of different json objects");
+            throw configor_invalid_iterator("cannot compute iterator offsets of different config objects");
 
-        if (data_->type() != json_type::array)
-            throw json_invalid_iterator("cannot compute iterator offsets with non-array type");
+        if (data_->type() != config_value_type::array)
+            throw configor_invalid_iterator("cannot compute iterator offsets with non-array type");
         return array_it_ - rhs.array_it_;
     }
 
@@ -328,11 +328,11 @@ struct iterator
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
         {
             return object_it_ == other.object_it_;
         }
-        case json_type::array:
+        case config_value_type::array:
         {
             return array_it_ == other.array_it_;
         }
@@ -361,13 +361,13 @@ struct iterator
         other.check_data();
 
         if (data_ != other.data_)
-            throw json_invalid_iterator("cannot compare iterators of different json objects");
+            throw configor_invalid_iterator("cannot compare iterators of different config objects");
 
         switch (data_->type())
         {
-        case json_type::object:
-            throw json_invalid_iterator("cannot compare iterators with object type");
-        case json_type::array:
+        case config_value_type::object:
+            throw configor_invalid_iterator("cannot compare iterators with object type");
+        case config_value_type::array:
             return array_it_ < other.array_it_;
         default:
             return primitive_it_ < other.primitive_it_;
@@ -381,17 +381,17 @@ private:
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
         {
             object_it_ = data_->value_.data.object->begin();
             break;
         }
-        case json_type::array:
+        case config_value_type::array:
         {
             array_it_ = data_->value_.data.vector->begin();
             break;
         }
-        case json_type::null:
+        case config_value_type::null:
         {
             // DO NOTHING
             break;
@@ -410,17 +410,17 @@ private:
 
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
         {
             object_it_ = data_->value_.data.object->end();
             break;
         }
-        case json_type::array:
+        case config_value_type::array:
         {
             array_it_ = data_->value_.data.vector->end();
             break;
         }
-        case json_type::null:
+        case config_value_type::null:
         {
             // DO NOTHING
             break;
@@ -437,7 +437,7 @@ private:
     {
         if (data_ == nullptr)
         {
-            throw json_invalid_iterator("iterator is empty");
+            throw configor_invalid_iterator("iterator is empty");
         }
     }
 
@@ -445,19 +445,19 @@ private:
     {
         switch (data_->type())
         {
-        case json_type::object:
+        case config_value_type::object:
             if (object_it_ == data_->value_.data.object->end())
             {
                 throw std::out_of_range("object iterator out of range");
             }
             break;
-        case json_type::array:
+        case config_value_type::array:
             if (array_it_ == data_->value_.data.vector->end())
             {
                 throw std::out_of_range("array iterator out of range");
             }
             break;
-        case json_type::null:
+        case config_value_type::null:
         {
             throw std::out_of_range("null iterator out of range");
         }
@@ -473,8 +473,8 @@ private:
 private:
     value_type* data_;
 
-    typename _JsonTy::array_type::iterator  array_it_;
-    typename _JsonTy::object_type::iterator object_it_;
+    typename _ConfTy::array_type::iterator  array_it_;
+    typename _ConfTy::object_type::iterator object_it_;
     primitive_iterator                      primitive_it_ = 0;  // for other types
 };
 
@@ -507,4 +507,4 @@ struct reverse_iterator : public std::reverse_iterator<_IterTy>
 };
 
 }  // namespace detail
-}  // namespace jsonxx
+}  // namespace configor

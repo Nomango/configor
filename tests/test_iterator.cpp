@@ -13,7 +13,7 @@ TEST_CASE("test_iterator")
         CHECK(iter == j.begin());
         CHECK(*iter == j);
 
-        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+        CHECK_THROWS_AS(iter.key(), configor_invalid_iterator);
 
         CHECK_NOTHROW(iter++);
         CHECK(iter == j.end());
@@ -37,7 +37,7 @@ TEST_CASE("test_iterator")
         CHECK(iter == j.begin());
         CHECK(*iter == j);
 
-        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+        CHECK_THROWS_AS(iter.key(), configor_invalid_iterator);
 
         CHECK_NOTHROW(iter++);
         CHECK(iter == j.end());
@@ -61,7 +61,7 @@ TEST_CASE("test_iterator")
         CHECK(iter == j.begin());
         CHECK(*iter == j);
 
-        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+        CHECK_THROWS_AS(iter.key(), configor_invalid_iterator);
 
         CHECK_NOTHROW(iter++);
         CHECK(iter == j.end());
@@ -85,7 +85,7 @@ TEST_CASE("test_iterator")
         CHECK(iter == j.begin());
         CHECK(*iter == j);
 
-        CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+        CHECK_THROWS_AS(iter.key(), configor_invalid_iterator);
 
         CHECK_NOTHROW(iter++);
         CHECK(iter == j.end());
@@ -157,7 +157,7 @@ TEST_CASE("test_iterator")
             std::advance(temp_iter, idx);
             CHECK(iter == temp_iter);
             CHECK(iter.value() == arr[idx]);
-            CHECK_THROWS_AS(iter.key(), json_invalid_iterator);
+            CHECK_THROWS_AS(iter.key(), configor_invalid_iterator);
         }
 
         idx = 0;
@@ -182,7 +182,7 @@ TEST_CASE("test_iterator")
     SECTION("others")
     {
         CHECK(json::object({}).begin() != json::array({}).begin());
-        CHECK_THROWS_AS((json::iterator{ nullptr }).key(), json_invalid_iterator);
+        CHECK_THROWS_AS((json::iterator{ nullptr }).key(), configor_invalid_iterator);
         CHECK_FALSE(json::iterator{ nullptr } == json::iterator{ nullptr });
     }
 }

@@ -6,7 +6,7 @@
 
 class Driver
 {
-    friend json_bind<Driver>;
+    friend config_bind<Driver>;
 
     std::string name_;
 
@@ -23,14 +23,14 @@ public:
 };
 
 template <>
-struct jsonxx::json_bind<Driver>
+struct configor::config_bind<Driver>
 {
-    static void to_json(json& j, const Driver& v)
+    static void to_config(json& j, const Driver& v)
     {
         j["name"] = v.name_;
     }
 
-    static Driver from_json(const json& j)
+    static Driver from_config(const json& j)
     {
         return Driver(j["name"].get<std::string>());
     }
@@ -38,7 +38,7 @@ struct jsonxx::json_bind<Driver>
 
 class Passenger
 {
-    friend json_bind<Passenger>;
+    friend config_bind<Passenger>;
 
     std::string name_;
     int         age_ = 0;
@@ -58,15 +58,15 @@ public:
 };
 
 template <>
-struct jsonxx::json_bind<Passenger>
+struct configor::config_bind<Passenger>
 {
-    static void to_json(json& j, const Passenger& v)
+    static void to_config(json& j, const Passenger& v)
     {
         j["name"] = v.name_;
         j["age"]  = v.age_;
     }
 
-    static void from_json(const json& j, Passenger& v)
+    static void from_config(const json& j, Passenger& v)
     {
         j["name"].get(v.name_);
         j["age"].get(v.age_);
@@ -78,8 +78,6 @@ using DriverPtr    = std::unique_ptr<Driver>;
 
 class Bus
 {
-    friend json_bind<Bus>;
-
     int                                 license_ = 0;
     DriverPtr                           driver_;
     std::vector<PassengerPtr>           passengers_;
@@ -124,7 +122,7 @@ public:
     }
 
 public:
-    JSONXX_BIND(Bus, license_, driver_, passengers_, olders_)
+    JSON_BIND(Bus, license_, driver_, passengers_, olders_);
 };
 
 class ConversionTest

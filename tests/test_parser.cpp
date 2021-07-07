@@ -65,72 +65,72 @@ TEST_CASE("test_parser")
     SECTION("test_parse_error")
     {
         // unexpected character
-        CHECK_THROWS_AS(json::parse("()"), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("()"), configor_deserialization_error);
 
         // check document
         {
             json::parse_args args;
             args.check_document = true;
-            CHECK_THROWS_AS(json::parse("true", args), json_deserialization_error);
+            CHECK_THROWS_AS(json::parse("true", args), configor_deserialization_error);
         }
 
         // invalid literal
-        CHECK_THROWS_AS(json::parse("trux"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("falsx"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("nulx"), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("trux"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("falsx"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("nulx"), configor_deserialization_error);
 
         // unexpected end of string
-        CHECK_THROWS_AS(json::parse("\""), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\""), configor_deserialization_error);
 
         // parse controle characters
-        CHECK_THROWS_AS(json::parse("\"\t\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\r\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\n\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\b\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\f\""), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\t\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\r\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\n\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\b\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\f\""), configor_deserialization_error);
 
         // invalid escaped character
-        CHECK_THROWS_AS(json::parse("\"\\x\""), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\\x\""), configor_deserialization_error);
 
         // invalid surrogate
-        CHECK_THROWS_AS(json::parse("\"\\uD8\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\\uD800\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\\uD800\\uD800\""), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("\"\\uD800\\x\""), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\\uD8\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\\uD800\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\\uD800\\uD800\""), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\"\\uD800\\x\""), configor_deserialization_error);
 
         // invalid float
-        CHECK_THROWS_AS(json::parse("0.x"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("0e1"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("1ex"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("1e0"), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("0.x"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("0e1"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("1ex"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("1e0"), configor_deserialization_error);
 
         // not allow comments
         {
-            CHECK_THROWS_AS(json::parse("{/**/}"), json_deserialization_error);
-            CHECK_THROWS_AS(json::parse("{//\n}"), json_deserialization_error);
+            CHECK_THROWS_AS(json::parse("{/**/}"), configor_deserialization_error);
+            CHECK_THROWS_AS(json::parse("{//\n}"), configor_deserialization_error);
 
             json::parse_args args;
             args.allow_comments = true;
             CHECK_NOTHROW(json::parse("{/**/}", args));
             CHECK_NOTHROW(json::parse("{//\n}", args));
-            CHECK_THROWS_AS(json::parse("{/x\n}", args), json_deserialization_error);
+            CHECK_THROWS_AS(json::parse("{/x\n}", args), configor_deserialization_error);
         }
 
         // unexpect end
-        CHECK_THROWS_AS(json::parse("\\"), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\\"), configor_deserialization_error);
 
         // unexpect token
-        CHECK_THROWS_AS(json::parse("]"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("}"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("{]"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("[}"), json_deserialization_error);
-        CHECK_THROWS_AS(json::parse("{}{"), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("]"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("}"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("{]"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("[}"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("{}{"), configor_deserialization_error);
     }
 
     SECTION("test_error_policy")
     {
         error_handler_with<error_policy::strict> strict_handler{};
-        CHECK_THROWS_AS(json::parse("\f", json::parse_args{}, &strict_handler), json_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\f", json::parse_args{}, &strict_handler), configor_deserialization_error);
 
         error_handler_with<error_policy::ignore> ignore_handler{};
         CHECK_NOTHROW(json::parse("\f", json::parse_args{}, &ignore_handler));

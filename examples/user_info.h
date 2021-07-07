@@ -1,9 +1,9 @@
 // Copyright (c) 2021 Nomango
 
-#include <jsonxx/json.hpp>
+#include <configor/json.hpp>
 #include <memory>
 
-using namespace jsonxx;
+using namespace configor;
 using std::string;
 using std::vector;
 
@@ -15,7 +15,7 @@ struct UserRole
     // 权限列表
     vector<string> permission_list;
 
-    JSONXX_BIND(UserRole, code, permission_list);
+    JSON_BIND(UserRole, code, permission_list);
 };
 
 // 用户信息
@@ -28,7 +28,7 @@ struct UserInfo
     // 角色列表
     vector<UserRole> role_list;
 
-    JSONXX_BIND(UserInfo, user_id, user_name, role_list);
+    JSON_BIND(UserInfo, user_id, user_name, role_list);
 };
 
 extern std::shared_ptr<UserInfo> QueryUser(int user_id);
