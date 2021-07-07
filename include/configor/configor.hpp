@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 jsonxx - Nomango
+// Copyright (c) 2018-2020 configor - Nomango
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,49 +19,33 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "json_basic.hpp"
+#include "configor_basic.hpp"
 
-namespace jsonxx
+namespace configor
 {
 
-using json  = basic_json<>;
-using wjson = basic_json<std::map, std::vector, std::wstring>;
+using config  = basic_config<>;
+using wconfig = basic_config<template_wargs>;
 
-inline void swap(::jsonxx::json& lhs, ::jsonxx::json& rhs)
-{
-    lhs.swap(rhs);
-}
-
-inline void swap(::jsonxx::wjson& lhs, ::jsonxx::wjson& rhs)
+template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
+inline void swap(_ConfTy& lhs, _ConfTy& rhs)
 {
     lhs.swap(rhs);
 }
 
-}  // namespace jsonxx
+}  // namespace configor
 
 namespace std
 {
-template <>
-struct hash<::jsonxx::json>
+template <typename _Args>
+struct hash<::configor::basic_config<_Args>>
 {
-    using argument_type = ::jsonxx::json;
+    using argument_type = ::configor::basic_config<_Args>;
     using result_type   = size_t;
 
-    result_type operator()(argument_type const& json) const
+    result_type operator()(argument_type const& config) const
     {
-        return hash<argument_type::string_type>{}(json.dump());
-    }
-};
-
-template <>
-struct hash<::jsonxx::wjson>
-{
-    using argument_type = ::jsonxx::wjson;
-    using result_type   = size_t;
-
-    result_type operator()(argument_type const& json) const
-    {
-        return hash<argument_type::string_type>{}(json.dump());
+        return hash<typename argument_type::string_type>{}(config.dump());
     }
 };
 }  // namespace std

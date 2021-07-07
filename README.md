@@ -1,13 +1,13 @@
-![logo](./assets/logo.png)
+<!-- ![logo](./assets/logo.png) -->
 
-# jsonxx
+# configor
 
-[![Github status](https://github.com/Nomango/jsonxx/actions/workflows/unit_tests.yml/badge.svg?branch=master)](https://github.com/Nomango/jsonxx/actions)
-[![codecov](https://codecov.io/gh/Nomango/jsonxx/branch/master/graph/badge.svg?token=OO71U89I5N)](https://codecov.io/gh/Nomango/jsonxx)
-[![GitHub release](https://img.shields.io/github/release/nomango/jsonxx)](https://github.com/Nomango/jsonxx/releases/latest)
-[![GitHub license](https://img.shields.io/github/license/nomango/jsonxx)](https://github.com/Nomango/jsonxx/blob/master/LICENSE)
+[![Github status](https://github.com/Nomango/configor/actions/workflows/unit_tests.yml/badge.svg?branch=master)](https://github.com/Nomango/configor/actions)
+[![codecov](https://codecov.io/gh/Nomango/configor/branch/master/graph/badge.svg?token=OO71U89I5N)](https://codecov.io/gh/Nomango/configor)
+[![GitHub release](https://img.shields.io/github/release/nomango/configor)](https://github.com/Nomango/configor/releases/latest)
+[![GitHub license](https://img.shields.io/github/license/nomango/configor)](https://github.com/Nomango/configor/blob/master/LICENSE)
 
-一个为 C++11 量身打造的轻量级 JSON 通用工具，轻松完成 JSON 解析和序列化功能，并和 C++ 输入输出流交互。
+一个为 C++11 量身打造的轻量级 config 库，轻松完成 JSON 解析和序列化功能，并和 C++ 输入输出流交互。
 
 ### 功能
 
@@ -20,13 +20,29 @@
 
 > 注意：项目仍处于开发状态，可能有不兼容的修改。
 
-### 使用介绍
+### 关于更名！
 
-- 引入 jsonxx 头文件
+项目此前叫做 `jsonxx` 库，现已更名为 `configor`！
+
+在保证原有 API 可用的情况下，将在未来支持包括 JSON 在内的各种常见对象存储格式（如 YAML 等）。
+
+如果您之前已经在使用 jsonxx，那么升级到 configor 将非常简单，只需要修改头文件的声明如下：
 
 ```cpp
-#include "jsonxx/json.hpp"
-using namespace jsonxx;
+// 替换掉注释中的头文件，改为使用下方的头文件即可
+// #include "jsonxx/json.hpp"
+// using namespace jsonxx;
+#include "configor/json.hpp"
+using namespace configor;
+```
+
+### 使用介绍
+
+- 引入 configor 头文件
+
+```cpp
+#include "configor/json.hpp"
+using namespace configor;
 ```
 
 - 使用 C++ 的方式的创建 JSON 对象
@@ -105,7 +121,7 @@ auto f = j.get<double>();               // double，仅当 j.is_float() 时可�
 auto arr = j.get<json::array_type>();   // arr 实际是 std::vector<json> 类型，仅当 j.is_array() 时可用
 auto obj = j.get<json::object_type>();  // obj 实际是 std::map<std::string, json> 类型，仅当 j.is_object() 时可用
 
-// 对于实现了 json_bind 的自定义数据类型，也可以直接取值
+// 对于实现了 config_bind 的自定义数据类型，也可以直接取值
 // 详情请参考下方 `JSON 与任意类型的转换`
 class MyObject;
 auto myObj = j.get<MyObject>();
@@ -155,7 +171,7 @@ bool b = j["boolean"];
 int i = j["number"];
 float d = j["float"];
 
-// 对于实现了 json_bind 的自定义数据类型，也可以直接转换
+// 对于实现了 config_bind 的自定义数据类型，也可以直接转换
 // 详情请参考下方 `JSON 与任意类型的转换`
 class MyObject;
 MyObject myObj = (MyObject)j;
@@ -238,7 +254,7 @@ std::cin >> j;
 
 - Unicode 与多编码支持
 
-jsonxx 具有完备的 unicode 支持，同时对不同平台的不同字符类型进行了支持。
+configor 具有完备的 unicode 支持，同时对不同平台的不同字符类型进行了支持。
 
 对于 `wchar_t` 类型，可使用下面的别名来使用宽字符版本：
 
@@ -256,34 +272,75 @@ std::wstring str = j[L"name"].as_string();  // L"中文测试"
 
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
 ```cpp
+struct u16json_template_args : json_template_args
+{
+    using char_type = char16_t;
+};
+
+struct u32json_template_args : json_template_args
+{
+    using char_type = char32_t;
+};
+
 // char16_t
-using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
+using u16json = configor::basic_config<u16json_template_args>;
 // char32_t
-using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
+using u32json = configor::basic_config<u32json_template_args>;
 ```
 
 > 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。
-> 对于 Clang 编译器来说，您可能需要自己实现 std::ctype<char16_t> 和 std::ctype<char32_t> 才能让 jsonxx 正常工作。
+> 对于 Clang 编译器来说，您可能需要自己实现 std::ctype<char16_t> 和 std::ctype<char32_t> 才能让 configor 正常工作。
 
 - JSON 与任意类型的转换
 
-通过特化实现 json_bind 类，可以非侵入式的实现任意对象与 JSON 的转换。
-
-使用效果：
+configor 提供了 `JSON_BIND` 宏，可以用一行代码快速完成 json 绑定：
 
 ```cpp
-// 特化实现 json_bind<MyClass> 后，即可方便地将 MyClass 对象和 json 进行互相转换
-json j;
-MyClass obj;
+struct User
+{
+    int user_id;
+    string user_name;
 
-// 将 MyClass 转换为 json
-j = obj;
+    JSON_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
+};
 
-// 将 json 转换为 MyClass
-obj = (MyClass)j;
+// 对私有成员变量同样适用
+class User
+{
+private:
+    int user_id;
+    string user_name;
+
+public:
+    JSON_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
+};
 ```
 
-特化实现 json_bind 的例子：
+与 JSON 绑定后，可以方便的将自定义类型与 JSON 进行转换：
+
+```cpp
+json j;
+User user;
+
+// 将 User 转换为 json
+j = user;
+
+// 将 json 转换为 User
+user = (User)j;
+```
+
+同时会默认支持 User 的智能指针、vector\<User\>、map\<string, User\> 等类型的自动转换。
+
+例如，下面的代码是正确的：
+
+```cpp
+std::vector<std::shared_ptr<User>> user_list;
+json j = user_list;  // 可以正确处理复合类型的转换
+```
+
+对于第三方库的类型，由于无法侵入式的在其内部声明 JSON_BIND，可以通过特化实现 config_bind 类，非侵入式的绑定到 JSON。
+
+特化实现 config_bind 的例子：
 
 ```cpp
 // 用户类
@@ -295,51 +352,19 @@ struct User
 
 // 与 json 绑定
 template <>
-struct jsonxx::json_bind<User>
+struct configor::config_bind<User>
 {
-    static void to_json(json& j, const User& v)
+    static void to_config(json& j, const User& v)
     {
         j = { { "user_id", v.user_id }, { "user_name", v.user_name } };
     }
 
-    static void from_json(const json& j, User& v)
+    static void from_config(const json& j, User& v)
     {
         j["user_id"].get(v.user_id);
         j["user_name"].get(v.user_name);
     }
 };
-```
-
-jsonxx 提供了 JSONXX_BIND 宏，可以用一行代码快速完成 json 绑定：
-
-```cpp
-struct User
-{
-    int user_id;
-    string user_name;
-
-    JSONXX_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
-};
-
-// 对私有成员变量同样适用
-class User
-{
-private:
-    int user_id;
-    string user_name;
-
-public:
-    JSONXX_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
-};
-```
-
-特化实现 `json_bind<User>` 后，会默认支持 User 的智能指针、vector\<User\>、map\<string, User\> 等类型的自动转换。
-
-例如，下面的代码是正确的：
-
-```cpp
-std::vector<std::shared_ptr<User>> user_list;
-j = user_list;  // 可以正确处理复合类型的转换
 ```
 
 - 任意类型的序列化与反序列化
@@ -364,10 +389,10 @@ s >> json_wrap(obj);
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <jsonxx/json.hpp>
+#include <configor/json.hpp>
 
 using namespace std;
-using namespace jsonxx;
+using namespace configor;
 
 // 用户类
 struct User
@@ -375,7 +400,7 @@ struct User
     int user_id;
     string user_name;
 
-    JSONXX_BIND(User, user_id, user_name);
+    JSON_BIND(User, user_id, user_name);
 };
 
 int main(int argc, char** argv)

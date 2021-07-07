@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(jsonxx LANGUAGES CXX)
+project(configor LANGUAGES CXX)
 
 # Use C++11
 set(CMAKE_CXX_STANDARD 11)

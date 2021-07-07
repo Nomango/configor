@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 jsonxx - Nomango
+// Copyright (c) 2021-2022 configor - Nomango
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@
 #include <type_traits>  // std::char_traits
 #include <utility>      // std::forward
 
-namespace jsonxx
+namespace configor
 {
 
 //
@@ -461,80 +461,6 @@ using fast_ostringstream  = fast_basic_ostringstream<char>;
 using fast_wostringstream = fast_basic_ostringstream<wchar_t>;
 
 //
-// format_keeper
-//
-
-template <typename _CharTy>
-class format_keeper : public std::basic_ios<_CharTy>
-{
-public:
-    using char_type = _CharTy;
-
-    format_keeper(std::basic_ios<char_type>& other)
-        : std::basic_ios<char_type>(nullptr)
-        , other_(other)
-    {
-        // only copy flags
-        this->setf(other.flags());
-    }
-
-    ~format_keeper()
-    {
-        // restore previous flags
-        other_.setf(this->flags());
-    }
-
-private:
-    std::basic_ios<char_type>& other_;
-};
-
-template <>
-class format_keeper<char> : public std::basic_ios<char>
-{
-public:
-    using char_type = char;
-
-    format_keeper(std::basic_ios<char_type>& other)
-        : std::basic_ios<char_type>(nullptr)
-        , other_(other)
-    {
-        copyfmt(other);
-    }
-
-    ~format_keeper()
-    {
-        // restore previous formatting
-        other_.copyfmt(*this);
-    }
-
-private:
-    std::basic_ios<char_type>& other_;
-};
-
-template <>
-class format_keeper<wchar_t> : public std::basic_ios<wchar_t>
-{
-public:
-    using char_type = wchar_t;
-
-    format_keeper(std::basic_ios<char_type>& other)
-        : std::basic_ios<char_type>(nullptr)
-        , other_(other)
-    {
-        copyfmt(other);
-    }
-
-    ~format_keeper()
-    {
-        // restore previous formatting
-        other_.copyfmt(*this);
-    }
-
-private:
-    std::basic_ios<char_type>& other_;
-};
-
-//
 // serialization functions
 //
 
@@ -683,17 +609,17 @@ struct serializable_hex
 
     friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_hex& i)
     {
-        detail::format_keeper<char> fmt{ os };
         os << std::setfill('0') << std::hex << std::uppercase;
         os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
+        os << std::dec << std::nouppercase;
         return os;
     }
 
     friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_hex& i)
     {
-        detail::format_keeper<wchar_t> fmt{ os };
         os << std::setfill(wchar_t('0')) << std::hex << std::uppercase;
         os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
+        os << std::dec << std::nouppercase;
         return os;
     }
 };
@@ -756,4 +682,4 @@ inline serializable_float<_FloatTy> serialize_float(const _FloatTy f)
 
 }  // namespace detail
 
-}  // namespace jsonxx
+}  // namespace configor

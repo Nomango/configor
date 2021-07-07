@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 jsonxx - Nomango
+// Copyright (c) 2018-2020 configor - Nomango
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,73 +22,73 @@
 #include <stdexcept>  // std::runtime_error, std::exception_ptr, std::rethrow_exception
 #include <string>     // std::string
 
-#ifndef JSONXX_ASSERT
+#ifndef CONFIGOR_ASSERT
 #include <cassert>  // assert
-#define JSONXX_ASSERT(...) assert(__VA_ARGS__)
+#define CONFIGOR_ASSERT(...) assert(__VA_ARGS__)
 #endif
 
-namespace jsonxx
+namespace configor
 {
 
 //
 // exceptions
 //
 
-class json_exception : public std::runtime_error
+class configor_exception : public std::runtime_error
 {
 public:
-    json_exception(const char* message)
+    configor_exception(const char* message)
         : std::runtime_error(message)
     {
     }
 
-    json_exception(const std::string& message)
+    configor_exception(const std::string& message)
         : std::runtime_error(message)
     {
     }
 };
 
-class json_type_error : public json_exception
+class configor_type_error : public configor_exception
 {
 public:
-    json_type_error(const std::string& message)
-        : json_exception("json type error: " + message)
+    configor_type_error(const std::string& message)
+        : configor_exception("config type error: " + message)
     {
     }
 };
 
-class json_invalid_key : public json_exception
+class configor_invalid_key : public configor_exception
 {
 public:
-    json_invalid_key(const std::string& message)
-        : json_exception("invalid json key error: " + message)
+    configor_invalid_key(const std::string& message)
+        : configor_exception("invalid config key error: " + message)
     {
     }
 };
 
-class json_invalid_iterator : public json_exception
+class configor_invalid_iterator : public configor_exception
 {
 public:
-    json_invalid_iterator(const std::string& message)
-        : json_exception("invalid json iterator error: " + message)
+    configor_invalid_iterator(const std::string& message)
+        : configor_exception("invalid config iterator error: " + message)
     {
     }
 };
 
-class json_deserialization_error : public json_exception
+class configor_deserialization_error : public configor_exception
 {
 public:
-    json_deserialization_error(const std::string& message)
-        : json_exception("json deserialization error: " + message)
+    configor_deserialization_error(const std::string& message)
+        : configor_exception("config deserialization error: " + message)
     {
     }
 };
 
-class json_serialization_error : public json_exception
+class configor_serialization_error : public configor_exception
 {
 public:
-    json_serialization_error(const std::string& message)
-        : json_exception("json serialization error: " + message)
+    configor_serialization_error(const std::string& message)
+        : configor_exception("config serialization error: " + message)
     {
     }
 };
@@ -146,7 +146,7 @@ public:
                 std::rethrow_exception(eptr);
             }
         }
-        catch (const json_exception& e)
+        catch (const configor_exception& e)
         {
             this->error = e.what();
         }
@@ -155,4 +155,4 @@ public:
     std::string error;
 };
 
-}  // namespace jsonxx
+}  // namespace configor

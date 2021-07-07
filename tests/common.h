@@ -5,9 +5,9 @@
 #include "ctype.h"
 
 #include <catch2/catch.hpp>
-#include <jsonxx/json.hpp>
+#include <configor/json.hpp>
 
-using namespace jsonxx;
+using namespace configor;
 
 #define COMBINE(A, B) A##B
 #define WIDE(STR) COMBINE(L, STR)
@@ -21,7 +21,17 @@ using namespace jsonxx;
 #define QUOTE_STR "\"我是地球🌍\""
 #define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
 
+struct u16json_template_args : json_template_args
+{
+    using char_type = char16_t;
+};
+
+struct u32json_template_args : json_template_args
+{
+    using char_type = char32_t;
+};
+
 // char16_t
-using u16json = jsonxx::basic_json<std::map, std::vector, std::u16string>;
+using u16json = configor::basic_config<u16json_template_args>;
 // char32_t
-using u32json = jsonxx::basic_json<std::map, std::vector, std::u32string>;
+using u32json = configor::basic_config<u32json_template_args>;

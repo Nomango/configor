@@ -12,14 +12,14 @@ struct Request
 {
     int user_id;
 
-    JSONXX_BIND(Request, user_id);
+    JSON_BIND(Request, user_id);
 };
 
 struct Response
 {
     std::shared_ptr<UserInfo> user_info;
 
-    JSONXX_BIND(Response, user_info);
+    JSON_BIND(Response, user_info);
 };
 
 // 获取用户信息接口

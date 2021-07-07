@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 jsonxx - Nomango
+// Copyright (c) 2018-2020 configor - Nomango
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,14 +19,15 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "json_exception.hpp"
-#include "json_stream.hpp"
+#include "configor_exception.hpp"
+#include "configor_stream.hpp"
 
-#include <cmath>   // std::fabs
-#include <limits>  // std::numeric_limits
-#include <memory>  // std::allocator_traits
+#include <cmath>    // std::fabs
+#include <limits>   // std::numeric_limits
+#include <memory>   // std::allocator_traits
+#include <utility>  // std::swap
 
-namespace jsonxx
+namespace configor
 {
 namespace detail
 {
@@ -37,11 +38,7 @@ bool nearly_equal(_Ty a, _Ty b)
 }
 }  // namespace detail
 
-//
-// json value type
-//
-
-enum class json_type
+enum class config_value_type
 {
     number_integer,
     number_float,
@@ -52,47 +49,47 @@ enum class json_type
     null,
 };
 
-namespace detail
-{
-
-inline const char* to_string(json_type t) noexcept
+inline const char* to_string(config_value_type t) noexcept
 {
     switch (t)
     {
-    case json_type::object:
+    case config_value_type::object:
         return "object";
-    case json_type::array:
+    case config_value_type::array:
         return "array";
-    case json_type::string:
+    case config_value_type::string:
         return "string";
-    case json_type::number_integer:
+    case config_value_type::number_integer:
         return "integer";
-    case json_type::number_float:
+    case config_value_type::number_float:
         return "float";
-    case json_type::boolean:
+    case config_value_type::boolean:
         return "boolean";
-    case json_type::null:
+    case config_value_type::null:
         return "null";
     }
     return "unknown";
 }
 
-//
-// json_value
-//
-
-template <typename _JsonTy>
-struct json_value
+namespace detail
 {
-    using string_type  = typename _JsonTy::string_type;
-    using char_type    = typename _JsonTy::char_type;
-    using integer_type = typename _JsonTy::integer_type;
-    using float_type   = typename _JsonTy::float_type;
-    using boolean_type = typename _JsonTy::boolean_type;
-    using array_type   = typename _JsonTy::array_type;
-    using object_type  = typename _JsonTy::object_type;
 
-    json_type type;
+//
+// config_value
+//
+
+template <typename _ConfTy>
+struct config_value
+{
+    using string_type  = typename _ConfTy::string_type;
+    using char_type    = typename _ConfTy::char_type;
+    using integer_type = typename _ConfTy::integer_type;
+    using float_type   = typename _ConfTy::float_type;
+    using boolean_type = typename _ConfTy::boolean_type;
+    using array_type   = typename _ConfTy::array_type;
+    using object_type  = typename _ConfTy::object_type;
+
+    config_value_type type;
     union
     {
         boolean_type boolean;
@@ -103,33 +100,33 @@ struct json_value
         array_type*  vector;
     } data;
 
-    json_value()
-        : type(json_type::null)
+    config_value()
+        : type(config_value_type::null)
         , data{}
     {
     }
 
-    json_value(const json_type value_type)
+    config_value(const config_value_type t)
     {
-        type = value_type;
+        type = t;
         switch (type)
         {
-        case json_type::object:
+        case config_value_type::object:
             data.object = create<object_type>();
             break;
-        case json_type::array:
+        case config_value_type::array:
             data.vector = create<array_type>();
             break;
-        case json_type::string:
+        case config_value_type::string:
             data.string = create<string_type>();
             break;
-        case json_type::number_integer:
+        case config_value_type::number_integer:
             data.number_integer = integer_type(0);
             break;
-        case json_type::number_float:
+        case config_value_type::number_float:
             data.number_float = float_type(0.0);
             break;
-        case json_type::boolean:
+        case config_value_type::boolean:
             data.boolean = boolean_type(false);
             break;
         default:
@@ -137,28 +134,28 @@ struct json_value
         }
     }
 
-    json_value(json_value const& other)
+    config_value(config_value const& other)
     {
         type = other.type;
 
         switch (other.type)
         {
-        case json_type::object:
+        case config_value_type::object:
             data.object = create<object_type>(*other.data.object);
             break;
-        case json_type::array:
+        case config_value_type::array:
             data.vector = create<array_type>(*other.data.vector);
             break;
-        case json_type::string:
+        case config_value_type::string:
             data.string = create<string_type>(*other.data.string);
             break;
-        case json_type::number_integer:
+        case config_value_type::number_integer:
             data.number_integer = other.data.number_integer;
             break;
-        case json_type::number_float:
+        case config_value_type::number_float:
             data.number_float = other.data.number_float;
             break;
-        case json_type::boolean:
+        case config_value_type::boolean:
             data.boolean = other.data.boolean;
             break;
         default:
@@ -167,20 +164,20 @@ struct json_value
         }
     }
 
-    json_value(json_value&& other)
+    config_value(config_value&& other)
     {
         type              = other.type;
         data              = other.data;
-        other.type        = json_type::null;
+        other.type        = config_value_type::null;
         other.data.object = nullptr;
     }
 
-    ~json_value()
+    ~config_value()
     {
         clear();
     }
 
-    void swap(json_value& other)
+    void swap(config_value& other)
     {
         std::swap(type, other.type);
         std::swap(data, other.data);
@@ -190,13 +187,13 @@ struct json_value
     {
         switch (type)
         {
-        case json_type::object:
+        case config_value_type::object:
             destroy<object_type>(data.object);
             break;
-        case json_type::array:
+        case config_value_type::array:
             destroy<array_type>(data.vector);
             break;
-        case json_type::string:
+        case config_value_type::string:
             destroy<string_type>(data.string);
             break;
         default:
@@ -207,11 +204,12 @@ struct json_value
     template <typename _Ty, typename... _Args>
     inline _Ty* create(_Args&&... args)
     {
-        using allocator_type   = typename _JsonTy::template allocator_type<_Ty>;
+        using allocator_type   = typename _ConfTy::template allocator_type<_Ty>;
         using allocator_traits = std::allocator_traits<allocator_type>;
 
         allocator_type allocator;
-        _Ty*           ptr = allocator_traits::allocate(allocator, 1);
+
+        _Ty* ptr = allocator_traits::allocate(allocator, 1);
         allocator_traits::construct(allocator, ptr, std::forward<_Args>(args)...);
         return ptr;
     }
@@ -219,7 +217,7 @@ struct json_value
     template <typename _Ty>
     inline void destroy(_Ty* ptr)
     {
-        using allocator_type   = typename _JsonTy::template allocator_type<_Ty>;
+        using allocator_type   = typename _ConfTy::template allocator_type<_Ty>;
         using allocator_traits = std::allocator_traits<allocator_type>;
 
         allocator_type allocator;
@@ -227,59 +225,59 @@ struct json_value
         allocator_traits::deallocate(allocator, ptr, 1);
     }
 
-    inline json_value& operator=(json_value const& other)
+    inline config_value& operator=(config_value const& other)
     {
-        json_value{ other }.swap(*this);
+        config_value{ other }.swap(*this);
         return (*this);
     }
 
-    inline json_value& operator=(json_value&& other)
+    inline config_value& operator=(config_value&& other)
     {
         clear();
         type = other.type;
         data = std::move(other.data);
         // invalidate payload
-        other.type        = json_type::null;
+        other.type        = config_value_type::null;
         other.data.object = nullptr;
         return (*this);
     }
 
-    friend bool operator==(const json_value& lhs, const json_value& rhs)
+    friend bool operator==(const config_value& lhs, const config_value& rhs)
     {
         if (lhs.type == rhs.type)
         {
             switch (lhs.type)
             {
-            case json_type::array:
+            case config_value_type::array:
                 return (*lhs.data.vector == *rhs.data.vector);
 
-            case json_type::object:
+            case config_value_type::object:
                 return (*lhs.data.object == *rhs.data.object);
 
-            case json_type::null:
+            case config_value_type::null:
                 return true;
 
-            case json_type::string:
+            case config_value_type::string:
                 return (*lhs.data.string == *rhs.data.string);
 
-            case json_type::boolean:
+            case config_value_type::boolean:
                 return (lhs.data.boolean == rhs.data.boolean);
 
-            case json_type::number_integer:
+            case config_value_type::number_integer:
                 return (lhs.data.number_integer == rhs.data.number_integer);
 
-            case json_type::number_float:
+            case config_value_type::number_float:
                 return detail::nearly_equal(lhs.data.number_float, rhs.data.number_float);
 
             default:
                 return false;
             }
         }
-        else if (lhs.type == json_type::number_integer && rhs.type == json_type::number_float)
+        else if (lhs.type == config_value_type::number_integer && rhs.type == config_value_type::number_float)
         {
             return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer), rhs.data.number_float);
         }
-        else if (lhs.type == json_type::number_float && rhs.type == json_type::number_integer)
+        else if (lhs.type == config_value_type::number_float && rhs.type == config_value_type::number_integer)
         {
             return detail::nearly_equal<float_type>(lhs.data.number_float, static_cast<float_type>(rhs.data.number_integer));
         }
@@ -289,13 +287,13 @@ struct json_value
 
 namespace
 {
-inline json_type_error make_conversion_error(json_type t, json_type want)
+inline configor_type_error make_conversion_error(config_value_type t, config_value_type want)
 {
     fast_ostringstream ss;
     ss << "cannot convert type '" << to_string(t) << "' to type '" << to_string(want) << "' (implicitly)";
-    return json_type_error(ss.str());
+    return configor_type_error(ss.str());
 }
 }  // namespace
 }  // namespace detail
 
-}  // namespace jsonxx
+}  // namespace configor

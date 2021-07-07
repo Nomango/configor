@@ -58,11 +58,11 @@ TEST_CASE_METHOD(SerializerTest, "test_dump")
     CHECK(json("\t\r\n\b\f\"\\").dump() == "\"\\t\\r\\n\\b\\f\\\"\\\\\"");
 
     // invalid unicode
-    CHECK_THROWS_AS(json("\xC0").dump(), json_serialization_error);
+    CHECK_THROWS_AS(json("\xC0").dump(), configor_serialization_error);
 
     // test error policy
     error_handler_with<error_policy::strict> strict_handler{};
-    CHECK_THROWS_AS(json("\xC0").dump(json::dump_args{}, &strict_handler), json_serialization_error);
+    CHECK_THROWS_AS(json("\xC0").dump(json::dump_args{}, &strict_handler), configor_serialization_error);
 
     error_handler_with<error_policy::ignore> ignore_handler{};
     CHECK_NOTHROW(json("\xC0").dump(json::dump_args{}, &ignore_handler));

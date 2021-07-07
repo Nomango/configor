@@ -73,34 +73,34 @@ TEST_CASE_METHOD(BasicJsonTest, "test_numeric_type")
         CHECK(j.get<NUMERIC_TYPE>() == static_cast<NUMERIC_TYPE>(EXPECT_VALUE)); \
     }
 
-#define TEST_INTEGER_COMPATIBLE(INT_TYPE)                  \
-    {                                                      \
-        auto i = INT_TYPE(123);                            \
-        json j = i;                                        \
-        CHECK(j.is_integer());                             \
-        CHECK_FALSE(j.is_float());                         \
-        CHECK(j.is_number());                              \
-        TEST_NUMERIC_GET_VALUE(j, int8_t, i);              \
-        TEST_NUMERIC_GET_VALUE(j, int16_t, i);             \
-        TEST_NUMERIC_GET_VALUE(j, int32_t, i);             \
-        TEST_NUMERIC_GET_VALUE(j, int64_t, i);             \
-        TEST_NUMERIC_GET_VALUE(j, uint8_t, i);             \
-        TEST_NUMERIC_GET_VALUE(j, uint16_t, i);            \
-        TEST_NUMERIC_GET_VALUE(j, uint32_t, i);            \
-        TEST_NUMERIC_GET_VALUE(j, uint64_t, i);            \
-        CHECK_THROWS_AS(j.get<double>(), json_type_error); \
+#define TEST_INTEGER_COMPATIBLE(INT_TYPE)                      \
+    {                                                          \
+        auto i = INT_TYPE(123);                                \
+        json j = i;                                            \
+        CHECK(j.is_integer());                                 \
+        CHECK_FALSE(j.is_float());                             \
+        CHECK(j.is_number());                                  \
+        TEST_NUMERIC_GET_VALUE(j, int8_t, i);                  \
+        TEST_NUMERIC_GET_VALUE(j, int16_t, i);                 \
+        TEST_NUMERIC_GET_VALUE(j, int32_t, i);                 \
+        TEST_NUMERIC_GET_VALUE(j, int64_t, i);                 \
+        TEST_NUMERIC_GET_VALUE(j, uint8_t, i);                 \
+        TEST_NUMERIC_GET_VALUE(j, uint16_t, i);                \
+        TEST_NUMERIC_GET_VALUE(j, uint32_t, i);                \
+        TEST_NUMERIC_GET_VALUE(j, uint64_t, i);                \
+        CHECK_THROWS_AS(j.get<double>(), configor_type_error); \
     }
 
-#define TEST_FLOAT_COMPATIBLE(FLOAT_TYPE)                   \
-    {                                                       \
-        auto i = FLOAT_TYPE(123.0);                         \
-        json j = i;                                         \
-        CHECK_FALSE(j.is_integer());                        \
-        CHECK(j.is_float());                                \
-        CHECK(j.is_number());                               \
-        TEST_NUMERIC_GET_VALUE(j, float, i);                \
-        TEST_NUMERIC_GET_VALUE(j, double, i);               \
-        CHECK_THROWS_AS(j.get<int64_t>(), json_type_error); \
+#define TEST_FLOAT_COMPATIBLE(FLOAT_TYPE)                       \
+    {                                                           \
+        auto i = FLOAT_TYPE(123.0);                             \
+        json j = i;                                             \
+        CHECK_FALSE(j.is_integer());                            \
+        CHECK(j.is_float());                                    \
+        CHECK(j.is_number());                                   \
+        TEST_NUMERIC_GET_VALUE(j, float, i);                    \
+        TEST_NUMERIC_GET_VALUE(j, double, i);                   \
+        CHECK_THROWS_AS(j.get<int64_t>(), configor_type_error); \
     }
 
     TEST_INTEGER_COMPATIBLE(int8_t);
@@ -183,15 +183,15 @@ TEST_CASE("test_basic_json")
         CHECK_NOTHROW(json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } }));
 
         // not an object
-        CHECK_THROWS_AS(json::object({ { "1", 1 }, { "" } }), json_type_error);
-        CHECK_THROWS_AS(json::object({ { 1, "" } }), json_type_error);
+        CHECK_THROWS_AS(json::object({ { "1", 1 }, { "" } }), configor_type_error);
+        CHECK_THROWS_AS(json::object({ { 1, "" } }), configor_type_error);
 
         json j  = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
         json j2 = j;
         CHECK(j == j2);
 
-        CHECK_THROWS_AS(j[0], json_invalid_key);
-        CHECK_THROWS_AS(const_cast<const json&>(j)[0], json_invalid_key);
+        CHECK_THROWS_AS(j[0], configor_invalid_key);
+        CHECK_THROWS_AS(const_cast<const json&>(j)[0], configor_invalid_key);
         CHECK_THROWS_AS(const_cast<const json&>(j)["missing"], std::out_of_range);
     }
 
@@ -205,8 +205,8 @@ TEST_CASE("test_basic_json")
         CHECK(j.size() == 1);
         CHECK(j[0].is_array());
 
-        CHECK_THROWS_AS(j["test"], json_invalid_key);
-        CHECK_THROWS_AS(const_cast<const json&>(j)["test"], json_invalid_key);
+        CHECK_THROWS_AS(j["test"], configor_invalid_key);
+        CHECK_THROWS_AS(const_cast<const json&>(j)["test"], configor_invalid_key);
         CHECK_THROWS_AS(const_cast<const json&>(j)[1], std::out_of_range);
     }
 
@@ -243,31 +243,31 @@ TEST_CASE("test_basic_json")
         json j;
         // string
         j = "string";
-        CHECK(j.type() == json_type::string);
+        CHECK(j.type() == config_value_type::string);
         CHECK_THAT(j.type_name(), Equals("string"));
         // integer
         j = 100;
-        CHECK(j.type() == json_type::number_integer);
+        CHECK(j.type() == config_value_type::number_integer);
         CHECK_THAT(j.type_name(), Equals("integer"));
         // floating
         j = 100.0;
-        CHECK(j.type() == json_type::number_float);
+        CHECK(j.type() == config_value_type::number_float);
         CHECK_THAT(j.type_name(), Equals("float"));
         // boolean
         j = true;
-        CHECK(j.type() == json_type::boolean);
+        CHECK(j.type() == config_value_type::boolean);
         CHECK_THAT(j.type_name(), Equals("boolean"));
         // null
         j = nullptr;
-        CHECK(j.type() == json_type::null);
+        CHECK(j.type() == config_value_type::null);
         CHECK_THAT(j.type_name(), Equals("null"));
         // array
         j = json::array({ 1, 2, 3 });
-        CHECK(j.type() == json_type::array);
+        CHECK(j.type() == config_value_type::array);
         CHECK_THAT(j.type_name(), Equals("array"));
         // object
         j = json::object({ { "1", 1 }, { "2", 2 } });
-        CHECK(j.type() == json_type::object);
+        CHECK(j.type() == config_value_type::object);
         CHECK_THAT(j.type_name(), Equals("object"));
     }
 
@@ -316,31 +316,31 @@ TEST_CASE("test_basic_json")
     {
         json j;
 
-        CHECK_NOTHROW(j = json_type::null);
-        CHECK(j.type() == json_type::null);
+        CHECK_NOTHROW(j = config_value_type::null);
+        CHECK(j.type() == config_value_type::null);
 
-        CHECK_NOTHROW(j = json_type::boolean);
-        CHECK(j.type() == json_type::boolean);
+        CHECK_NOTHROW(j = config_value_type::boolean);
+        CHECK(j.type() == config_value_type::boolean);
         CHECK_FALSE(j.get<bool>());
 
-        CHECK_NOTHROW(j = json_type::number_integer);
-        CHECK(j.type() == json_type::number_integer);
+        CHECK_NOTHROW(j = config_value_type::number_integer);
+        CHECK(j.type() == config_value_type::number_integer);
         CHECK(j.get<json::integer_type>() == 0);
 
-        CHECK_NOTHROW(j = json_type::number_float);
-        CHECK(j.type() == json_type::number_float);
+        CHECK_NOTHROW(j = config_value_type::number_float);
+        CHECK(j.type() == config_value_type::number_float);
         CHECK(j.get<json::float_type>() == 0.0);
 
-        CHECK_NOTHROW(j = json_type::string);
-        CHECK(j.type() == json_type::string);
+        CHECK_NOTHROW(j = config_value_type::string);
+        CHECK(j.type() == config_value_type::string);
         CHECK(j.get<json::string_type>() == std::string{});
 
-        CHECK_NOTHROW(j = json_type::array);
-        CHECK(j.type() == json_type::array);
+        CHECK_NOTHROW(j = config_value_type::array);
+        CHECK(j.type() == config_value_type::array);
         CHECK(j.get<json::array_type>() == json::array_type{});
 
-        CHECK_NOTHROW(j = json_type::object);
-        CHECK(j.type() == json_type::object);
+        CHECK_NOTHROW(j = config_value_type::object);
+        CHECK(j.type() == config_value_type::object);
         CHECK(j.get<json::object_type>() == json::object_type{});
     }
 }
