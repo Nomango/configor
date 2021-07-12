@@ -2,6 +2,7 @@
 
 # configor
 
+[![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/Nomango/configor)
 [![Github status](https://github.com/Nomango/configor/actions/workflows/unit_tests.yml/badge.svg?branch=master)](https://github.com/Nomango/configor/actions)
 [![codecov](https://codecov.io/gh/Nomango/configor/branch/master/graph/badge.svg?token=OO71U89I5N)](https://codecov.io/gh/Nomango/configor)
 [![GitHub release](https://img.shields.io/github/release/nomango/configor)](https://github.com/Nomango/configor/releases/latest)
