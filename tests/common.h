@@ -21,17 +21,17 @@ using namespace configor;
 #define QUOTE_STR "\"我是地球🌍\""
 #define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
 
-struct u16json_template_args : json_template_args
+struct u16json_args : json_args
 {
     using char_type = char16_t;
 };
 
-struct u32json_template_args : json_template_args
+struct u32json_args : json_args
 {
     using char_type = char32_t;
 };
 
 // char16_t
-using u16json = configor::basic_config<u16json_template_args>;
+using u16json = configor::basic_config<u16json_args>;
 // char32_t
-using u32json = configor::basic_config<u32json_template_args>;
+using u32json = configor::basic_config<u32json_args>;

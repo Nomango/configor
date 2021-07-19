@@ -35,7 +35,7 @@ template <typename _ConfTy>
 class json_serializer;
 }  // namespace detail
 
-struct json_template_args : template_args
+struct json_args : config_args
 {
     template <typename _ConfTy>
     using lexer_type = detail::json_lexer<_ConfTy>;
@@ -44,13 +44,13 @@ struct json_template_args : template_args
     using serializer_type = detail::json_serializer<_ConfTy>;
 };
 
-struct wjson_template_args : json_template_args
+struct wjson_args : json_args
 {
     using char_type = wchar_t;
 };
 
-using json  = basic_config<json_template_args>;
-using wjson = basic_config<wjson_template_args>;
+using json  = basic_config<json_args>;
+using wjson = basic_config<wjson_args>;
 
 // type traits
 

@@ -272,20 +272,20 @@ std::wstring str = j[L"name"].as_string();  // L"中文测试"
 
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
 ```cpp
-struct u16json_template_args : json_template_args
+struct u16json_args : json_args
 {
     using char_type = char16_t;
 };
 
-struct u32json_template_args : json_template_args
+struct u32json_args : json_args
 {
     using char_type = char32_t;
 };
 
 // char16_t
-using u16json = configor::basic_config<u16json_template_args>;
+using u16json = configor::basic_config<u16json_args>;
 // char32_t
-using u32json = configor::basic_config<u32json_template_args>;
+using u32json = configor::basic_config<u32json_args>;
 ```
 
 > 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。
