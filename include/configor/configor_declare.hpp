@@ -89,7 +89,7 @@ struct get_last<_Ty>
 // forward declare
 //
 
-struct template_args
+struct config_args
 {
     using boolean_type = bool;
 
@@ -121,12 +121,12 @@ struct template_args
     using serializer_type = typename detail::always_void<_ConfTy>::type;
 };
 
-struct template_wargs : template_args
+struct wconfig_args : config_args
 {
     using char_type = wchar_t;
 };
 
-template <typename _Args = template_args>
+template <typename _Args = config_args>
 class basic_config;
 
 //
