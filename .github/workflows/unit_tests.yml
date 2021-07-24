@@ -84,6 +84,9 @@ jobs:
             clang_version: 11
           - compiler: clang++-12
             clang_version: 12
+        exclude: # FIXME
+          - os: ubuntu-20.04
+            compiler: clang++-12
     steps:
     - uses: actions/checkout@v2
     - name: Install LLVM and Clang
