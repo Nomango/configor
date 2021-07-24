@@ -37,7 +37,21 @@
 using namespace configor;
 ```
 
-### 使用介绍
+### 目录
+
+- [快速入门](#快速入门)
+  - [取值方式](#取值方式)
+  - [常用方法和运算符](#常用方法和运算符)
+- 序列化与反序列化
+  - [序列化](#序列化)
+  - [反序列化](#反序列化)
+  - [Unicode与多编码支持](#Unicode与多编码支持)
+  - [与自定义类型转换](#与自定义类型转换)
+- [示例代码](#示例代码)
+- [更多](#更多)
+- [计划](#计划)
+
+### 快速上手
 
 - 引入 configor 头文件
 
@@ -95,6 +109,8 @@ json obj2 = {
 json arr = json::array({ 1 });
 json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
 ```
+
+### 取值方式
 
 - 判断 JSON 对象的值类型
 
@@ -179,7 +195,27 @@ MyObject myObj = (MyObject)j;
 MyObject myObj = j;
 ```
 
-- JSON 对象的比较操作符
+### 常用方法和运算符
+
+- size & empty & clear & count & ...
+
+```cpp
+json arr = json::array({ 1, 2, 3 });
+arr.size();    // 3
+arr.empty();   // false
+arr.erase(0);  // 第一个元素被删除
+arr.clear();
+
+json obj = json::object({ { "one", 1 }, { "two", 2 } });
+obj.size();            // 2
+arr.empty();           // false
+arr.count("one");      // 1
+arr.count("missing");  // 0
+arr.erase("one");      // one 被删除
+arr.clear();
+```
+
+- 比较运算符
 
 ```cpp
 j["boolean"] == true
@@ -205,7 +241,9 @@ for (auto iter = obj.begin(); iter != obj.end(); iter++) {
 }
 ```
 
-- JSON 序列化
+### 序列化
+
+- 序列化为字符串
 
 ```cpp
 // 序列化为字符串
@@ -214,8 +252,9 @@ std::string json_str = j.dump();
 std::string pretty_str = j.dump(4, ' ');
 ```
 
+- 序列化到文件
+
 ```cpp
-// 将 JSON 内容输出到文件
 std::ofstream ofs("output.json");
 ofs << j << std::endl;
 ```
@@ -226,34 +265,38 @@ std::ofstream ofs("pretty.json");
 ofs << std::setw(4) << j << std::endl;
 ```
 
+- 序列化到输出流
+
 ```cpp
-// 将 JSON 内容输出到标准输出流
 json j;
 std::cout << j;    // 可以使用 std::setw(4) 对输出内容美化
 ```
 
-- JSON 反序列化
+### 反序列化
+
+- 从字符串中解析
 
 ```cpp
-// 解析字符串
 json j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
 ```
 
+- 从文件中读取
+
 ```cpp
-// 从文件读取 JSON
 std::ifstream ifs("sample.json");
 
 json j;
 ifs >> j;
 ```
 
+- 从用户输入中读取
+
 ```cpp
-// 从标准输入流读取 JSON
 json j;
 std::cin >> j;
 ```
 
-- Unicode 与多编码支持
+### Unicode与多编码支持
 
 configor 具有完备的 unicode 支持，同时对不同平台的不同字符类型进行了支持。
 
@@ -292,7 +335,9 @@ using u32json = configor::basic_config<u32json_args>;
 > 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。
 > 对于 Clang 编译器来说，您可能需要自己实现 std::ctype<char16_t> 和 std::ctype<char32_t> 才能让 configor 正常工作。
 
-- JSON 与任意类型的转换
+### 与自定义类型转换
+
+- 将自定义类型与 JSON 绑定
 
 configor 提供了 `JSON_BIND` 宏，可以用一行代码快速完成 json 绑定：
 
@@ -368,7 +413,7 @@ struct configor::config_bind<User>
 };
 ```
 
-- 任意类型的序列化与反序列化
+- 将自定义类型以 JSON 格式与输入输出流交互
 
 使用 json_wrap 函数可以让任意类型实现序列化与反序列化，并与输入输出流交互
 
