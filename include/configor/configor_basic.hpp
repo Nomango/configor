@@ -320,13 +320,13 @@ public:
         {
         case config_value_type::object:
         {
-            result.it_.object_iter = value_.data.object->erase(pos.it_.object_iter);
+            result.object_it_ = value_.data.object->erase(pos.object_it_);
             break;
         }
 
         case config_value_type::array:
         {
-            result.it_.array_iter = value_.data.vector->erase(pos.it_.array_iter);
+            result.array_it_ = value_.data.vector->erase(pos.array_it_);
             break;
         }
 
