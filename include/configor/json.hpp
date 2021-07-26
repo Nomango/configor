@@ -225,7 +225,7 @@ public:
         bool check_document = false;  // only allow object or array type
     };
 
-    json_lexer(const args& args)
+    explicit json_lexer(const args& args)
         : is_(nullptr)
         , is_negative_(false)
         , number_integer_(0)
@@ -735,7 +735,7 @@ public:
         int          precision      = std::numeric_limits<float_type>::digits10 + 1;
     };
 
-    json_serializer(const args& args)
+    explicit json_serializer(const args& args)
         : os_(nullptr)
         , object_or_array_began_(false)
         , pretty_print_(args.indent > 0)
