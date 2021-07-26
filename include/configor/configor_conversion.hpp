@@ -484,7 +484,7 @@ class read_configor_wrapper
 public:
     using char_type = typename _ConfTy::char_type;
 
-    read_configor_wrapper(const _Ty& v)
+    explicit read_configor_wrapper(const _Ty& v)
         : v_(v)
     {
     }
@@ -505,7 +505,7 @@ class write_configor_wrapper : public read_configor_wrapper<_Ty, _ConfTy>
 public:
     using char_type = typename _ConfTy::char_type;
 
-    write_configor_wrapper(_Ty& v)
+    explicit write_configor_wrapper(_Ty& v)
         : read_configor_wrapper<_Ty, _ConfTy>(v)
         , v_(v)
     {

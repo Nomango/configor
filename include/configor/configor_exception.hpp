@@ -37,12 +37,12 @@ namespace configor
 class configor_exception : public std::runtime_error
 {
 public:
-    configor_exception(const char* message)
+    explicit configor_exception(const char* message)
         : std::runtime_error(message)
     {
     }
 
-    configor_exception(const std::string& message)
+    explicit configor_exception(const std::string& message)
         : std::runtime_error(message)
     {
     }
@@ -51,7 +51,7 @@ public:
 class configor_type_error : public configor_exception
 {
 public:
-    configor_type_error(const std::string& message)
+    explicit configor_type_error(const std::string& message)
         : configor_exception("config type error: " + message)
     {
     }
@@ -60,7 +60,7 @@ public:
 class configor_invalid_key : public configor_exception
 {
 public:
-    configor_invalid_key(const std::string& message)
+    explicit configor_invalid_key(const std::string& message)
         : configor_exception("invalid config key error: " + message)
     {
     }
@@ -69,7 +69,7 @@ public:
 class configor_invalid_iterator : public configor_exception
 {
 public:
-    configor_invalid_iterator(const std::string& message)
+    explicit configor_invalid_iterator(const std::string& message)
         : configor_exception("invalid config iterator error: " + message)
     {
     }
@@ -78,7 +78,7 @@ public:
 class configor_deserialization_error : public configor_exception
 {
 public:
-    configor_deserialization_error(const std::string& message)
+    explicit configor_deserialization_error(const std::string& message)
         : configor_exception("config deserialization error: " + message)
     {
     }
@@ -87,7 +87,7 @@ public:
 class configor_serialization_error : public configor_exception
 {
 public:
-    configor_serialization_error(const std::string& message)
+    explicit configor_serialization_error(const std::string& message)
         : configor_exception("config serialization error: " + message)
     {
     }

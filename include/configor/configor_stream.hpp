@@ -67,7 +67,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using int_type    = typename char_traits::int_type;
 
-    basic_oadapterstream(basic_oadapter<char_type>& adapter)
+    explicit basic_oadapterstream(basic_oadapter<char_type>& adapter)
         : std::basic_ostream<char_type>(nullptr)
         , buf_(adapter)
     {
@@ -78,7 +78,7 @@ private:
     class streambuf : public std::basic_streambuf<char_type>
     {
     public:
-        streambuf(basic_oadapter<char_type>& adapter)
+        explicit streambuf(basic_oadapter<char_type>& adapter)
             : adapter_(adapter)
         {
         }
@@ -142,7 +142,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using int_type    = typename char_traits::int_type;
 
-    basic_iadapterstream(basic_iadapter<char_type>& adapter)
+    explicit basic_iadapterstream(basic_iadapter<char_type>& adapter)
         : std::basic_istream<_CharTy>(nullptr)
         , buf_(adapter)
     {
@@ -153,7 +153,7 @@ private:
     class streambuf : public std::basic_streambuf<_CharTy>
     {
     public:
-        streambuf(basic_iadapter<char_type>& adapter)
+        explicit streambuf(basic_iadapter<char_type>& adapter)
             : adapter_(adapter)
             , last_char_(0)
         {
@@ -216,7 +216,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_string_ostreambuf(string_type& str)
+    explicit fast_string_ostreambuf(string_type& str)
         : str_(str)
     {
     }
@@ -254,7 +254,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_string_istreambuf(const string_type& str)
+    explicit fast_string_istreambuf(const string_type& str)
         : str_(str)
         , index_(0)
     {
@@ -295,7 +295,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_buffer_istreambuf(const char_type* buffer)
+    explicit fast_buffer_istreambuf(const char_type* buffer)
         : buffer_(buffer)
         , index_(0)
         , size_(char_traits::length(buffer))
@@ -345,7 +345,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_cfile_istreambuf(std::FILE* file)
+    explicit fast_cfile_istreambuf(std::FILE* file)
         : file_(file)
         , last_char_(0)
     {
@@ -388,7 +388,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_cfile_istreambuf(std::FILE* file)
+    explicit fast_cfile_istreambuf(std::FILE* file)
         : file_(file)
         , last_char_(0)
     {
@@ -434,7 +434,7 @@ public:
     using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
-    fast_basic_ostringstream()
+    explicit fast_basic_ostringstream()
         : std::basic_ostream<char_type>(nullptr)
         , str_()
         , buf_(str_)
