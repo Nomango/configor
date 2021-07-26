@@ -75,18 +75,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-20.04 ]
-        compiler: [ clang++-10, clang++-11, clang++-12 ]
+        compiler: [ clang++-10, clang++-11 ] #, clang++-12 ]
         build_type: [ Debug ]
         include:
           - compiler: clang++-10
             clang_version: 10
           - compiler: clang++-11
             clang_version: 11
-          - compiler: clang++-12
-            clang_version: 12
-        exclude: # FIXME
-          - os: ubuntu-20.04
-            compiler: clang++-12
+          # - compiler: clang++-12
+          #   clang_version: 12
     steps:
     - uses: actions/checkout@v2
     - name: Install LLVM and Clang
