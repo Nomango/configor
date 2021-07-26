@@ -304,50 +304,6 @@ TEST_CASE("test_basic_json")
         CHECK(j.size() == 0);
     }
 
-    SECTION("test_method_erase")
-    {
-        json j;
-        // string
-        j = "string";
-        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
-        // integer
-        j = 100;
-        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
-        // floating
-        j = 100.0;
-        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
-        // boolean
-        j = true;
-        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
-        // null
-        j = nullptr;
-        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
-        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
-        // array
-        j = json::array({ 1, 2, 3 });
-        CHECK_NOTHROW(j.erase(0));
-        CHECK(j == json::array({ 2, 3 }));
-        CHECK_NOTHROW(j.erase(j.begin()));
-        CHECK(j == json::array({ 3 }));
-        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
-        // object
-        j = json::object({ { "1", 1 }, { "2", 2 } });
-        CHECK_NOTHROW(j.erase("1"));
-        CHECK(j == json::object({ { "2", 2 } }));
-        CHECK_NOTHROW(j.erase(j.begin()));
-        CHECK(j == json::object({}));
-        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
-    }
-
     SECTION("test_int64")
     {
         // issue 12

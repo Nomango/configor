@@ -26,6 +26,10 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(j.begin(), j.end()) == j.size());
         CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
+
+        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
     }
 
     SECTION("integer")
@@ -50,6 +54,10 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(j.begin(), j.end()) == j.size());
         CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
+
+        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
     }
 
     SECTION("double")
@@ -74,6 +82,10 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(j.begin(), j.end()) == j.size());
         CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
+
+        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
     }
 
     SECTION("boolean")
@@ -98,6 +110,10 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(j.begin(), j.end()) == j.size());
         CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
+
+        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
     }
 
     SECTION("null")
@@ -120,6 +136,10 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(j.begin(), j.end()) == j.size());
         CHECK(std::distance(j.rbegin(), j.rend()) == j.size());
+
+        CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
+        CHECK_THROWS_AS(j.erase(j.begin()), configor_invalid_iterator);
     }
 
     SECTION("object")
@@ -144,6 +164,37 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(obj.begin(), obj.end()) == obj.size());
         CHECK(std::distance(obj.rbegin(), obj.rend()) == obj.size());
+
+
+        {
+            json j = json::object({ { "1", 1 }, { "2", 2 } });
+            CHECK_NOTHROW(j.erase("1"));
+            CHECK(j == json::object({ { "2", 2 } }));
+        }
+        {
+            json j = json::object({ { "1", 1 }, { "2", 2 } });
+            CHECK_NOTHROW(j.erase(j.begin()));
+            CHECK(j == json::object({ { "2", 2 } }));
+        }
+        {
+            json j = json::object({ { "1", 1 }, { "2", 2 } });
+            CHECK_NOTHROW(j.erase(j.begin(), j.end()));
+            CHECK(j == json::object({}));
+        }
+        {
+            json j = json::object({ { "1", 1 }, { "2", 2 } });
+            CHECK_NOTHROW(j.erase(j.find("1")));
+            CHECK(j == json::object({ { "2", 2 } }));
+        }
+        {
+            json j = json::object({ { "1", 1 }, { "2", 2 } });
+            CHECK_NOTHROW(j.erase(const_cast<const json&>(j).find("1")));
+            CHECK(j == json::object({ { "2", 2 } }));
+        }
+        {
+            json j = json::object({});
+            CHECK_THROWS_AS(j.erase(0), configor_invalid_key);
+        }
     }
 
     SECTION("array")
@@ -177,6 +228,26 @@ TEST_CASE("test_iterator")
 
         CHECK(std::distance(arr.begin(), arr.end()) == arr.size());
         CHECK(std::distance(arr.rbegin(), arr.rend()) == arr.size());
+
+        {
+            json j = json::array({ 1, 2, 3 });
+            CHECK_NOTHROW(j.erase(0));
+            CHECK(j == json::array({ 2, 3 }));
+        }
+        {
+            json j = json::array({ 1, 2, 3 });
+            CHECK_NOTHROW(j.erase(j.begin()));
+            CHECK(j == json::array({ 2, 3 }));
+        }
+        {
+            json j = json::array({ 1, 2, 3 });
+            CHECK_NOTHROW(j.erase(j.begin(), j.end()));
+            CHECK(j == json::array({}));
+        }
+        {
+            json j = json::array({});
+            CHECK_THROWS_AS(j.erase(""), configor_invalid_key);
+        }
     }
 
     SECTION("others")

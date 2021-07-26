@@ -275,22 +275,31 @@ public:
         return false;
     }
 
-    template <typename _Kty>
-    inline const_iterator find(_Kty&& key) const
+    inline iterator find(const typename object_type::key_type& key)
+    {
+        if (is_object())
+        {
+            iterator iter(this);
+            iter.object_it_ = value_.data.object->find(key);
+            return iter;
+        }
+        return end();
+    }
+
+    inline const_iterator find(const typename object_type::key_type& key) const
     {
         if (is_object())
         {
             const_iterator iter(this);
-            iter.object_it_ = value_.data.object->find(std::forward<_Kty>(key));
+            iter.object_it_ = value_.data.object->find(key);
             return iter;
         }
         return cend();
     }
 
-    template <typename _Kty>
-    inline size_type count(_Kty&& key) const
+    inline size_type count(const typename object_type::key_type& key) const
     {
-        return is_object() ? value_.data.object->count(std::forward<_Kty>(key)) : 0;
+        return is_object() ? value_.data.object->count(key) : 0;
     }
 
     inline size_type erase(const typename object_type::key_type& key)
@@ -312,7 +321,7 @@ public:
     }
 
     template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
-    inline _IterTy erase(_IterTy pos)
+    _IterTy erase(_IterTy pos)
     {
         _IterTy result = end();
 
@@ -333,7 +342,6 @@ public:
         default:
             throw configor_invalid_iterator("cannot use erase() with non-object & non-array value");
         }
-
         return result;
     }
 
@@ -346,20 +354,19 @@ public:
         {
         case config_value_type::object:
         {
-            result.it_.object_iter = value_.data.object->erase(first.it_.object_iter, last.it_.object_iter);
+            result.object_it_ = value_.data.object->erase(first.object_it_, last.object_it_);
             break;
         }
 
         case config_value_type::array:
         {
-            result.it_.array_iter = value_.data.vector->erase(first.it_.array_iter, last.it_.array_iter);
+            result.array_it_ = value_.data.vector->erase(first.array_it_, last.array_it_);
             break;
         }
 
         default:
             throw configor_invalid_iterator("cannot use erase() with non-object & non-array value");
         }
-
         return result;
     }
 
