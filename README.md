@@ -4,6 +4,7 @@
 
 [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/Nomango/configor)
 [![Github status](https://github.com/Nomango/configor/actions/workflows/unit_tests.yml/badge.svg?branch=master)](https://github.com/Nomango/configor/actions)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/cf98f6b174fe4dd19f1e4574ac527a07)](https://www.codacy.com/gh/Nomango/configor/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Nomango/configor&amp;utm_campaign=Badge_Grade)
 [![codecov](https://codecov.io/gh/Nomango/configor/branch/master/graph/badge.svg?token=OO71U89I5N)](https://codecov.io/gh/Nomango/configor)
 [![GitHub release](https://img.shields.io/github/release/nomango/configor)](https://github.com/Nomango/configor/releases/latest)
 [![GitHub license](https://img.shields.io/github/license/nomango/configor)](https://github.com/Nomango/configor/blob/master/LICENSE)
