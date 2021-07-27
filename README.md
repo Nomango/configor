@@ -209,11 +209,11 @@ arr.clear();
 
 json obj = json::object({ { "one", 1 }, { "two", 2 } });
 obj.size();            // 2
-arr.empty();           // false
-arr.count("one");      // 1
-arr.count("missing");  // 0
-arr.erase("one");      // one 被删除
-arr.clear();
+obj.empty();           // false
+obj.count("one");      // 1
+obj.count("missing");  // 0
+obj.erase("one");      // one 被删除
+obj.clear();
 ```
 
 - 比较运算符
