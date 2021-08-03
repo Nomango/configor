@@ -49,6 +49,7 @@ using namespace configor;
   - [Unicode与多编码支持](#Unicode与多编码支持)
   - [与自定义类型转换](#与自定义类型转换)
 - [示例代码](#示例代码)
+- [常见问题](#常见问题)
 - [更多](#更多)
 - [计划](#计划)
 
@@ -467,6 +468,41 @@ int main(int argc, char** argv)
 2. 一个HTTP接口的伪代码
 
 ![example](./assets/example.png)
+
+### 常见问题
+
+1. 抛出异常 config deserialization error: unexpected token 'end_of_input'
+
+往往是读取文件失败导致的，请检查文件路径是否正确。
+
+2. Windows 下中文乱码
+
+这是由于在中文环境下，Visual Studio 和 Windows 终端使用的编码都是 gb2312，而 configor 仅支持 unicode。
+
+Visual Studio 使用 utf-8 非常困难，建议直接忽略编码，对中文不做处理：
+
+```cpp
+// 使用 encoding::ignore 忽略编码
+json j = json::parse<encoding::ignore>("{\"chinese\":\"一些带有中文的JSON字符串\"}");
+std::cout << j.dump<encoding::ignore>() << std::endl;
+```
+
+3. 如何保证 JSON 序列化时按 key 的插入顺序输出？
+
+configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串大小排序的。
+
+建议用第三方库替换 std::map，比如 [nlohmann/fifo_map](https://github.com/nlohmann/fifo_map)，然后声明 fifo_json 替换 json 来保证插入序
+
+```cpp
+struct fifo_json_args : json_args
+{
+    template <class _Kty, class _Ty, class... _Args>
+    using object_type = nlohmann::fifo_map<_Kty, _Ty, _Args...>;
+};
+
+// fifo_json 是按插入序排列的
+using fifo_json = configor::basic_config<fifo_json_args>;
+```
 
 ### 更多
 
