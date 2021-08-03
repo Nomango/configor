@@ -72,6 +72,19 @@ TEST_CASE("test_unicode")
         CHECK(u32j.dump(-1, ' ', true) == U32(ESCAPED_STR));
     }
 
+    SECTION("test_ignore_encoding")
+    {
+        {
+            json j;
+            CHECK_NOTHROW(j = json::parse<encoding::ignore>(QUOTE_STR));
+            CHECK(j.get<std::string>() == RAW_STR);
+        }
+        {
+            json j = RAW_STR;
+            CHECK(j.dump<encoding::ignore>() == QUOTE_STR);
+        }
+    }
+
     SECTION("test_parse_w")
     {
         auto j = wjson::parse(L"{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }");

@@ -37,10 +37,11 @@ namespace configor
 // configor_lexer
 //
 
-template <typename _ConfTy>
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class basic_lexer
 {
 public:
+    using config_type  = _ConfTy;
     using integer_type = typename _ConfTy::integer_type;
     using float_type   = typename _ConfTy::float_type;
     using char_type    = typename _ConfTy::char_type;
@@ -57,8 +58,8 @@ public:
 
 namespace detail
 {
-template <typename _ConfTy>
-void do_parse_config(_ConfTy& config, basic_lexer<_ConfTy>& lexer, token_type last_token, bool read_next = true);
+template <typename _LexerTy, typename _ConfTy = typename _LexerTy::config_type>
+void do_parse_config(_ConfTy& config, _LexerTy& lexer, token_type last_token, bool read_next = true);
 
 inline void parse_fail(token_type actual_token, const std::string& msg = "unexpected token")
 {
@@ -73,8 +74,8 @@ inline void parse_fail(token_type actual_token, token_type expected_token, const
 }
 }  // namespace detail
 
-template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
-void parse_config(_ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& is, basic_lexer<_ConfTy>& lexer, error_handler* eh)
+template <typename _LexerTy, typename _ConfTy = typename _LexerTy::config_type, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
+void parse_config(_ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& is, _LexerTy& lexer, error_handler* eh)
 {
     using char_type = typename _ConfTy::char_type;
 
@@ -94,11 +95,19 @@ void parse_config(_ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& i
     }
 }
 
+template <typename _LexerTy, typename _ConfTy = typename _LexerTy::config_type,
+          typename = typename std::enable_if<is_config<_ConfTy>::value && std::is_default_constructible<_LexerTy>::value>::type>
+void parse_config(const _ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& is, error_handler* eh = nullptr)
+{
+    _LexerTy l{};
+    parse_config(c, is, l, eh);
+}
+
 namespace detail
 {
 
-template <typename _ConfTy>
-void do_parse_config(_ConfTy& config, basic_lexer<_ConfTy>& lexer, token_type last_token, bool read_next)
+template <typename _LexerTy, typename _ConfTy>
+void do_parse_config(_ConfTy& config, _LexerTy& lexer, token_type last_token, bool read_next)
 {
     using string_type = typename _ConfTy::string_type;
 

@@ -49,14 +49,16 @@ public:
     using string_type    = typename _Args::template string_type<char_type, std::char_traits<char_type>, allocator_type<char_type>>;
     using array_type     = typename _Args::template array_type<basic_config, allocator_type<basic_config>>;
     using object_type    = typename _Args::template object_type<string_type, basic_config, std::less<string_type>, allocator_type<std::pair<const string_type, basic_config>>>;
-    using encoding_type  = typename _Args::template encoding_type<char_type>;
     using value_type     = detail::config_value<basic_config>;
 
-    using lexer_type      = typename _Args::template lexer_type<basic_config>;
-    using serializer_type = typename _Args::template serializer_type<basic_config>;
+    template <template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using lexer_type = typename _Args::template lexer_type<basic_config<_Args>, _SourceEncoding, _TargetEncoding>;
 
-    using parse_args = typename detail::args_or_empty<lexer_type>::type;
-    using dump_args  = typename detail::args_or_empty<serializer_type>::type;
+    template <template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = typename _Args::template serializer_type<basic_config<_Args>, _SourceEncoding, _TargetEncoding>;
+
+    using parse_args = typename _Args::template lexer_args_type<basic_config>;
+    using dump_args  = typename _Args::template serializer_args_type<basic_config>;
 
     using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
@@ -830,18 +832,20 @@ public:
     }
 
 public:
-    template <typename... _DumpArgs>
-    auto dump(_DumpArgs&&... args) const -> decltype(dump_config(std::declval<const basic_config&>(), std::forward<_DumpArgs>(args)...))
+    template <template <typename> class _SourceEncoding = encoding::auto_utf, template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs>
+    auto dump(_DumpArgs&&... args) const
+        -> decltype(dump_config<serializer_type<_SourceEncoding, _TargetEncoding>>(std::declval<const basic_config&>(), std::forward<_DumpArgs>(args)...))
     {
-        return dump_config(*this, std::forward<_DumpArgs>(args)...);
+        return dump_config<serializer_type<_SourceEncoding, _TargetEncoding>>(*this, std::forward<_DumpArgs>(args)...);
     }
 
-    template <typename... _ParseArgs>
+    template <template <typename> class _SourceEncoding = encoding::auto_utf, template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParseArgs>
     static auto parse(_ParseArgs&&... args) ->
-        typename detail::get_last<decltype(parse_config(std::declval<basic_config&>(), std::forward<_ParseArgs>(args)...)), basic_config>::type
+        typename detail::get_last<decltype(parse_config<lexer_type<_SourceEncoding, _TargetEncoding>>(std::declval<basic_config&>(), std::forward<_ParseArgs>(args)...)),
+                                  basic_config>::type
     {
         basic_config c;
-        parse_config(c, std::forward<_ParseArgs>(args)...);
+        parse_config<lexer_type<_SourceEncoding, _TargetEncoding>>(c, std::forward<_ParseArgs>(args)...);
         return c;
     }
 

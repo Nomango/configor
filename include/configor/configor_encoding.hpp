@@ -72,6 +72,29 @@ inline void encode_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint
 }  // namespace unicode
 
 template <typename _CharTy>
+class ignore
+{
+public:
+    using char_type    = _CharTy;
+    using char_traits  = std::char_traits<char_type>;
+    using istream_type = std::basic_istream<char_type>;
+    using ostream_type = std::basic_ostream<char_type>;
+
+    static void encode(ostream_type& os, uint32_t codepoint)
+    {
+        os.put(static_cast<char_type>(codepoint));
+    }
+
+    static bool decode(istream_type& is, uint32_t& codepoint)
+    {
+        codepoint = static_cast<uint32_t>(static_cast<_CharTy>(is.get()));
+        if (is.eof())
+            return false;
+        return true;
+    }
+};
+
+template <typename _CharTy>
 class utf8
 {
 public:
@@ -321,6 +344,34 @@ private:
     {
         return utf32<_CharTy>::decode(is, codepoint);
     }
+};
+
+//
+// type traits
+//
+template <typename _Encoding>
+struct is_unicode_encoding : std::false_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<utf8<_CharTy>> : std::true_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<utf16<_CharTy>> : std::true_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<utf32<_CharTy>> : std::true_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<auto_utf<_CharTy>> : std::true_type
+{
 };
 
 }  // namespace encoding

@@ -31,10 +31,11 @@
 namespace configor
 {
 
-template <typename _ConfTy>
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class basic_serializer
 {
 public:
+    using config_type  = _ConfTy;
     using integer_type = typename _ConfTy::integer_type;
     using float_type   = typename _ConfTy::float_type;
     using char_type    = typename _ConfTy::char_type;
@@ -51,12 +52,12 @@ public:
 
 namespace detail
 {
-template <typename _ConfTy>
-void do_dump_config(const _ConfTy& c, basic_serializer<_ConfTy>& serializer);
+template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type>
+void do_dump_config(const _ConfTy& c, _SerialTy& serializer);
 }
 
-template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
-void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_type>& os, basic_serializer<_ConfTy>& serializer, error_handler* eh)
+template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
+void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_type>& os, _SerialTy& serializer, error_handler* eh)
 {
     using char_type = typename _ConfTy::char_type;
 
@@ -75,18 +76,19 @@ void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_typ
     }
 }
 
-template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value && std::is_default_constructible<typename _ConfTy::serializer_type>::value>::type>
+template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type,
+          typename = typename std::enable_if<is_config<_ConfTy>::value && std::is_default_constructible<_SerialTy>::value>::type>
 void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_type>& os, error_handler* eh = nullptr)
 {
-    typename _ConfTy::serializer_type s;
+    _SerialTy s{};
     dump_config(c, os, s, eh);
 }
 
 namespace detail
 {
 
-template <typename _ConfTy>
-void do_dump_config(const _ConfTy& c, basic_serializer<_ConfTy>& serializer)
+template <typename _SerialTy, typename _ConfTy>
+void do_dump_config(const _ConfTy& c, _SerialTy& serializer)
 {
     switch (c.type())
     {
