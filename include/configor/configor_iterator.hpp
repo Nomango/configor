@@ -133,7 +133,8 @@ template <typename _ConfTy>
 struct iterator
 {
     friend _ConfTy;
-    friend iterator<typename std::conditional<std::is_const<_ConfTy>::value, typename std::remove_const<_ConfTy>::type, const _ConfTy>::type>;
+    friend iterator<typename std::conditional<std::is_const<_ConfTy>::value, typename std::remove_const<_ConfTy>::type,
+                                              const _ConfTy>::type>;
 
     using value_type        = _ConfTy;
     using difference_type   = std::ptrdiff_t;
@@ -156,9 +157,9 @@ struct iterator
 
     iterator& operator=(const iterator<const _ConfTy>& rhs)
     {
-        this->data_ = rhs.data_;
-        this->array_it_ = rhs.array_it_;
-        this->object_it_ = rhs.object_it_;
+        this->data_         = rhs.data_;
+        this->array_it_     = rhs.array_it_;
+        this->object_it_    = rhs.object_it_;
         this->primitive_it_ = rhs.primitive_it_;
         return *this;
     }
@@ -173,9 +174,9 @@ struct iterator
 
     iterator& operator=(const iterator<typename std::remove_const<_ConfTy>::type>& rhs)
     {
-        this->data_ = rhs.data_;
-        this->array_it_ = rhs.array_it_;
-        this->object_it_ = rhs.object_it_;
+        this->data_         = rhs.data_;
+        this->array_it_     = rhs.array_it_;
+        this->object_it_    = rhs.object_it_;
         this->primitive_it_ = rhs.primitive_it_;
         return *this;
     }

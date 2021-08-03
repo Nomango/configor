@@ -64,12 +64,36 @@ inline uint32_t decode_surrogates(uint32_t lead_surrogate, uint32_t trail_surrog
 
 inline void encode_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint32_t& trail_surrogate)
 {
-    codepoint       = codepoint - constants::surrogate_base;
-    lead_surrogate  = static_cast<uint16_t>(constants::lead_surrogate_begin + (codepoint >> constants::surrogate_bits));
-    trail_surrogate = static_cast<uint16_t>(constants::trail_surrogate_begin + (codepoint & constants::trail_surrogate_max));
+    codepoint      = codepoint - constants::surrogate_base;
+    lead_surrogate = static_cast<uint16_t>(constants::lead_surrogate_begin + (codepoint >> constants::surrogate_bits));
+    trail_surrogate =
+        static_cast<uint16_t>(constants::trail_surrogate_begin + (codepoint & constants::trail_surrogate_max));
 }
 
 }  // namespace unicode
+
+template <typename _CharTy>
+class ignore
+{
+public:
+    using char_type    = _CharTy;
+    using char_traits  = std::char_traits<char_type>;
+    using istream_type = std::basic_istream<char_type>;
+    using ostream_type = std::basic_ostream<char_type>;
+
+    static void encode(ostream_type& os, uint32_t codepoint)
+    {
+        os.put(static_cast<char_type>(codepoint));
+    }
+
+    static bool decode(istream_type& is, uint32_t& codepoint)
+    {
+        codepoint = static_cast<uint32_t>(static_cast<_CharTy>(is.get()));
+        if (is.eof())
+            return false;
+        return true;
+    }
+};
 
 template <typename _CharTy>
 class utf8
@@ -127,11 +151,14 @@ public:
         // U+0800...U+FFFF      1110xxxx 10xxxxxx 10xxxxxx
         // U+10000...U+10FFFF   11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
         static const std::array<std::uint8_t, 256> utf8_extra_bytes = {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5,
         };
 
         static const std::array<std::uint32_t, 6> utf8_offsets = {
@@ -321,6 +348,34 @@ private:
     {
         return utf32<_CharTy>::decode(is, codepoint);
     }
+};
+
+//
+// type traits
+//
+template <typename _Encoding>
+struct is_unicode_encoding : std::false_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<utf8<_CharTy>> : std::true_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<utf16<_CharTy>> : std::true_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<utf32<_CharTy>> : std::true_type
+{
+};
+
+template <typename _CharTy>
+struct is_unicode_encoding<auto_utf<_CharTy>> : std::true_type
+{
 };
 
 }  // namespace encoding

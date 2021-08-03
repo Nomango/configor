@@ -46,17 +46,23 @@ public:
     using integer_type   = typename _Args::integer_type;
     using float_type     = typename _Args::float_type;
     using char_type      = typename _Args::char_type;
-    using string_type    = typename _Args::template string_type<char_type, std::char_traits<char_type>, allocator_type<char_type>>;
-    using array_type     = typename _Args::template array_type<basic_config, allocator_type<basic_config>>;
-    using object_type    = typename _Args::template object_type<string_type, basic_config, std::less<string_type>, allocator_type<std::pair<const string_type, basic_config>>>;
-    using encoding_type  = typename _Args::template encoding_type<char_type>;
-    using value_type     = detail::config_value<basic_config>;
+    using string_type =
+        typename _Args::template string_type<char_type, std::char_traits<char_type>, allocator_type<char_type>>;
+    using array_type = typename _Args::template array_type<basic_config, allocator_type<basic_config>>;
+    using object_type =
+        typename _Args::template object_type<string_type, basic_config, std::less<string_type>,
+                                             allocator_type<std::pair<const string_type, basic_config>>>;
+    using value_type = detail::config_value<basic_config>;
 
-    using lexer_type      = typename _Args::template lexer_type<basic_config>;
-    using serializer_type = typename _Args::template serializer_type<basic_config>;
+    template <template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using lexer_type = typename _Args::template lexer_type<basic_config<_Args>, _SourceEncoding, _TargetEncoding>;
 
-    using parse_args = typename detail::args_or_empty<lexer_type>::type;
-    using dump_args  = typename detail::args_or_empty<serializer_type>::type;
+    template <template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type =
+        typename _Args::template serializer_type<basic_config<_Args>, _SourceEncoding, _TargetEncoding>;
+
+    using parse_args = typename _Args::template lexer_args_type<basic_config>;
+    using dump_args  = typename _Args::template serializer_args_type<basic_config>;
 
     using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
@@ -87,10 +93,12 @@ public:
         other.value_.data.object = nullptr;
     }
 
-    basic_config(const std::initializer_list<basic_config>& init_list, config_value_type exact_type = config_value_type::null)
+    basic_config(const std::initializer_list<basic_config>& init_list,
+                 config_value_type                          exact_type = config_value_type::null)
     {
-        bool is_an_object =
-            std::all_of(init_list.begin(), init_list.end(), [](const basic_config& config) { return (config.is_array() && config.size() == 2 && config[0].is_string()); });
+        bool is_an_object = std::all_of(init_list.begin(), init_list.end(),
+                                        [](const basic_config& config)
+                                        { return (config.is_array() && config.size() == 2 && config[0].is_string()); });
 
         if (exact_type != config_value_type::object && exact_type != config_value_type::array)
         {
@@ -105,7 +113,10 @@ public:
             value_ = config_value_type::object;
             std::for_each(init_list.begin(), init_list.end(),
                           [this](const basic_config& config)
-                          { value_.data.object->emplace(*((*config.value_.data.vector)[0].value_.data.string), (*config.value_.data.vector)[1]); });
+                          {
+                              value_.data.object->emplace(*((*config.value_.data.vector)[0].value_.data.string),
+                                                          (*config.value_.data.vector)[1]);
+                          });
         }
         else
         {
@@ -116,7 +127,8 @@ public:
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
-              typename = typename std::enable_if<!std::is_same<basic_config, _UTy>::value && detail::has_to_config<basic_config, _UTy>::value>::type>
+              typename = typename std::enable_if<!std::is_same<basic_config, _UTy>::value
+                                                 && detail::has_to_config<basic_config, _UTy>::value>::type>
     basic_config(_CompatibleTy&& value)
     {
         config_bind<_UTy>::to_config(*this, std::forward<_CompatibleTy>(value));
@@ -320,7 +332,8 @@ public:
         value_.data.vector->erase(value_.data.vector->begin() + static_cast<difference_type>(index));
     }
 
-    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
+    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value
+                                                                || std::is_same<_IterTy, const_iterator>::value>::type>
     _IterTy erase(_IterTy pos)
     {
         _IterTy result = end();
@@ -345,7 +358,8 @@ public:
         return result;
     }
 
-    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value || std::is_same<_IterTy, const_iterator>::value>::type>
+    template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value
+                                                                || std::is_same<_IterTy, const_iterator>::value>::type>
     inline _IterTy erase(_IterTy first, _IterTy last)
     {
         _IterTy result = end();
@@ -445,13 +459,16 @@ private:
         return *this;
     }
 
-    template <typename _Ty, typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
+    template <typename _Ty,
+              typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<1>) const
     {
         return config_bind<_Ty>::from_config(*this);
     }
 
-    template <typename _Ty, typename = typename std::enable_if<std::is_default_constructible<_Ty>::value && detail::has_default_from_config<basic_config, _Ty>::value>::type>
+    template <typename _Ty,
+              typename = typename std::enable_if<std::is_default_constructible<_Ty>::value
+                                                 && detail::has_default_from_config<basic_config, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<0>) const
     {
         _Ty value{};
@@ -465,14 +482,17 @@ private:
         return (value = *this);
     }
 
-    template <typename _Ty, typename = typename std::enable_if<std::is_default_constructible<_Ty>::value && detail::has_default_from_config<basic_config, _Ty>::value>::type>
+    template <typename _Ty,
+              typename = typename std::enable_if<std::is_default_constructible<_Ty>::value
+                                                 && detail::has_default_from_config<basic_config, _Ty>::value>::type>
     inline _Ty& do_get(_Ty& value, detail::priority<1>) const
     {
         config_bind<_Ty>::from_config(*this, value);
         return value;
     }
 
-    template <typename _Ty, typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
+    template <typename _Ty,
+              typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
     inline _Ty& do_get(_Ty& value, detail::priority<0>) const
     {
         value = config_bind<_Ty>::from_config(*this);
@@ -481,20 +501,24 @@ private:
 
 public:
     template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type>
-    inline auto get() const -> decltype(std::declval<const basic_config&>().template do_get<_UTy>(detail::priority<2>{}))
+    inline auto get() const
+        -> decltype(std::declval<const basic_config&>().template do_get<_UTy>(detail::priority<2>{}))
     {
         return do_get<_UTy>(detail::priority<2>{});
     }
 
     template <typename _Ty>
-    inline auto get(_Ty& value) const -> decltype(std::declval<const basic_config&>().template do_get<_Ty>(std::declval<_Ty&>(), detail::priority<2>{}))
+    inline auto get(_Ty& value) const
+        -> decltype(std::declval<const basic_config&>().template do_get<_Ty>(std::declval<_Ty&>(),
+                                                                             detail::priority<2>{}))
     {
         return do_get<_Ty>(value, detail::priority<2>{});
     }
 
     template <typename _Ty>
-    auto try_get(_Ty& value) const ->
-        typename std::enable_if<!std::is_void<decltype(std::declval<const basic_config&>().template get<_Ty>(std::declval<_Ty&>()))>::value, bool>::type
+    auto try_get(_Ty& value) const -> typename std::enable_if<
+        !std::is_void<decltype(std::declval<const basic_config&>().template get<_Ty>(std::declval<_Ty&>()))>::value,
+        bool>::type
     {
         try
         {
@@ -610,7 +634,8 @@ public:
 
         if (index >= value_.data.vector->size())
         {
-            value_.data.vector->insert(value_.data.vector->end(), index - value_.data.vector->size() + 1, basic_config());
+            value_.data.vector->insert(value_.data.vector->end(), index - value_.data.vector->size() + 1,
+                                       basic_config());
         }
         return (*value_.data.vector)[index];
     }
@@ -708,8 +733,9 @@ public:
 public:
     // conversion
 
-    template <typename _Ty,
-              typename = typename std::enable_if<!is_config<_Ty>::value && detail::is_configor_getable<basic_config, _Ty>::value && !std::is_pointer<_Ty>::value>::type>
+    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
+                                                               && detail::is_configor_getable<basic_config, _Ty>::value
+                                                               && !std::is_pointer<_Ty>::value>::type>
     inline operator _Ty() const
     {
         return get<_Ty>();
@@ -730,7 +756,9 @@ public:
         c.value_.data.number_integer = value;
     }
 
-    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value && std::is_integral<_IntegerUTy>::value, int>::type = 0>
+    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value
+                                                                && std::is_integral<_IntegerUTy>::value,
+                                                            int>::type = 0>
     friend inline void to_config(basic_config& c, _IntegerUTy value)
     {
         c.value_.type                = config_value_type::number_integer;
@@ -785,7 +813,9 @@ public:
         value = c.value_.data.number_integer;
     }
 
-    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value && std::is_integral<_IntegerUTy>::value, int>::type = 0>
+    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value
+                                                                && std::is_integral<_IntegerUTy>::value,
+                                                            int>::type = 0>
     friend inline void from_config(const basic_config& c, _IntegerUTy& value)
     {
         if (!c.is_integer())
@@ -830,18 +860,24 @@ public:
     }
 
 public:
-    template <typename... _DumpArgs>
-    auto dump(_DumpArgs&&... args) const -> decltype(dump_config(std::declval<const basic_config&>(), std::forward<_DumpArgs>(args)...))
+    template <template <typename> class _SourceEncoding = encoding::auto_utf,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs>
+    auto dump(_DumpArgs&&... args) const
+        -> decltype(dump_config<serializer_type<_SourceEncoding, _TargetEncoding>>(std::declval<const basic_config&>(),
+                                                                                   std::forward<_DumpArgs>(args)...))
     {
-        return dump_config(*this, std::forward<_DumpArgs>(args)...);
+        return dump_config<serializer_type<_SourceEncoding, _TargetEncoding>>(*this, std::forward<_DumpArgs>(args)...);
     }
 
-    template <typename... _ParseArgs>
+    template <template <typename> class _SourceEncoding = encoding::auto_utf,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParseArgs>
     static auto parse(_ParseArgs&&... args) ->
-        typename detail::get_last<decltype(parse_config(std::declval<basic_config&>(), std::forward<_ParseArgs>(args)...)), basic_config>::type
+        typename detail::get_last<decltype(parse_config<lexer_type<_SourceEncoding, _TargetEncoding>>(
+                                      std::declval<basic_config&>(), std::forward<_ParseArgs>(args)...)),
+                                  basic_config>::type
     {
         basic_config c;
-        parse_config(c, std::forward<_ParseArgs>(args)...);
+        parse_config<lexer_type<_SourceEncoding, _TargetEncoding>>(c, std::forward<_ParseArgs>(args)...);
         return c;
     }
 

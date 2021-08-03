@@ -49,28 +49,6 @@ struct remove_cvref
     using type = typename std::remove_cv<typename std::remove_reference<_Ty>::type>::type;
 };
 
-template <typename>
-struct always_void
-{
-    using type = void;
-};
-
-struct dummy
-{
-};
-
-template <typename _Ty, typename = void>
-struct args_or_empty
-{
-    using type = dummy;
-};
-
-template <typename _Ty>
-struct args_or_empty<_Ty, typename std::enable_if<!std::is_void<typename _Ty::args>::value>::type>
-{
-    using type = typename _Ty::args;
-};
-
 template <typename _Ty, typename... _Args>
 struct get_last
 {
@@ -108,17 +86,20 @@ struct config_args
     template <class _Kty, class _Ty, class... _Args>
     using object_type = std::map<_Kty, _Ty, _Args...>;
 
-    template <class _CharTy>
-    using encoding_type = encoding::auto_utf<_CharTy>;
-
     template <class _Ty>
     using allocator_type = std::allocator<_Ty>;
 
-    template <class _ConfTy>
-    using lexer_type = typename detail::always_void<_ConfTy>::type;
+    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using lexer_type = void;
 
     template <class _ConfTy>
-    using serializer_type = typename detail::always_void<_ConfTy>::type;
+    using lexer_args_type = void;
+
+    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = void;
+
+    template <class _ConfTy>
+    using serializer_args_type = void;
 };
 
 struct wconfig_args : config_args
