@@ -79,8 +79,10 @@ struct is_json<basic_config<_Args>>
     template <typename>
     struct dummy;
 
-    static const bool value = std::is_same<typename type::template lexer_type<dummy, dummy>, detail::json_lexer<type, dummy, dummy>>::value
-                              && std::is_same<typename type::template serializer_type<dummy, dummy>, detail::json_serializer<type, dummy, dummy>>::value;
+    static const bool value =
+        std::is_same<typename type::template lexer_type<dummy, dummy>, detail::json_lexer<type, dummy, dummy>>::value
+        && std::is_same<typename type::template serializer_type<dummy, dummy>,
+                        detail::json_serializer<type, dummy, dummy>>::value;
 };
 
 #define JSON_BIND(value_type, ...) CONFIGOR_BIND_WITH_CONF(json, value_type, __VA_ARGS__)
@@ -88,15 +90,19 @@ struct is_json<basic_config<_Args>>
 
 // json serialization
 
-template <typename _SerialTy, typename _JsonTy = typename _SerialTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-void dump_config(const _JsonTy& j, std::basic_ostream<typename _JsonTy::char_type>& os, const typename _SerialTy::args& args = {}, error_handler* eh = nullptr)
+template <typename _SerialTy, typename _JsonTy = typename _SerialTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+void dump_config(const _JsonTy& j, std::basic_ostream<typename _JsonTy::char_type>& os,
+                 const typename _SerialTy::args& args = {}, error_handler* eh = nullptr)
 {
     _SerialTy s{ args };
     dump_config<_SerialTy>(j, os, s, eh);
 }
 
-template <typename _SerialTy, typename _JsonTy = typename _SerialTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-typename _JsonTy::string_type dump_config(const _JsonTy& j, const typename _SerialTy::args& args = {}, error_handler* eh = nullptr)
+template <typename _SerialTy, typename _JsonTy = typename _SerialTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+typename _JsonTy::string_type dump_config(const _JsonTy& j, const typename _SerialTy::args& args = {},
+                                          error_handler* eh = nullptr)
 {
     using char_type   = typename _JsonTy::char_type;
     using string_type = typename _JsonTy::string_type;
@@ -108,8 +114,10 @@ typename _JsonTy::string_type dump_config(const _JsonTy& j, const typename _Seri
     return result;
 }
 
-template <typename _SerialTy, typename _JsonTy = typename _SerialTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-typename _JsonTy::string_type dump_config(const _JsonTy& j, unsigned int indent, typename _JsonTy::char_type indent_char = ' ', bool escape_unicode = false,
+template <typename _SerialTy, typename _JsonTy = typename _SerialTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+typename _JsonTy::string_type dump_config(const _JsonTy& j, unsigned int indent,
+                                          typename _JsonTy::char_type indent_char = ' ', bool escape_unicode = false,
                                           error_handler* eh = nullptr)
 {
     using char_type   = typename _JsonTy::char_type;
@@ -123,7 +131,8 @@ typename _JsonTy::string_type dump_config(const _JsonTy& j, unsigned int indent,
 }
 
 template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os, const _JsonTy& j)
+std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os,
+                                                            const _JsonTy&                                   j)
 {
     using serializer_type = typename _JsonTy::template serializer_type<encoding::auto_utf, encoding::auto_utf>;
     typename serializer_type::args args;
@@ -139,8 +148,10 @@ std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<t
 
 // parse functions
 
-template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-void parse_config(_JsonTy& j, std::basic_istream<typename _JsonTy::char_type>& is, const typename _LexerTy::args& args = {}, error_handler* eh = nullptr)
+template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+void parse_config(_JsonTy& j, std::basic_istream<typename _JsonTy::char_type>& is,
+                  const typename _LexerTy::args& args = {}, error_handler* eh = nullptr)
 {
     _LexerTy lexer{ args };
     parse_config<_LexerTy>(j, is, lexer, eh);
@@ -163,8 +174,10 @@ void parse_config(_JsonTy& j, std::basic_istream<typename _JsonTy::char_type>& i
     }
 }
 
-template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-void parse_config(_JsonTy& j, const typename _JsonTy::string_type& str, const typename _LexerTy::args& args = {}, error_handler* eh = nullptr)
+template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+void parse_config(_JsonTy& j, const typename _JsonTy::string_type& str, const typename _LexerTy::args& args = {},
+                  error_handler* eh = nullptr)
 {
     using char_type = typename _JsonTy::char_type;
 
@@ -173,8 +186,10 @@ void parse_config(_JsonTy& j, const typename _JsonTy::string_type& str, const ty
     parse_config<_LexerTy>(j, is, args, eh);
 }
 
-template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-void parse_config(_JsonTy& j, const typename _JsonTy::char_type* str, const typename _LexerTy::args& args = {}, error_handler* eh = nullptr)
+template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+void parse_config(_JsonTy& j, const typename _JsonTy::char_type* str, const typename _LexerTy::args& args = {},
+                  error_handler* eh = nullptr)
 {
     using char_type = typename _JsonTy::char_type;
 
@@ -183,7 +198,8 @@ void parse_config(_JsonTy& j, const typename _JsonTy::char_type* str, const type
     parse_config<_LexerTy>(j, is, args, eh);
 }
 
-template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
+template <typename _LexerTy, typename _JsonTy = typename _LexerTy::config_type,
+          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
 void parse_config(_JsonTy& j, std::FILE* file, const typename _LexerTy::args& args = {}, error_handler* eh = nullptr)
 {
     using char_type = typename _JsonTy::char_type;
@@ -194,7 +210,8 @@ void parse_config(_JsonTy& j, std::FILE* file, const typename _LexerTy::args& ar
 }
 
 template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-std::basic_istream<typename _JsonTy::char_type>& operator>>(std::basic_istream<typename _JsonTy::char_type>& is, _JsonTy& j)
+std::basic_istream<typename _JsonTy::char_type>& operator>>(std::basic_istream<typename _JsonTy::char_type>& is,
+                                                            _JsonTy&                                         j)
 {
     using lexer_type = typename _JsonTy::template lexer_type<encoding::auto_utf, encoding::auto_utf>;
     parse_config<lexer_type>(j, is);
@@ -540,7 +557,8 @@ public:
 
                         if (!encoding::unicode::is_trail_surrogate(trail_surrogate))
                         {
-                            fail("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF, but got", trail_surrogate);
+                            fail("surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF, but got",
+                                 trail_surrogate);
                         }
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
@@ -982,7 +1000,8 @@ public:
             {
                 // escape control characters
                 // and non-ASCII characters (if `escape_unicode` is true)
-                const bool need_escape = ((codepoint <= 0x1F || (args_.escape_unicode && codepoint >= 0x7F)) && encoding::is_unicode_encoding<target_encoding>::value);
+                const bool need_escape = ((codepoint <= 0x1F || (args_.escape_unicode && codepoint >= 0x7F))
+                                          && encoding::is_unicode_encoding<target_encoding>::value);
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)

@@ -275,11 +275,13 @@ struct config_value
         }
         else if (lhs.type == config_value_type::number_integer && rhs.type == config_value_type::number_float)
         {
-            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer), rhs.data.number_float);
+            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer),
+                                                    rhs.data.number_float);
         }
         else if (lhs.type == config_value_type::number_float && rhs.type == config_value_type::number_integer)
         {
-            return detail::nearly_equal<float_type>(lhs.data.number_float, static_cast<float_type>(rhs.data.number_integer));
+            return detail::nearly_equal<float_type>(lhs.data.number_float,
+                                                    static_cast<float_type>(rhs.data.number_integer));
         }
         return false;
     }

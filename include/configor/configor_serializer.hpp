@@ -56,8 +56,10 @@ template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type
 void do_dump_config(const _ConfTy& c, _SerialTy& serializer);
 }
 
-template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
-void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_type>& os, _SerialTy& serializer, error_handler* eh)
+template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type,
+          typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
+void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_type>& os, _SerialTy& serializer,
+                 error_handler* eh)
 {
     using char_type = typename _ConfTy::char_type;
 
@@ -77,7 +79,8 @@ void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_typ
 }
 
 template <typename _SerialTy, typename _ConfTy = typename _SerialTy::config_type,
-          typename = typename std::enable_if<is_config<_ConfTy>::value && std::is_default_constructible<_SerialTy>::value>::type>
+          typename = typename std::enable_if<is_config<_ConfTy>::value
+                                             && std::is_default_constructible<_SerialTy>::value>::type>
 void dump_config(const _ConfTy& c, std::basic_ostream<typename _ConfTy::char_type>& os, error_handler* eh = nullptr)
 {
     _SerialTy s{};

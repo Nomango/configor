@@ -74,7 +74,8 @@ inline void parse_fail(token_type actual_token, token_type expected_token, const
 }
 }  // namespace detail
 
-template <typename _LexerTy, typename _ConfTy = typename _LexerTy::config_type, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
+template <typename _LexerTy, typename _ConfTy = typename _LexerTy::config_type,
+          typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
 void parse_config(_ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& is, _LexerTy& lexer, error_handler* eh)
 {
     using char_type = typename _ConfTy::char_type;
@@ -96,7 +97,8 @@ void parse_config(_ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& i
 }
 
 template <typename _LexerTy, typename _ConfTy = typename _LexerTy::config_type,
-          typename = typename std::enable_if<is_config<_ConfTy>::value && std::is_default_constructible<_LexerTy>::value>::type>
+          typename = typename std::enable_if<is_config<_ConfTy>::value
+                                             && std::is_default_constructible<_LexerTy>::value>::type>
 void parse_config(const _ConfTy& c, std::basic_istream<typename _ConfTy::char_type>& is, error_handler* eh = nullptr)
 {
     _LexerTy l{};

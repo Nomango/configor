@@ -549,7 +549,8 @@ private:
     }
 
     template <typename... _Args>
-    static inline int internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size, const char* format, _Args&&... args)
+    static inline int internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
+                                        const char* format, _Args&&... args)
     {
         const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
         if (len > 0)
@@ -578,7 +579,8 @@ struct serializable_integer
     const _IntTy i;
 
     template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_integer& i)
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os,
+                                                          const serializable_integer&  i)
     {
         snprintf_t<_CharTy>::one_integer(os, i.i);
         return os;
