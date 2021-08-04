@@ -64,6 +64,9 @@ public:
     using parse_args = typename _Args::template lexer_args_type<basic_config>;
     using dump_args  = typename _Args::template serializer_args_type<basic_config>;
 
+    template <typename _CharTy>
+    using default_encoding = typename _Args::template default_encoding<_CharTy>;
+
     using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
 
@@ -860,7 +863,7 @@ public:
     }
 
 public:
-    template <template <typename> class _SourceEncoding = encoding::auto_utf,
+    template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs>
     auto dump(_DumpArgs&&... args) const
         -> decltype(dump_config<serializer_type<_SourceEncoding, _TargetEncoding>>(std::declval<const basic_config&>(),
@@ -869,7 +872,7 @@ public:
         return dump_config<serializer_type<_SourceEncoding, _TargetEncoding>>(*this, std::forward<_DumpArgs>(args)...);
     }
 
-    template <template <typename> class _SourceEncoding = encoding::auto_utf,
+    template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParseArgs>
     static auto parse(_ParseArgs&&... args) ->
         typename detail::get_last<decltype(parse_config<lexer_type<_SourceEncoding, _TargetEncoding>>(
@@ -879,6 +882,22 @@ public:
         basic_config c;
         parse_config<lexer_type<_SourceEncoding, _TargetEncoding>>(c, std::forward<_ParseArgs>(args)...);
         return c;
+    }
+
+    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
+                                                               && detail::is_configor_getable<basic_config, _Ty>::value
+                                                               && !std::is_pointer<_Ty>::value>::type>
+    static inline detail::write_configor_wrapper<basic_config, _Ty> wrap(_Ty& v)
+    {
+        return detail::write_configor_wrapper<basic_config, _Ty>(v);
+    }
+
+    template <typename _Ty,
+              typename = typename std::enable_if<!std::is_same<basic_config, _Ty>::value
+                                                 && detail::has_to_config<basic_config, _Ty>::value>::type>
+    static inline detail::read_configor_wrapper<basic_config, _Ty> wrap(const _Ty& v)
+    {
+        return detail::read_configor_wrapper<basic_config, _Ty>(v);
     }
 
 public:

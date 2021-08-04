@@ -417,16 +417,16 @@ struct configor::config_bind<User>
 
 - 将自定义类型以 JSON 格式与输入输出流交互
 
-使用 json_wrap 函数可以让任意类型实现序列化与反序列化，并与输入输出流交互
+使用 json::wrap 函数可以让任意类型实现序列化与反序列化，并与输入输出流交互
 
 ```cpp
 std::stringstream s;
 
 // 把 obj 序列化，并输入到 s 流中
-s << json_wrap(obj);
+s << json::wrap(obj);
 
 // 从 s 流中读取，并把 obj 反序列化
-s >> json_wrap(obj);
+s >> json::wrap(obj);
 ```
 
 ### 示例代码
@@ -457,10 +457,10 @@ int main(int argc, char** argv)
 
     // 解析json内容，并反序列化到user对象
     User user;
-    s >> json_wrap(user);
+    s >> json::wrap(user);
 
     // 序列化user对象并输出
-    cout << json_wrap(user) << endl; // {"user_id":10001,"user_name":"John"}
+    cout << json::wrap(user) << endl; // {"user_id":10001,"user_name":"John"}
     return 0;
 }
 ```
@@ -471,24 +471,44 @@ int main(int argc, char** argv)
 
 ### 常见问题
 
-1. 抛出异常 config deserialization error: unexpected token 'end_of_input'
+#### Q:  
+抛出异常 config deserialization error: unexpected token 'end_of_input'
 
+#### A:  
 往往是读取文件失败导致的，请检查文件路径是否正确。
 
-2. Windows 下中文乱码
+#### Q:  
+Windows 下中文乱码
 
+#### A:  
 这是由于在中文环境下，Visual Studio 和 Windows 终端使用的编码都是 gb2312，而 configor 仅支持 unicode。
 
 Visual Studio 使用 utf-8 非常困难，建议直接忽略编码，对中文不做处理：
 
 ```cpp
+using namespace configor;
 // 使用 encoding::ignore 忽略编码
 json j = json::parse<encoding::ignore>("{\"chinese\":\"一些带有中文的JSON字符串\"}");
 std::cout << j.dump<encoding::ignore>() << std::endl;
 ```
 
-3. 如何保证 JSON 序列化时按 key 的插入顺序输出？
+或使用自定义的json类：
 
+```cpp
+struct my_json_args : configor::json_args
+{
+    // 使用 encoding::ignore 忽略编码
+    template <typename _CharTy>
+    using default_encoding = configor::encoding::ignore<_CharTy>;
+};
+
+using json = configor::basic_config<my_json_args>;
+```
+
+#### Q:  
+如何保证 JSON 序列化时按 key 的插入顺序输出？
+
+#### A:  
 configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串大小排序的。
 
 建议用第三方库替换 std::map，比如 [nlohmann/fifo_map](https://github.com/nlohmann/fifo_map)，然后声明 fifo_json 替换 json 来保证插入序

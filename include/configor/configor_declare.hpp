@@ -100,6 +100,9 @@ struct config_args
 
     template <class _ConfTy>
     using serializer_args_type = void;
+
+    template <typename _CharTy>
+    using default_encoding = encoding::ignore<_CharTy>;
 };
 
 struct wconfig_args : config_args

@@ -89,9 +89,7 @@ public:
     static bool decode(istream_type& is, uint32_t& codepoint)
     {
         codepoint = static_cast<uint32_t>(static_cast<_CharTy>(is.get()));
-        if (is.eof())
-            return false;
-        return true;
+        return !is.eof();
     }
 };
 

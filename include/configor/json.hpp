@@ -54,6 +54,9 @@ struct json_args : config_args
 
     template <class _ConfTy>
     using serializer_args_type = detail::json_serializer_args<_ConfTy>;
+
+    template <typename _CharTy>
+    using default_encoding = encoding::auto_utf<_CharTy>;
 };
 
 struct wjson_args : json_args
@@ -216,22 +219,6 @@ std::basic_istream<typename _JsonTy::char_type>& operator>>(std::basic_istream<t
     using lexer_type = typename _JsonTy::template lexer_type<encoding::auto_utf, encoding::auto_utf>;
     parse_config<lexer_type>(j, is);
     return is;
-}
-
-//
-// json_wrap
-//
-
-template <typename _Ty, typename _JsonTy = json, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-inline detail::write_configor_wrapper<_Ty, _JsonTy> json_wrap(_Ty& v)
-{
-    return detail::write_configor_wrapper<_Ty, _JsonTy>(v);
-}
-
-template <typename _Ty, typename _JsonTy = json, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-inline detail::read_configor_wrapper<_Ty, _JsonTy> json_wrap(const _Ty& v)
-{
-    return detail::read_configor_wrapper<_Ty, _JsonTy>(v);
 }
 
 namespace detail

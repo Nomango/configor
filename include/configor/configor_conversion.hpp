@@ -529,7 +529,7 @@ namespace detail
 // configor_wrapper
 //
 
-template <typename _Ty, typename _ConfTy>
+template <typename _ConfTy, typename _Ty>
 class read_configor_wrapper
 {
 public:
@@ -551,14 +551,14 @@ private:
     const _Ty& v_;
 };
 
-template <typename _Ty, typename _ConfTy>
-class write_configor_wrapper : public read_configor_wrapper<_Ty, _ConfTy>
+template <typename _ConfTy, typename _Ty>
+class write_configor_wrapper : public read_configor_wrapper<_ConfTy, _Ty>
 {
 public:
     using char_type = typename _ConfTy::char_type;
 
     explicit write_configor_wrapper(_Ty& v)
-        : read_configor_wrapper<_Ty, _ConfTy>(v)
+        : read_configor_wrapper<_ConfTy, _Ty>(v)
         , v_(v)
     {
     }
@@ -566,7 +566,7 @@ public:
     friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in,
                                                      const write_configor_wrapper&  wrapper)
     {
-        _ConfTy c;
+        _ConfTy c{};
         in >> c;
         const_cast<_Ty&>(wrapper.v_) = c.template get<_Ty>();
         return in;
