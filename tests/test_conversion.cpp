@@ -174,11 +174,11 @@ TEST_CASE_METHOD(ConversionTest, "test_from_json")
 TEST_CASE_METHOD(ConversionTest, "test_json_wrap")
 {
     std::stringstream s;
-    s << json_wrap(expect_bus);
+    s << json::wrap(expect_bus);
     CHECK(s.str() == expect_json.dump());
 
     Bus bus;
-    s >> json_wrap(bus);
+    s >> json::wrap(bus);
     CHECK(bus == expect_bus);
 }
 

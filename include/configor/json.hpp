@@ -221,22 +221,6 @@ std::basic_istream<typename _JsonTy::char_type>& operator>>(std::basic_istream<t
     return is;
 }
 
-//
-// json_wrap
-//
-
-template <typename _Ty, typename _JsonTy = json, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-inline detail::write_configor_wrapper<_Ty, _JsonTy> json_wrap(_Ty& v)
-{
-    return detail::write_configor_wrapper<_Ty, _JsonTy>(v);
-}
-
-template <typename _Ty, typename _JsonTy = json, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-inline detail::read_configor_wrapper<_Ty, _JsonTy> json_wrap(const _Ty& v)
-{
-    return detail::read_configor_wrapper<_Ty, _JsonTy>(v);
-}
-
 namespace detail
 {
 

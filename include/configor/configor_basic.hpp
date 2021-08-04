@@ -884,6 +884,22 @@ public:
         return c;
     }
 
+    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
+                                                               && detail::is_configor_getable<basic_config, _Ty>::value
+                                                               && !std::is_pointer<_Ty>::value>::type>
+    static inline detail::write_configor_wrapper<basic_config, _Ty> wrap(_Ty& v)
+    {
+        return detail::write_configor_wrapper<basic_config, _Ty>(v);
+    }
+
+    template <typename _Ty,
+              typename = typename std::enable_if<!std::is_same<basic_config, _Ty>::value
+                                                 && detail::has_to_config<basic_config, _Ty>::value>::type>
+    static inline detail::read_configor_wrapper<basic_config, _Ty> wrap(const _Ty& v)
+    {
+        return detail::read_configor_wrapper<basic_config, _Ty>(v);
+    }
+
 public:
     // eq functions
 

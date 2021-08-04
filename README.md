@@ -417,16 +417,16 @@ struct configor::config_bind<User>
 
 - 将自定义类型以 JSON 格式与输入输出流交互
 
-使用 json_wrap 函数可以让任意类型实现序列化与反序列化，并与输入输出流交互
+使用 json::wrap 函数可以让任意类型实现序列化与反序列化，并与输入输出流交互
 
 ```cpp
 std::stringstream s;
 
 // 把 obj 序列化，并输入到 s 流中
-s << json_wrap(obj);
+s << json::wrap(obj);
 
 // 从 s 流中读取，并把 obj 反序列化
-s >> json_wrap(obj);
+s >> json::wrap(obj);
 ```
 
 ### 示例代码
@@ -457,10 +457,10 @@ int main(int argc, char** argv)
 
     // 解析json内容，并反序列化到user对象
     User user;
-    s >> json_wrap(user);
+    s >> json::wrap(user);
 
     // 序列化user对象并输出
-    cout << json_wrap(user) << endl; // {"user_id":10001,"user_name":"John"}
+    cout << json::wrap(user) << endl; // {"user_id":10001,"user_name":"John"}
     return 0;
 }
 ```
