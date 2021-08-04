@@ -471,24 +471,44 @@ int main(int argc, char** argv)
 
 ### 常见问题
 
-1. 抛出异常 config deserialization error: unexpected token 'end_of_input'
+#### Q:  
+抛出异常 config deserialization error: unexpected token 'end_of_input'
 
+#### A:  
 往往是读取文件失败导致的，请检查文件路径是否正确。
 
-2. Windows 下中文乱码
+#### Q:  
+Windows 下中文乱码
 
+#### A:  
 这是由于在中文环境下，Visual Studio 和 Windows 终端使用的编码都是 gb2312，而 configor 仅支持 unicode。
 
 Visual Studio 使用 utf-8 非常困难，建议直接忽略编码，对中文不做处理：
 
 ```cpp
+using namespace configor;
 // 使用 encoding::ignore 忽略编码
 json j = json::parse<encoding::ignore>("{\"chinese\":\"一些带有中文的JSON字符串\"}");
 std::cout << j.dump<encoding::ignore>() << std::endl;
 ```
 
-3. 如何保证 JSON 序列化时按 key 的插入顺序输出？
+或使用自定义的json类：
 
+```cpp
+struct my_json_args : configor::json_args
+{
+    // 使用 encoding::ignore 忽略编码
+    template <typename _CharTy>
+    using default_encoding = configor::encoding::ignore<_CharTy>;
+};
+
+using json = configor::basic_config<my_json_args>;
+```
+
+#### Q:  
+如何保证 JSON 序列化时按 key 的插入顺序输出？
+
+#### A:  
 configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串大小排序的。
 
 建议用第三方库替换 std::map，比如 [nlohmann/fifo_map](https://github.com/nlohmann/fifo_map)，然后声明 fifo_json 替换 json 来保证插入序

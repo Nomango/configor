@@ -369,7 +369,7 @@ protected:
 
     virtual std::streamsize xsgetn(char_type* s, std::streamsize num) override
     {
-        if (std::fgets(s, static_cast<std::size_t>(num), file_) == nullptr)
+        if (std::fgets(s, static_cast<int>(num), file_) == nullptr)
             return 0;
         return num;
     }
@@ -412,7 +412,7 @@ protected:
 
     virtual std::streamsize xsgetn(char_type* s, std::streamsize num) override
     {
-        if (std::fgetws(s, static_cast<std::size_t>(num), file_) == nullptr)
+        if (std::fgetws(s, static_cast<int>(num), file_) == nullptr)
             return 0;
         return num;
     }

@@ -54,6 +54,9 @@ struct json_args : config_args
 
     template <class _ConfTy>
     using serializer_args_type = detail::json_serializer_args<_ConfTy>;
+
+    template <typename _CharTy>
+    using default_encoding = encoding::auto_utf<_CharTy>;
 };
 
 struct wjson_args : json_args
