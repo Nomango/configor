@@ -24,7 +24,7 @@
 
 ### 关于更名！
 
-项目此前叫做 `jsonxx` 库，现已更名为 `configor`！
+项目此前叫做 `jsonxx`，现已更名为 `configor`！
 
 在保证原有 API 可用的情况下，将在未来支持包括 JSON 在内的各种常见对象存储格式（如 YAML 等）。
 
@@ -123,6 +123,7 @@ bool is_bool();
 bool is_integer();
 bool is_float();
 bool is_number(); // is_integer() || is_float()
+bool is_string();
 bool is_array();
 bool is_object();
 ```
@@ -132,13 +133,12 @@ bool is_object();
 通过 get 函数可以直接取值：
 
 ```cpp
-auto b = j.get<bool>();                 // bool，仅当 j.is_bool() 时可用
-auto i = j.get<int>();                  // int，仅当 j.is_integer() 时可用
-auto i = j.get<int64_t>();              // int64_t，仅当 j.is_integer() 时可用
-auto f = j.get<float>();                // float，仅当 j.is_float() 时可用
-auto f = j.get<double>();               // double，仅当 j.is_float() 时可用
-auto arr = j.get<json::array_type>();   // arr 实际是 std::vector<json> 类型，仅当 j.is_array() 时可用
-auto obj = j.get<json::object_type>();  // obj 实际是 std::map<std::string, json> 类型，仅当 j.is_object() 时可用
+auto b = j.get<bool>();                 // 仅当 j.is_bool() 时可用
+auto i = j.get<int>();                  // 仅当 j.is_integer() 时可用
+auto i = j.get<int64_t>();              // 仅当 j.is_integer() 时可用
+auto f = j.get<float>();                // 仅当 j.is_float() 时可用
+auto d = j.get<double>();               // 仅当 j.is_float() 时可用
+auto s = j.get<std::string>();          // 仅当 j.is_string() 时可用
 
 // 对于实现了 config_bind 的自定义数据类型，也可以直接取值
 // 详情请参考下方 `JSON 与任意类型的转换`
@@ -146,7 +146,7 @@ class MyObject;
 auto myObj = j.get<MyObject>();
 ```
 
-> 注意：get函数会强校验数据类型（例如整形和浮点数不能自动转换），参数类型与值类型不同时会引发 json_type_error 异常。
+> 注意：get函数会强校验数据类型（例如整形和浮点数不能自动转换），参数类型与值类型不同时会引发 configor_type_error 异常。
 
 通过有参数的 get 函数，可以传入对象引用来取值：
 
@@ -185,6 +185,7 @@ std::string as_string();  // 对字符串类型直接返回，对数字类型和
 bool b = (bool)j["boolean"];
 int i = (int)j["number"];
 float d = (float)j["float"];
+
 // 隐式转换（不推荐）
 bool b = j["boolean"];
 int i = j["number"];
@@ -300,7 +301,7 @@ std::cin >> j;
 
 ### Unicode与多编码支持
 
-configor 具有完备的 unicode 支持，同时对不同平台的不同字符类型进行了支持。
+configor 具有完备的 unicode 支持，同時支持 `char`、`wchar_t`、`char16_t`和`char32_t`。
 
 对于 `wchar_t` 类型，可使用下面的别名来使用宽字符版本：
 
@@ -313,7 +314,7 @@ wjson  // wchar_t
 
 ```cpp
 wjson j = wjson::parse(L"{ \"name\": \"中文测试\" }");
-std::wstring str = j[L"name"].as_string();  // L"中文测试"
+std::wstring str = j[L"name"].get<std::wstring>();
 ```
 
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
@@ -334,7 +335,7 @@ using u16json = configor::basic_config<u16json_args>;
 using u32json = configor::basic_config<u32json_args>;
 ```
 
-> 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。
+> 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。  
 > 对于 Clang 编译器来说，您可能需要自己实现 std::ctype<char16_t> 和 std::ctype<char32_t> 才能让 configor 正常工作。
 
 ### 与自定义类型转换
@@ -347,7 +348,7 @@ configor 提供了 `JSON_BIND` 宏，可以用一行代码快速完成 json 绑�
 struct User
 {
     int user_id;
-    string user_name;
+    std::string user_name;
 
     JSON_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
 };
@@ -357,7 +358,7 @@ class User
 {
 private:
     int user_id;
-    string user_name;
+    std::string user_name;
 
 public:
     JSON_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
@@ -377,7 +378,7 @@ j = user;
 user = (User)j;
 ```
 
-同时会默认支持 User 的智能指针、vector\<User\>、map\<string, User\> 等类型的自动转换。
+同时会默认支持 User 的智能指针、std::vector\<User\>、std::map\<std::string, User\> 等类型的自动转换。
 
 例如，下面的代码是正确的：
 
@@ -439,28 +440,27 @@ s >> json::wrap(obj);
 #include <sstream>
 #include <configor/json.hpp>
 
-using namespace std;
 using namespace configor;
 
 // 用户类
 struct User
 {
     int user_id;
-    string user_name;
+    std::string user_name;
 
     JSON_BIND(User, user_id, user_name);
 };
 
 int main(int argc, char** argv)
 {
-    stringstream s("{\"user_id\": 10001, \"user_name\": \"John\"}");
+    std::stringstream s("{\"user_id\": 10001, \"user_name\": \"John\"}");
 
     // 解析json内容，并反序列化到user对象
     User user;
     s >> json::wrap(user);
 
     // 序列化user对象并输出
-    cout << json::wrap(user) << endl; // {"user_id":10001,"user_name":"John"}
+    std::cout << json::wrap(user) << std::endl; // {"user_id":10001,"user_name":"John"}
     return 0;
 }
 ```
@@ -532,60 +532,39 @@ using fifo_json = configor::basic_config<fifo_json_args>;
 ```cpp
 struct myadapter : public oadapter
 {
-    myadapter(std::string& str)
-        : str_(str)
-    {
-    }
-
     // 实现 write 接口，写入一个字符
     virtual void write(const char ch) override
     {
-        str_.push_back(ch);
+        // 直接输出到屏幕
+        std::cout << ch;
     }
-
-private:
-    std::string& str_;
 };
 
 // 使用方式
-std::string output;
-
-myadapter ma{ output };
+myadapter ma;
 oadapterstream os{ ma };
-j.dump(os);  // 将 json j 序列化输出到 output 中
-
-std::cout << output;
+j.dump(os);  // 将 json j 序列化输出到屏幕上
 ```
 
 一个 iadapter 的例子：
 ```cpp
 struct myadapter : public iadapter
 {
-    myadapter(const std::string& str)
-        : str_(str)
-        , idx_(0)
-    {
-    }
-
     // 实现 read 接口，读取一个字符
     virtual char read() override
     {
-        if (idx_ >= str_.size())
+        // 直接从用户输入读取字符，读到换行符结束
+        char ch = std::cin.get();
+        if (ch == '\n')
             return std::char_traits<char>::eof();
-        return str_[idx_++];
+        return ch;
     }
-
-private:
-    const std::string& str_;
-    size_t             idx_;
 };
 
 // 使用方式
-std::string input = "{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }";
-
-myadapter ma{ input };
+myadapter ma;
 iadapterstream is{ ma };
-json j = json::parse(is);  // 将 input 字符串反序列化到 json
+json j = json::parse(is);  // 读取用户输入，并反序列化
 ```
 
 详细内容请参考 json_stream.hpp
