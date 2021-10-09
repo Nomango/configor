@@ -130,7 +130,7 @@ public:
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
-              typename = typename std::enable_if<!std::is_same<basic_config, _UTy>::value
+              typename = typename std::enable_if<!is_config<_UTy>::value
                                                  && detail::has_to_config<basic_config, _UTy>::value>::type>
     basic_config(_CompatibleTy&& value)
     {
