@@ -22,8 +22,10 @@ public:
     }
 };
 
+namespace configor
+{
 template <>
-struct configor::config_bind<Driver>
+struct config_bind<Driver>
 {
     static void to_config(json& j, const Driver& v)
     {
@@ -35,6 +37,7 @@ struct configor::config_bind<Driver>
         return Driver(j["name"].get<std::string>());
     }
 };
+}  // namespace configor
 
 class Passenger
 {
@@ -57,8 +60,10 @@ public:
     }
 };
 
+namespace configor
+{
 template <>
-struct configor::config_bind<Passenger>
+struct config_bind<Passenger>
 {
     static void to_config(json& j, const Passenger& v)
     {
@@ -72,6 +77,7 @@ struct configor::config_bind<Passenger>
         j["age"].get(v.age_);
     }
 };
+}  // namespace configor
 
 using PassengerPtr = std::shared_ptr<Passenger>;
 using DriverPtr    = std::unique_ptr<Driver>;
@@ -85,7 +91,8 @@ class Bus
 
 public:
     Bus() = default;
-    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers, const std::map<std::string, PassengerPtr>& olders)
+    Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers,
+        const std::map<std::string, PassengerPtr>& olders)
         : license_(license)
         , driver_(std::move(driver))
         , passengers_(passengers)
@@ -106,10 +113,12 @@ public:
         using pair = std::pair<const std::string, PassengerPtr const>;
         return license_ == rhs.license_ && *driver_ == *rhs.driver_ && passengers_.size() == rhs.passengers_.size()
                && std::equal(passengers_.cbegin(), passengers_.cend(), rhs.passengers_.cbegin(),
-                             [](const PassengerPtr& p1, const PassengerPtr& p2) { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
+                             [](const PassengerPtr& p1, const PassengerPtr& p2)
+                             { return p1 ? (*p1 == *p2) : (p2 == nullptr); })
                && olders_.size() == rhs.olders_.size()
                && std::equal(olders_.cbegin(), olders_.cend(), rhs.olders_.cbegin(),
-                             [](const pair& p1, const pair& p2) { return p1.first == p2.first && *p1.second == *p2.second; });
+                             [](const pair& p1, const pair& p2)
+                             { return p1.first == p2.first && *p1.second == *p2.second; });
     }
 
     Bus& operator=(const Bus& rhs)

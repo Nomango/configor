@@ -92,11 +92,12 @@ struct has_to_config : std::false_type
 };
 
 template <typename _ConfTy, typename _Ty>
-struct has_to_config<_ConfTy, _Ty,
-                     typename std::enable_if<std::is_void<decltype(config_bind<_Ty>::to_config(
-                                                 std::declval<_ConfTy&>(), std::declval<const _Ty&>()))>::value,
-                                             void>::type> : std::true_type
+struct has_to_config<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
 {
+    template <typename _UTy, typename... _Args>
+    using to_config_function = decltype(_UTy::to_config(std::declval<_Args>()...));
+
+    static constexpr bool value = exact_detect<void, to_config_function, config_bind<_Ty>, _ConfTy&, _Ty>::value;
 };
 
 template <typename _ConfTy, typename _Ty, typename _Check = void>
@@ -105,12 +106,12 @@ struct has_default_from_config : std::false_type
 };
 
 template <typename _ConfTy, typename _Ty>
-struct has_default_from_config<
-    _ConfTy, _Ty,
-    typename std::enable_if<std::is_void<decltype(config_bind<_Ty>::from_config(std::declval<const _ConfTy&>(),
-                                                                                std::declval<_Ty&>()))>::value,
-                            void>::type> : std::true_type
+struct has_default_from_config<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
 {
+    template <typename _UTy, typename... _Args>
+    using from_config_function = decltype(_UTy::from_config(std::declval<_Args>()...));
+
+    static constexpr bool value = exact_detect<void, from_config_function, config_bind<_Ty>, _ConfTy, _Ty&>::value;
 };
 
 template <typename _ConfTy, typename _Ty, typename _Check = void>
@@ -119,12 +120,12 @@ struct has_non_default_from_config : std::false_type
 };
 
 template <typename _ConfTy, typename _Ty>
-struct has_non_default_from_config<
-    _ConfTy, _Ty,
-    typename std::enable_if<
-        std::is_same<decltype(config_bind<_Ty>::from_config(std::declval<const _ConfTy&>())), _Ty>::value, void>::type>
-    : std::true_type
+struct has_non_default_from_config<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
 {
+    template <typename _UTy, typename... _Args>
+    using from_config_function = decltype(_UTy::from_config(std::declval<_Args>()...));
+
+    static constexpr bool value = exact_detect<_Ty, from_config_function, config_bind<_Ty>, _ConfTy>::value;
 };
 
 template <typename _ConfTy, typename _Ty, typename _Check = void>

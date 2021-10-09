@@ -61,6 +61,39 @@ struct get_last<_Ty>
     using type = _Ty;
 };
 
+template <typename _Ty>
+struct always_void
+{
+    using type = void;
+};
+
+template <class _Void, template <class...> class _Op, class... _Args>
+struct detect_impl
+{
+    struct dummy
+    {
+        dummy()             = delete;
+        ~dummy()            = delete;
+        dummy(const dummy&) = delete;
+    };
+
+    using type = dummy;
+};
+
+template <template <class...> class _Op, class... _Args>
+struct detect_impl<typename always_void<_Op<_Args...>>::type, _Op, _Args...>
+{
+    using type = _Op<_Args...>;
+};
+
+template <template <class...> class _Op, class... _Args>
+struct detect : detect_impl<void, _Op, _Args...>
+{
+};
+
+template <class _Expected, template <class...> class _Op, class... _Args>
+using exact_detect = std::is_same<_Expected, typename detect<_Op, _Args...>::type>;
+
 }  // namespace detail
 
 //
