@@ -94,6 +94,13 @@ struct detect : detect_impl<void, _Op, _Args...>
 template <class _Expected, template <class...> class _Op, class... _Args>
 using exact_detect = std::is_same<_Expected, typename detect<_Op, _Args...>::type>;
 
+template <class _Ty>
+struct is_character_type
+{
+    static constexpr bool value = std::is_same<_Ty, char>::value || std::is_same<_Ty, wchar_t>::value
+                                  || std::is_same<_Ty, char16_t>::value || std::is_same<_Ty, char32_t>::value;
+};
+
 }  // namespace detail
 
 //
