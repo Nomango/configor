@@ -101,7 +101,7 @@ json obj2 = {
     { "object", {
         { "key", "value" },
         { "key2", "value2" },
-    },
+    }},
 };
 ```
 
