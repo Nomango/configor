@@ -270,6 +270,33 @@ struct config_bind<std::array<_Ty, _Num>>
     }
 };
 
+template <typename _Ty, size_t _Num>
+struct config_bind<_Ty[_Num]>
+{
+    template <typename _ConfTy,
+              typename = typename std::enable_if<is_config<_ConfTy>::value
+                                                 && detail::is_configor_setable<_ConfTy, _Ty>::value>::type>
+    static void to_config(_ConfTy& c, const _Ty (&v)[_Num])
+    {
+        c = nullptr;
+        for (size_t i = 0; i < _Num; i++)
+        {
+            c[i] = v[i];
+        }
+    }
+
+    template <typename _ConfTy,
+              typename = typename std::enable_if<is_config<_ConfTy>::value
+                                                 && detail::is_configor_getable<_ConfTy, _Ty>::value>::type>
+    static void from_config(const _ConfTy& c, _Ty (&v)[_Num])
+    {
+        for (size_t i = 0; i < c.size() && i < _Num; i++)
+        {
+            v[i] = c[i].template get<_Ty>();
+        }
+    }
+};
+
 template <typename _Ty>
 struct config_bind<std::vector<_Ty>>
 {
