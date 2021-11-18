@@ -157,6 +157,29 @@ struct is_configor_setable<
 
 }  // namespace detail
 
+template <typename _ConfTy, typename _Ty, size_t _Num,
+          typename = typename std::enable_if<!detail::is_character_type<_Ty>::value && is_config<_ConfTy>::value
+                                             && detail::is_configor_setable<_ConfTy, _Ty>::value>::type>
+void to_config(_ConfTy& c, const _Ty (&v)[_Num])
+{
+    c = nullptr;
+    for (size_t i = 0; i < _Num; i++)
+    {
+        c[i] = v[i];
+    }
+}
+
+template <typename _ConfTy, typename _Ty, size_t _Num,
+          typename = typename std::enable_if<!detail::is_character_type<_Ty>::value && is_config<_ConfTy>::value
+                                             && detail::is_configor_getable<_ConfTy, _Ty>::value>::type>
+void from_config(const _ConfTy& c, _Ty (&v)[_Num])
+{
+    for (size_t i = 0; i < c.size() && i < _Num; i++)
+    {
+        v[i] = c[i].template get<_Ty>();
+    }
+}
+
 //
 // partial specialization of config_bind
 //

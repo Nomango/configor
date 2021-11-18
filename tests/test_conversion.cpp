@@ -330,6 +330,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     }
 }
 
+struct CStylePassengers
+{
+    Passenger passengers[2];
+
+    JSON_BIND(CStylePassengers, passengers);
+};
+
 TEST_CASE("test_conversion")
 {
     SECTION("test unique_ptr")
@@ -356,5 +363,21 @@ TEST_CASE("test_conversion")
         auto pnotnull = std::shared_ptr<Passenger>(new Passenger);
         CHECK_NOTHROW(pnotnull = j);
         CHECK(pnotnull == nullptr);
+    }
+
+    SECTION("test c-style array")
+    {
+        json j;
+
+        CStylePassengers v = {Passenger{"1", 1}, Passenger{"2", 2}};
+        CHECK_NOTHROW(j = v);
+        CHECK(j.is_object());
+        CHECK(j["passengers"].is_array());
+        CHECK(j["passengers"].size() == 2);
+
+        CStylePassengers v2;
+        CHECK_NOTHROW(v2 = j);
+        CHECK(v2.passengers[0] == v.passengers[0]);
+        CHECK(v2.passengers[1] == v.passengers[1]);
     }
 }
