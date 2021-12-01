@@ -786,10 +786,6 @@ public:
         , args_(args)
         , indent_()
     {
-        os_ << std::setprecision(args_.precision);
-        os_ << std::right;
-        os_ << std::noshowbase;
-
         if (pretty_print_)
         {
             indent_.init(args_.indent_char);
@@ -798,7 +794,9 @@ public:
 
     virtual void target(std::basic_ostream<char_type>& os) override
     {
+        detail::copy_fmt(os, os_);
         os_.rdbuf(os.rdbuf());
+        os_ << std::setprecision(args_.precision) << std::right << std::noshowbase;
     }
 
     virtual void next(token_type token) override

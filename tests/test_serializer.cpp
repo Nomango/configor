@@ -3,7 +3,7 @@
 #include "common.h"
 
 #include <cmath>    // std::acos
-#include <iomanip>  // std::setw, std::fill
+#include <iomanip>  // std::setw, std::fill, std::setprecision
 #include <sstream>  // std::stringstream
 
 class SerializerTest
@@ -152,6 +152,20 @@ TEST_CASE("test_serializer")
 
         j = json::parse(j.dump());
         CHECK(j.get<double>() == Approx(minimal_float));
+    }
+
+    SECTION("test_float_precision")
+    {
+        const double pi = std::acos(-1.0);
+        json         j  = pi;
+
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(4) << j;
+        CHECK(ss.str() == "3.1416");
+
+        ss.str("");
+        ss << std::fixed << std::setprecision(12) << j;
+        CHECK(ss.str() == "3.141592653590");
     }
 }
 
