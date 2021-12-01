@@ -682,6 +682,23 @@ inline serializable_float<_FloatTy> serialize_float(const _FloatTy f)
 
 }  // namespace
 
+template <typename _CharTy>
+inline void copy_fmt(const std::basic_ios<_CharTy>& from, std::basic_ios<_CharTy>& to)
+{
+    // only copy flags
+    to.setf(from.flags());
+}
+
+inline void copy_fmt(const std::basic_ios<char>& from, std::basic_ios<char>& to)
+{
+    to.copyfmt(from);
+}
+
+inline void copy_fmt(const std::basic_ios<wchar_t>& from, std::basic_ios<wchar_t>& to)
+{
+    to.copyfmt(from);
+}
+
 }  // namespace detail
 
 }  // namespace configor
