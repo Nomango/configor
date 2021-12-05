@@ -400,8 +400,10 @@ struct User
 };
 
 // 与 json 绑定
+namespace configor
+{
 template <>
-struct configor::config_bind<User>
+struct config_binder<User>
 {
     static void to_config(json& j, const User& v)
     {
@@ -414,6 +416,7 @@ struct configor::config_bind<User>
         j["user_name"].get(v.user_name);
     }
 };
+}
 ```
 
 - 将自定义类型以 JSON 格式与输入输出流交互

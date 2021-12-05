@@ -6,7 +6,7 @@
 
 class Driver
 {
-    friend config_bind<Driver>;
+    friend config_binder<Driver>;
 
     std::string name_;
 
@@ -25,7 +25,7 @@ public:
 namespace configor
 {
 template <>
-struct config_bind<Driver>
+struct config_binder<Driver>
 {
     static void to_config(json& j, const Driver& v)
     {
@@ -41,7 +41,7 @@ struct config_bind<Driver>
 
 class Passenger
 {
-    friend config_bind<Passenger>;
+    friend config_binder<Passenger>;
 
     std::string name_;
     int         age_ = 0;
@@ -63,7 +63,7 @@ public:
 namespace configor
 {
 template <>
-struct config_bind<Passenger>
+struct config_binder<Passenger>
 {
     static void to_config(json& j, const Passenger& v)
     {
@@ -339,6 +339,17 @@ struct CStylePassengers
 
 TEST_CASE("test_conversion")
 {
+    json      j;
+    Passenger i[2];
+    detail::from_config(j, i);
+    detail::to_config(j, i);
+
+    configor::from_config(j, i);
+    configor::to_config(j, i);
+
+    j = i;
+    j.get(i);
+
     SECTION("test unique_ptr")
     {
         json j;
@@ -369,7 +380,7 @@ TEST_CASE("test_conversion")
     {
         json j;
 
-        CStylePassengers v = {Passenger{"1", 1}, Passenger{"2", 2}};
+        CStylePassengers v = { Passenger{ "1", 1 }, Passenger{ "2", 2 } };
         CHECK_NOTHROW(j = v);
         CHECK(j.is_object());
         CHECK(j["passengers"].is_array());

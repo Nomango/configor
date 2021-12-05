@@ -64,6 +64,9 @@ public:
     using parse_args = typename _Args::template lexer_args_type<basic_config>;
     using dump_args  = typename _Args::template serializer_args_type<basic_config>;
 
+    template <typename _Ty>
+    using binder_type = typename _Args::template binder_type<_Ty>;
+
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
@@ -130,11 +133,11 @@ public:
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
-              typename = typename std::enable_if<!is_config<_UTy>::value
-                                                 && detail::has_to_config<basic_config, _UTy>::value>::type>
+              typename std::enable_if<!is_config<_UTy>::value && detail::has_to_config<basic_config, _UTy>::value,
+                                      int>::type = 0>
     basic_config(_CompatibleTy&& value)
     {
-        config_bind<_UTy>::to_config(*this, std::forward<_CompatibleTy>(value));
+        binder_type<_UTy>::to_config(*this, std::forward<_CompatibleTy>(value));
     }
 
     static inline basic_config object(const std::initializer_list<basic_config>& init_list)
@@ -466,16 +469,16 @@ private:
               typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<1>) const
     {
-        return config_bind<_Ty>::from_config(*this);
+        return binder_type<_Ty>::from_config(*this);
     }
 
     template <typename _Ty,
               typename = typename std::enable_if<std::is_default_constructible<_Ty>::value
-                                                 && detail::has_default_from_config<basic_config, _Ty>::value>::type>
+                                                 && detail::has_from_config<basic_config, _Ty>::value>::type>
     inline _Ty do_get(detail::priority<0>) const
     {
         _Ty value{};
-        config_bind<_Ty>::from_config(*this, value);
+        binder_type<_Ty>::from_config(*this, value);
         return value;
     }
 
@@ -485,12 +488,10 @@ private:
         return (value = *this);
     }
 
-    template <typename _Ty,
-              typename = typename std::enable_if<std::is_default_constructible<_Ty>::value
-                                                 && detail::has_default_from_config<basic_config, _Ty>::value>::type>
+    template <typename _Ty, typename = typename std::enable_if<detail::has_from_config<basic_config, _Ty>::value>::type>
     inline _Ty& do_get(_Ty& value, detail::priority<1>) const
     {
-        config_bind<_Ty>::from_config(*this, value);
+        binder_type<_Ty>::from_config(*this, value);
         return value;
     }
 
@@ -498,11 +499,13 @@ private:
               typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
     inline _Ty& do_get(_Ty& value, detail::priority<0>) const
     {
-        value = config_bind<_Ty>::from_config(*this);
+        value = binder_type<_Ty>::from_config(*this);
         return value;
     }
 
 public:
+    // conversion
+
     template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type>
     inline auto get() const
         -> decltype(std::declval<const basic_config&>().template do_get<_UTy>(detail::priority<2>{}))
@@ -532,6 +535,14 @@ public:
         {
         }
         return false;
+    }
+
+    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
+                                                               && detail::is_configor_getable<basic_config, _Ty>::value
+                                                               && !std::is_pointer<_Ty>::value>::type>
+    inline operator _Ty() const
+    {
+        return get<_Ty>();
     }
 
     boolean_type as_bool() const
@@ -731,135 +742,6 @@ public:
             throw std::out_of_range("operator[] key out of range");
         }
         return iter->second;
-    }
-
-public:
-    // conversion
-
-    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
-                                                               && detail::is_configor_getable<basic_config, _Ty>::value
-                                                               && !std::is_pointer<_Ty>::value>::type>
-    inline operator _Ty() const
-    {
-        return get<_Ty>();
-    }
-
-    // to_config functions
-
-    template <typename _BoolTy, typename = typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value>::type>
-    friend inline void to_config(basic_config& c, _BoolTy value)
-    {
-        c.value_.type         = config_value_type::boolean;
-        c.value_.data.boolean = value;
-    }
-
-    friend inline void to_config(basic_config& c, integer_type value)
-    {
-        c.value_.type                = config_value_type::number_integer;
-        c.value_.data.number_integer = value;
-    }
-
-    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value
-                                                                && std::is_integral<_IntegerUTy>::value,
-                                                            int>::type = 0>
-    friend inline void to_config(basic_config& c, _IntegerUTy value)
-    {
-        c.value_.type                = config_value_type::number_integer;
-        c.value_.data.number_integer = static_cast<integer_type>(value);
-    }
-
-    friend inline void to_config(basic_config& c, float_type value)
-    {
-        c.value_.type              = config_value_type::number_float;
-        c.value_.data.number_float = value;
-    }
-
-    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-    friend inline void to_config(basic_config& c, _FloatingTy value)
-    {
-        c.value_.type              = config_value_type::number_float;
-        c.value_.data.number_float = static_cast<float_type>(value);
-    }
-
-    friend inline void to_config(basic_config& c, const string_type& value)
-    {
-        c.value_.type        = config_value_type::string;
-        c.value_.data.string = c.value_.template create<string_type>(value);
-    }
-
-    friend inline void to_config(basic_config& c, const array_type& value)
-    {
-        c.value_.type        = config_value_type::array;
-        c.value_.data.vector = c.value_.template create<array_type>(value);
-    }
-
-    friend inline void to_config(basic_config& c, const object_type& value)
-    {
-        c.value_.type        = config_value_type::object;
-        c.value_.data.object = c.value_.template create<object_type>(value);
-    }
-
-    // from_config functions
-
-    template <typename _BoolTy, typename = typename std::enable_if<std::is_same<_BoolTy, boolean_type>::value>::type>
-    friend inline void from_config(const basic_config& c, _BoolTy& value)
-    {
-        if (!c.is_bool())
-            throw detail::make_conversion_error(c.type(), config_value_type::boolean);
-        value = c.value_.data.boolean;
-    }
-
-    friend inline void from_config(const basic_config& c, integer_type& value)
-    {
-        if (!c.is_integer())
-            throw detail::make_conversion_error(c.type(), config_value_type::number_integer);
-        value = c.value_.data.number_integer;
-    }
-
-    template <typename _IntegerUTy, typename std::enable_if<!std::is_same<_IntegerUTy, boolean_type>::value
-                                                                && std::is_integral<_IntegerUTy>::value,
-                                                            int>::type = 0>
-    friend inline void from_config(const basic_config& c, _IntegerUTy& value)
-    {
-        if (!c.is_integer())
-            throw detail::make_conversion_error(c.type(), config_value_type::number_integer);
-        value = static_cast<_IntegerUTy>(c.value_.data.number_integer);
-    }
-
-    friend inline void from_config(const basic_config& c, float_type& value)
-    {
-        if (!c.is_float())
-            throw detail::make_conversion_error(c.type(), config_value_type::number_float);
-        value = c.value_.data.number_float;
-    }
-
-    template <typename _FloatingTy, typename std::enable_if<std::is_floating_point<_FloatingTy>::value, int>::type = 0>
-    friend inline void from_config(const basic_config& c, _FloatingTy& value)
-    {
-        if (!c.is_float())
-            throw detail::make_conversion_error(c.type(), config_value_type::number_float);
-        value = static_cast<_FloatingTy>(c.value_.data.number_float);
-    }
-
-    friend inline void from_config(const basic_config& c, string_type& value)
-    {
-        if (!c.is_string())
-            throw detail::make_conversion_error(c.type(), config_value_type::string);
-        value = *c.value_.data.string;
-    }
-
-    friend inline void from_config(const basic_config& c, array_type& value)
-    {
-        if (!c.is_array())
-            throw detail::make_conversion_error(c.type(), config_value_type::array);
-        value.assign((*c.value_.data.vector).begin(), (*c.value_.data.vector).end());
-    }
-
-    friend inline void from_config(const basic_config& c, object_type& value)
-    {
-        if (!c.is_object())
-            throw detail::make_conversion_error(c.type(), config_value_type::object);
-        value = c.value_.data.object;
     }
 
 public:
