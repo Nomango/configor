@@ -135,9 +135,8 @@ struct config_value
     }
 
     config_value(config_value const& other)
+        : type(other.type)
     {
-        type = other.type;
-
         switch (other.type)
         {
         case config_value_type::object:

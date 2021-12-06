@@ -133,12 +133,12 @@ bool is_object();
 通过 get 函数可以直接取值：
 
 ```cpp
-auto b = j.get<bool>();                 // 仅当 j.is_bool() 时可用
-auto i = j.get<int>();                  // 仅当 j.is_integer() 时可用
-auto i = j.get<int64_t>();              // 仅当 j.is_integer() 时可用
-auto f = j.get<float>();                // 仅当 j.is_float() 时可用
-auto d = j.get<double>();               // 仅当 j.is_float() 时可用
-auto s = j.get<std::string>();          // 仅当 j.is_string() 时可用
+auto b = j.get<bool>();         // 仅当 j.is_bool() 时可用
+auto i = j.get<int>();          // 仅当 j.is_integer() 时可用
+auto i = j.get<int64_t>();      // 仅当 j.is_integer() 时可用
+auto f = j.get<float>();        // 仅当 j.is_float() 时可用
+auto d = j.get<double>();       // 仅当 j.is_float() 时可用
+auto s = j.get<std::string>();  // 仅当 j.is_string() 时可用
 
 // 对于实现了 config_bind 的自定义数据类型，也可以直接取值
 // 详情请参考下方 `JSON 与任意类型的转换`
@@ -147,6 +147,16 @@ auto myObj = j.get<MyObject>();
 ```
 
 > 注意：get函数会强校验数据类型（例如整形和浮点数不能自动转换），参数类型与值类型不同时会引发 configor_type_error 异常。
+
+同时 get 支持取出引用和指针类型：
+
+```cpp
+auto s = j.get<const std::string&>();
+j.get<std::string&>() = "test";
+
+auto s = j.get<const std::string*>();
+*(j.get<std::string*>()) = "test";
+```
 
 通过有参数的 get 函数，可以传入对象引用来取值：
 
@@ -185,11 +195,6 @@ std::string as_string();  // 对字符串类型直接返回，对数字类型和
 bool b = (bool)j["boolean"];
 int i = (int)j["number"];
 float d = (float)j["float"];
-
-// 隐式转换（不推荐）
-bool b = j["boolean"];
-int i = j["number"];
-float d = j["float"];
 
 // 对于实现了 config_bind 的自定义数据类型，也可以直接转换
 // 详情请参考下方 `JSON 与任意类型的转换`
@@ -400,8 +405,10 @@ struct User
 };
 
 // 与 json 绑定
+namespace configor
+{
 template <>
-struct configor::config_bind<User>
+struct config_binder<User>
 {
     static void to_config(json& j, const User& v)
     {
@@ -414,6 +421,7 @@ struct configor::config_bind<User>
         j["user_name"].get(v.user_name);
     }
 };
+}
 ```
 
 - 将自定义类型以 JSON 格式与输入输出流交互

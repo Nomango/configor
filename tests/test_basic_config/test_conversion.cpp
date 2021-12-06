@@ -6,7 +6,7 @@
 
 class Driver
 {
-    friend config_bind<Driver>;
+    friend config_binder<Driver>;
 
     std::string name_;
 
@@ -25,23 +25,23 @@ public:
 namespace configor
 {
 template <>
-struct config_bind<Driver>
+struct config_binder<Driver>
 {
-    static void to_config(json& j, const Driver& v)
+    static void to_config(config& c, const Driver& v)
     {
-        j["name"] = v.name_;
+        c["name"] = v.name_;
     }
 
-    static Driver from_config(const json& j)
+    static Driver from_config(const config& c)
     {
-        return Driver(j["name"].get<std::string>());
+        return Driver(c["name"].get<std::string>());
     }
 };
 }  // namespace configor
 
 class Passenger
 {
-    friend config_bind<Passenger>;
+    friend config_binder<Passenger>;
 
     std::string name_;
     int         age_ = 0;
@@ -63,18 +63,18 @@ public:
 namespace configor
 {
 template <>
-struct config_bind<Passenger>
+struct config_binder<Passenger>
 {
-    static void to_config(json& j, const Passenger& v)
+    static void to_config(config& c, const Passenger& v)
     {
-        j["name"] = v.name_;
-        j["age"]  = v.age_;
+        c["name"] = v.name_;
+        c["age"]  = v.age_;
     }
 
-    static void from_config(const json& j, Passenger& v)
+    static void from_config(const config& c, Passenger& v)
     {
-        j["name"].get(v.name_);
-        j["age"].get(v.age_);
+        c["name"].get(v.name_);
+        c["age"].get(v.age_);
     }
 };
 }  // namespace configor
@@ -131,14 +131,14 @@ public:
     }
 
 public:
-    JSON_BIND(Bus, license_, driver_, passengers_, olders_);
+    CONFIGOR_BIND(Bus, license_, driver_, passengers_, olders_);
 };
 
 class ConversionTest
 {
 protected:
-    Bus  expect_bus;
-    json expect_json;
+    Bus    expect_bus;
+    config expect_config;
 
     ConversionTest()
     {
@@ -149,7 +149,7 @@ protected:
             { { "p2", std::make_shared<Passenger>("p2", 54) } },
         };
 
-        expect_json = {
+        expect_config = {
             { "license_", 100 },
             { "driver_", { { "name", "driver" } } },
             { "passengers_",
@@ -166,28 +166,17 @@ protected:
     }
 };
 
-TEST_CASE_METHOD(ConversionTest, "test_to_json")
+TEST_CASE_METHOD(ConversionTest, "test_to_config")
 {
-    json j = expect_bus;
+    config c = expect_bus;
 
-    CHECK(j == expect_json);
+    CHECK(c == expect_config);
 }
 
-TEST_CASE_METHOD(ConversionTest, "test_from_json")
+TEST_CASE_METHOD(ConversionTest, "test_from_config")
 {
-    Bus bus = Bus(expect_json);
+    Bus bus = Bus(expect_config);
 
-    CHECK(bus == expect_bus);
-}
-
-TEST_CASE_METHOD(ConversionTest, "test_json_wrap")
-{
-    std::stringstream s;
-    s << json::wrap(expect_bus);
-    CHECK(s.str() == expect_json.dump());
-
-    Bus bus;
-    s >> json::wrap(bus);
     CHECK(bus == expect_bus);
 }
 
@@ -197,14 +186,14 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::array<Bus, 1> v;
         v[0] = expect_bus;
 
-        json j;
-        CHECK_NOTHROW(j = v);
-        CHECK(j.is_array());
-        CHECK(j.size() == 1);
-        CHECK(j[0] == expect_json);
+        config c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 1);
+        CHECK(c[0] == expect_config);
 
         v[0] = Bus{};
-        CHECK_NOTHROW(v = j);
+        CHECK_NOTHROW(v = c);
         CHECK(v[0] == expect_bus);
     }
 
@@ -212,14 +201,14 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::vector<Bus> v;
         v.push_back(expect_bus);
 
-        json j;
-        CHECK_NOTHROW(j = v);
-        CHECK(j.is_array());
-        CHECK(j.size() == 1);
-        CHECK(j[0] == expect_json);
+        config c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 1);
+        CHECK(c[0] == expect_config);
 
         v.clear();
-        CHECK_NOTHROW(v = j);
+        CHECK_NOTHROW(v = c);
         CHECK(v.size() == 1);
         CHECK(v[0] == expect_bus);
     }
@@ -228,14 +217,14 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::deque<Bus> v;
         v.push_back(expect_bus);
 
-        json j;
-        CHECK_NOTHROW(j = v);
-        CHECK(j.is_array());
-        CHECK(j.size() == 1);
-        CHECK(j[0] == expect_json);
+        config c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 1);
+        CHECK(c[0] == expect_config);
 
         v.clear();
-        CHECK_NOTHROW(v = j);
+        CHECK_NOTHROW(v = c);
         CHECK(v.size() == 1);
         CHECK(v[0] == expect_bus);
     }
@@ -244,14 +233,14 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::list<Bus> v;
         v.push_back(expect_bus);
 
-        json j;
-        CHECK_NOTHROW(j = v);
-        CHECK(j.is_array());
-        CHECK(j.size() == 1);
-        CHECK(j[0] == expect_json);
+        config c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 1);
+        CHECK(c[0] == expect_config);
 
         v.clear();
-        CHECK_NOTHROW(v = j);
+        CHECK_NOTHROW(v = c);
         CHECK(v.size() == 1);
         CHECK(v.front() == expect_bus);
     }
@@ -260,72 +249,72 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::forward_list<Bus> v;
         v.push_front(expect_bus);
 
-        json j;
-        CHECK_NOTHROW(j = v);
-        CHECK(j.is_array());
-        CHECK(j.size() == 1);
-        CHECK(j[0] == expect_json);
+        config c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 1);
+        CHECK(c[0] == expect_config);
 
         v.clear();
-        CHECK_NOTHROW(v = j);
+        CHECK_NOTHROW(v = c);
         CHECK(v.front() == expect_bus);
     }
 
     {
         std::set<int> expect = { 1, 1, 2, 3 };
 
-        json j;
-        CHECK_NOTHROW(j = expect);
-        CHECK(j.is_array());
-        CHECK(j.size() == 3);
-        CHECK(j == expect);
+        config c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_array());
+        CHECK(c.size() == 3);
+        CHECK(c == expect);
 
         std::set<int> actual;
-        CHECK_NOTHROW(actual = j);
+        CHECK_NOTHROW(actual = c);
         CHECK(actual == expect);
     }
 
     {
         std::unordered_set<int> expect = { 1, 1, 2, 3 };
 
-        json j;
-        CHECK_NOTHROW(j = expect);
-        CHECK(j.is_array());
-        CHECK(j.size() == 3);
-        CHECK(j == expect);
+        config c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_array());
+        CHECK(c.size() == 3);
+        CHECK(c == expect);
 
         std::unordered_set<int> actual;
-        CHECK_NOTHROW(actual = j);
+        CHECK_NOTHROW(actual = c);
         CHECK(actual == expect);
     }
 
     {
         std::map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
 
-        json j;
-        CHECK_NOTHROW(j = expect);
-        CHECK(j.is_object());
-        CHECK(j.size() == 2);
-        CHECK(j["one"] == 1);
-        CHECK(j["two"] == 2);
+        config c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_object());
+        CHECK(c.size() == 2);
+        CHECK(c["one"] == 1);
+        CHECK(c["two"] == 2);
 
         std::map<std::string, int> actual;
-        CHECK_NOTHROW(actual = j);
+        CHECK_NOTHROW(actual = c);
         CHECK(actual == expect);
     }
 
     {
         std::unordered_map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
 
-        json j;
-        CHECK_NOTHROW(j = expect);
-        CHECK(j.is_object());
-        CHECK(j.size() == 2);
-        CHECK(j["one"] == 1);
-        CHECK(j["two"] == 2);
+        config c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_object());
+        CHECK(c.size() == 2);
+        CHECK(c["one"] == 1);
+        CHECK(c["two"] == 2);
 
         std::unordered_map<std::string, int> actual;
-        CHECK_NOTHROW(actual = j);
+        CHECK_NOTHROW(actual = c);
         CHECK(actual == expect);
     }
 }
@@ -334,49 +323,60 @@ struct CStylePassengers
 {
     Passenger passengers[2];
 
-    JSON_BIND(CStylePassengers, passengers);
+    CONFIGOR_BIND(CStylePassengers, passengers);
 };
 
 TEST_CASE("test_conversion")
 {
+    config    c;
+    Passenger i[2];
+    detail::from_config(c, i);
+    detail::to_config(c, i);
+
+    configor::from_config(c, i);
+    configor::to_config(c, i);
+
+    c = i;
+    c.get(i);
+
     SECTION("test unique_ptr")
     {
-        json j;
+        config c;
 
         std::unique_ptr<Passenger> pnull = nullptr;
-        CHECK_NOTHROW(j = pnull);
-        CHECK(j.is_null());
+        CHECK_NOTHROW(c = pnull);
+        CHECK(c.is_null());
 
         auto pnotnull = std::unique_ptr<Passenger>(new Passenger);
-        CHECK_NOTHROW(pnotnull = j);
+        CHECK_NOTHROW(pnotnull = c);
         CHECK(pnotnull == nullptr);
     }
 
     SECTION("test shared_ptr")
     {
-        json j;
+        config c;
 
         std::shared_ptr<Passenger> pnull = nullptr;
-        CHECK_NOTHROW(j = pnull);
-        CHECK(j.is_null());
+        CHECK_NOTHROW(c = pnull);
+        CHECK(c.is_null());
 
         auto pnotnull = std::shared_ptr<Passenger>(new Passenger);
-        CHECK_NOTHROW(pnotnull = j);
+        CHECK_NOTHROW(pnotnull = c);
         CHECK(pnotnull == nullptr);
     }
 
     SECTION("test c-style array")
     {
-        json j;
+        config c;
 
-        CStylePassengers v = {Passenger{"1", 1}, Passenger{"2", 2}};
-        CHECK_NOTHROW(j = v);
-        CHECK(j.is_object());
-        CHECK(j["passengers"].is_array());
-        CHECK(j["passengers"].size() == 2);
+        CStylePassengers v = { Passenger{ "1", 1 }, Passenger{ "2", 2 } };
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_object());
+        CHECK(c["passengers"].is_array());
+        CHECK(c["passengers"].size() == 2);
 
         CStylePassengers v2;
-        CHECK_NOTHROW(v2 = j);
+        CHECK_NOTHROW(v2 = c);
         CHECK(v2.passengers[0] == v.passengers[0]);
         CHECK(v2.passengers[1] == v.passengers[1]);
     }

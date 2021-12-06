@@ -2,9 +2,10 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd-party/Catch2/single_include)
 
 # Testing
-aux_source_directory(. SOURCES)
+aux_source_directory(./test_basic_config BASIC_SRC)
+aux_source_directory(./test_json JSON_SRC)
+add_executable(${PROJECT_NAME}_test main.cpp ${BASIC_SRC} ${JSON_SRC})
 
-add_executable(${PROJECT_NAME}_test ${SOURCES})
 add_test(NAME ${PROJECT_NAME}_test
     COMMAND ${PROJECT_NAME}_test
     WORKING_DIRECTORY ${PROJECT_ROOT_DIR}

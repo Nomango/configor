@@ -30,6 +30,76 @@
 namespace configor
 {
 
+//
+// forward declare
+//
+
+template <typename _Ty>
+class config_binder;
+
+struct config_args
+{
+    using boolean_type = bool;
+
+    using integer_type = int64_t;
+
+    using float_type = double;
+
+    using char_type = char;
+
+    template <class _CharTy, class... _Args>
+    using string_type = std::basic_string<_CharTy, _Args...>;
+
+    template <class _Kty, class... _Args>
+    using array_type = std::vector<_Kty, _Args...>;
+
+    template <class _Kty, class _Ty, class... _Args>
+    using object_type = std::map<_Kty, _Ty, _Args...>;
+
+    template <class _Ty>
+    using allocator_type = std::allocator<_Ty>;
+
+    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using lexer_type = void;
+
+    template <class _ConfTy>
+    using lexer_args_type = void;
+
+    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = void;
+
+    template <class _ConfTy>
+    using serializer_args_type = void;
+
+    template <class _Ty>
+    using binder_type = config_binder<_Ty>;
+
+    template <typename _CharTy>
+    using default_encoding = encoding::ignore<_CharTy>;
+};
+
+struct wconfig_args : config_args
+{
+    using char_type = wchar_t;
+};
+
+template <typename _Args = config_args>
+class basic_config;
+
+//
+// is_config
+//
+
+template <typename>
+struct is_config : std::false_type
+{
+};
+
+template <typename _Args>
+struct is_config<basic_config<_Args>> : std::true_type
+{
+};
+
 namespace detail
 {
 
@@ -94,77 +164,15 @@ struct detect : detect_impl<void, _Op, _Args...>
 template <class _Expected, template <class...> class _Op, class... _Args>
 using exact_detect = std::is_same<_Expected, typename detect<_Op, _Args...>::type>;
 
-template <class _Ty>
-struct is_character_type
+template <typename _Ty>
+struct static_const
 {
-    static constexpr bool value = std::is_same<_Ty, char>::value || std::is_same<_Ty, wchar_t>::value
-                                  || std::is_same<_Ty, char16_t>::value || std::is_same<_Ty, char32_t>::value;
+    static constexpr _Ty value = {};
 };
+
+template <typename _Ty>
+constexpr _Ty static_const<_Ty>::value;
 
 }  // namespace detail
-
-//
-// forward declare
-//
-
-struct config_args
-{
-    using boolean_type = bool;
-
-    using integer_type = int64_t;
-
-    using float_type = double;
-
-    using char_type = char;
-
-    template <class _CharTy, class... _Args>
-    using string_type = std::basic_string<_CharTy, _Args...>;
-
-    template <class _Kty, class... _Args>
-    using array_type = std::vector<_Kty, _Args...>;
-
-    template <class _Kty, class _Ty, class... _Args>
-    using object_type = std::map<_Kty, _Ty, _Args...>;
-
-    template <class _Ty>
-    using allocator_type = std::allocator<_Ty>;
-
-    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using lexer_type = void;
-
-    template <class _ConfTy>
-    using lexer_args_type = void;
-
-    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = void;
-
-    template <class _ConfTy>
-    using serializer_args_type = void;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
-};
-
-struct wconfig_args : config_args
-{
-    using char_type = wchar_t;
-};
-
-template <typename _Args = config_args>
-class basic_config;
-
-//
-// is_config
-//
-
-template <typename>
-struct is_config : std::false_type
-{
-};
-
-template <typename _Args>
-struct is_config<basic_config<_Args>> : std::true_type
-{
-};
 
 }  // namespace configor
