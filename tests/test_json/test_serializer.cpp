@@ -87,6 +87,43 @@ TEST_CASE_METHOD(SerializerTest, "test_write_to_stream")
     CHECK(ss.str() == j.dump(2, '.'));
 }
 
+TEST_CASE_METHOD(SerializerTest, "test_adapter")
+{
+    struct myadapter : public oadapter
+    {
+        myadapter(std::string& str)
+            : str_(str)
+        {
+        }
+
+        virtual void write(const char ch) override
+        {
+            str_.push_back(ch);
+        }
+
+    private:
+        std::string& str_;
+    };
+
+    std::string output;
+    {
+        myadapter      ma{ output };
+        oadapterstream os{ ma };
+        CHECK_NOTHROW(j.dump(os));
+        CHECK(output == j.dump());
+    }
+
+    {
+        output.clear();
+
+        myadapter      ma{ output };
+        oadapterstream os{ ma };
+
+        os << 'h' << "ello,world";
+        CHECK(output == "hello,world");
+    }
+}
+
 TEST_CASE("test_serializer")
 {
     SECTION("test_numeric")
@@ -167,41 +204,18 @@ TEST_CASE("test_serializer")
         ss << std::fixed << std::setprecision(12) << j;
         CHECK(ss.str() == "3.141592653590");
     }
-}
 
-TEST_CASE_METHOD(SerializerTest, "test_adapter")
-{
-    struct myadapter : public oadapter
+    SECTION("test_wrap")
     {
-        myadapter(std::string& str)
-            : str_(str)
-        {
-        }
+        int  i = 1;
+        json j = i;
 
-        virtual void write(const char ch) override
-        {
-            str_.push_back(ch);
-        }
+        std::stringstream s;
+        s << json::wrap(i);
+        CHECK(s.str() == j.dump());
 
-    private:
-        std::string& str_;
-    };
-
-    std::string output;
-    {
-        myadapter      ma{ output };
-        oadapterstream os{ ma };
-        CHECK_NOTHROW(j.dump(os));
-        CHECK(output == j.dump());
-    }
-
-    {
-        output.clear();
-
-        myadapter      ma{ output };
-        oadapterstream os{ ma };
-
-        os << 'h' << "ello,world";
-        CHECK(output == "hello,world");
+        int i2 = 0;
+        s >> json::wrap(i2);
+        CHECK(i2 == i);
     }
 }

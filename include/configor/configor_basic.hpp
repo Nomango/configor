@@ -457,17 +457,114 @@ public:
     }
 
 private:
-    // GET value functions
+    // get pointer value
+
+    inline boolean_type* do_get_ptr(boolean_type*) noexcept
+    {
+        return is_bool() ? &value_.data.boolean : nullptr;
+    }
+
+    inline const boolean_type* do_get_ptr(const boolean_type*) const noexcept
+    {
+        return is_bool() ? &value_.data.boolean : nullptr;
+    }
+
+    inline integer_type* do_get_ptr(integer_type*) noexcept
+    {
+        return is_integer() ? &value_.data.number_integer : nullptr;
+    }
+
+    inline const integer_type* do_get_ptr(const integer_type*) const noexcept
+    {
+        return is_integer() ? &value_.data.number_integer : nullptr;
+    }
+
+    inline float_type* do_get_ptr(float_type*) noexcept
+    {
+        return is_float() ? &value_.data.number_float : nullptr;
+    }
+
+    inline const float_type* do_get_ptr(const float_type*) const noexcept
+    {
+        return is_float() ? &value_.data.number_float : nullptr;
+    }
+
+    inline string_type* do_get_ptr(string_type*) noexcept
+    {
+        return is_string() ? value_.data.string : nullptr;
+    }
+
+    inline const string_type* do_get_ptr(const string_type*) const noexcept
+    {
+        return is_string() ? value_.data.string : nullptr;
+    }
+
+    inline array_type* do_get_ptr(array_type*) noexcept
+    {
+        return is_array() ? value_.data.vector : nullptr;
+    }
+
+    inline const array_type* do_get_ptr(const array_type*) const noexcept
+    {
+        return is_array() ? value_.data.vector : nullptr;
+    }
+
+    inline object_type* do_get_ptr(object_type*) noexcept
+    {
+        return is_object() ? value_.data.object : nullptr;
+    }
+
+    inline const object_type* do_get_ptr(const object_type*) const noexcept
+    {
+        return is_object() ? value_.data.object : nullptr;
+    }
+
+public:
+    // get_ptr
+
+    template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
+    auto get_ptr() const -> decltype(std::declval<const basic_config&>().do_get_ptr(std::declval<_Ty>()))
+    {
+        return do_get_ptr(static_cast<_Ty>(nullptr));
+    }
+
+    template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
+    auto get_ptr() -> decltype(std::declval<basic_config&>().do_get_ptr(std::declval<_Ty>()))
+    {
+        return do_get_ptr(static_cast<_Ty>(nullptr));
+    }
+
+private:
+    // get reference value
+    template <typename _RefTy, typename _ConfTy, typename _PtrTy = typename std::add_pointer<_RefTy>::type>
+    static auto do_get_ref(_ConfTy& c) -> decltype(c.template get_ptr<_PtrTy>(), std::declval<_RefTy>())
+    {
+        auto* ptr = c.template get_ptr<_PtrTy>();
+        if (ptr != nullptr)
+        {
+            return *ptr;
+        }
+        throw configor_type_error("incompatible reference type for get, actual type is " + std::string(c.type_name()));
+    }
+
+    // get value
 
     template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_config, _Ty>::value>::type>
-    inline _Ty do_get(detail::priority<2>) const
+    _Ty do_get(detail::priority<3>) const
     {
         return *this;
     }
 
+    template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
+    auto do_get(detail::priority<2>) const noexcept
+        -> decltype(std::declval<const basic_config&>().do_get_ptr(std::declval<_Ty>()))
+    {
+        return do_get_ptr(static_cast<_Ty>(nullptr));
+    }
+
     template <typename _Ty,
               typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
-    inline _Ty do_get(detail::priority<1>) const
+    _Ty do_get(detail::priority<1>) const
     {
         return binder_type<_Ty>::from_config(*this);
     }
@@ -475,21 +572,30 @@ private:
     template <typename _Ty,
               typename = typename std::enable_if<std::is_default_constructible<_Ty>::value
                                                  && detail::has_from_config<basic_config, _Ty>::value>::type>
-    inline _Ty do_get(detail::priority<0>) const
+    _Ty do_get(detail::priority<0>) const
     {
         _Ty value{};
         binder_type<_Ty>::from_config(*this, value);
         return value;
     }
 
+    // get value by reference
+
     template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_config, _Ty>::value>::type>
-    inline _Ty& do_get(_Ty& value, detail::priority<2>) const
+    _Ty& do_get(_Ty& value, detail::priority<3>) const
     {
         return (value = *this);
     }
 
+    template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
+    auto do_get(_Ty& value, detail::priority<2>) const noexcept
+        -> decltype(std::declval<const basic_config&>().do_get_ptr(std::declval<_Ty>()))
+    {
+        return (value = do_get_ptr(static_cast<_Ty>(nullptr)));
+    }
+
     template <typename _Ty, typename = typename std::enable_if<detail::has_from_config<basic_config, _Ty>::value>::type>
-    inline _Ty& do_get(_Ty& value, detail::priority<1>) const
+    _Ty& do_get(_Ty& value, detail::priority<1>) const
     {
         binder_type<_Ty>::from_config(*this, value);
         return value;
@@ -497,28 +603,49 @@ private:
 
     template <typename _Ty,
               typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
-    inline _Ty& do_get(_Ty& value, detail::priority<0>) const
+    _Ty& do_get(_Ty& value, detail::priority<0>) const
     {
         value = binder_type<_Ty>::from_config(*this);
         return value;
     }
 
 public:
-    // conversion
+    // get
 
-    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type>
-    inline auto get() const
-        -> decltype(std::declval<const basic_config&>().template do_get<_UTy>(detail::priority<2>{}))
+    template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type,
+              typename = typename std::enable_if<!std::is_reference<_Ty>::value>::type>
+    auto get() const -> decltype(std::declval<const basic_config&>().template do_get<_UTy>(detail::priority<3>{}))
     {
-        return do_get<_UTy>(detail::priority<2>{});
+        return do_get<_UTy>(detail::priority<3>{});
+    }
+
+    template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
+    auto get() -> decltype(std::declval<basic_config&>().template get_ptr<_Ty>())
+    {
+        return get_ptr<_Ty>();
+    }
+
+    template <typename _Ty, typename std::enable_if<std::is_reference<_Ty>::value, int>::type = 0>
+    auto get() -> decltype(basic_config::template do_get_ref<_Ty>(std::declval<basic_config&>()))
+    {
+        return do_get_ref<_Ty>(*this);
+    }
+
+    template <typename _Ty,
+              typename std::enable_if<std::is_reference<_Ty>::value
+                                          && std::is_const<typename std::remove_reference<_Ty>::type>::value,
+                                      int>::type = 0>
+    auto get() const -> decltype(basic_config::template do_get_ref<_Ty>(std::declval<const basic_config&>()))
+    {
+        return do_get_ref<_Ty>(*this);
     }
 
     template <typename _Ty>
-    inline auto get(_Ty& value) const
+    auto get(_Ty& value) const
         -> decltype(std::declval<const basic_config&>().template do_get<_Ty>(std::declval<_Ty&>(),
-                                                                             detail::priority<2>{}))
+                                                                             detail::priority<3>{}))
     {
-        return do_get<_Ty>(value, detail::priority<2>{});
+        return do_get<_Ty>(value, detail::priority<3>{});
     }
 
     template <typename _Ty>
@@ -537,9 +664,9 @@ public:
         return false;
     }
 
-    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
-                                                               && detail::is_configor_getable<basic_config, _Ty>::value
-                                                               && !std::is_pointer<_Ty>::value>::type>
+    template <typename _Ty, typename = typename std::enable_if<detail::is_configor_getable<basic_config, _Ty>::value
+                                                               && !std::is_pointer<_Ty>::value
+                                                               && !std::is_reference<_Ty>::value>::type>
     inline operator _Ty() const
     {
         return get<_Ty>();
