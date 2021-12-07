@@ -328,17 +328,6 @@ struct CStylePassengers
 
 TEST_CASE("test_conversion")
 {
-    config    c;
-    Passenger i[2];
-    detail::from_config(c, i);
-    detail::to_config(c, i);
-
-    configor::from_config(c, i);
-    configor::to_config(c, i);
-
-    c = i;
-    c.get(i);
-
     SECTION("test unique_ptr")
     {
         config c;

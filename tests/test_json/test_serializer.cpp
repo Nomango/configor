@@ -62,13 +62,13 @@ TEST_CASE_METHOD(SerializerTest, "test_dump")
 
     // test error policy
     error_handler_with<error_policy::strict> strict_handler{};
-    CHECK_THROWS_AS(json("\xC0").dump(json::dump_args{}, &strict_handler), configor_serialization_error);
+    CHECK_THROWS_AS(json("\xC0").dump(&strict_handler), configor_serialization_error);
 
     error_handler_with<error_policy::ignore> ignore_handler{};
-    CHECK_NOTHROW(json("\xC0").dump(json::dump_args{}, &ignore_handler));
+    CHECK_NOTHROW(json("\xC0").dump(&ignore_handler));
 
     error_handler_with<error_policy::record> record_handler{};
-    CHECK_NOTHROW(json("\xC0").dump(json::dump_args{}, &record_handler));
+    CHECK_NOTHROW(json("\xC0").dump(&record_handler));
     CHECK_FALSE(record_handler.error.empty());
 }
 
@@ -183,7 +183,7 @@ TEST_CASE("test_serializer")
         json j = minimal_float;
         CHECK(j.dump() == "3.141592653589793e-06");
 
-        json::dump_args args;
+        json::writer::args args;
         args.precision = 6;
         CHECK(j.dump(args) == "3.14159e-06");
 

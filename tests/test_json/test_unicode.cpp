@@ -58,18 +58,18 @@ TEST_CASE("test_unicode")
 
         wjson wj = WIDE(RAW_STR);
         CHECK(wj.dump() == WIDE(QUOTE_STR));
-        CHECK(wj.dump(-1, ' ', false) == WIDE(QUOTE_STR));
-        CHECK(wj.dump(-1, ' ', true) == WIDE(ESCAPED_STR));
+        CHECK(wj.dump(-1, L' ', false) == WIDE(QUOTE_STR));
+        CHECK(wj.dump(-1, L' ', true) == WIDE(ESCAPED_STR));
 
         u16json u16j = U16(RAW_STR);
         CHECK(u16j.dump() == U16(QUOTE_STR));
-        CHECK(u16j.dump(-1, ' ', false) == U16(QUOTE_STR));
-        CHECK(u16j.dump(-1, ' ', true) == U16(ESCAPED_STR));
+        CHECK(u16j.dump(-1, u' ', false) == U16(QUOTE_STR));
+        CHECK(u16j.dump(-1, u' ', true) == U16(ESCAPED_STR));
 
         u32json u32j = U32(RAW_STR);
         CHECK(u32j.dump() == U32(QUOTE_STR));
-        CHECK(u32j.dump(-1, ' ', false) == U32(QUOTE_STR));
-        CHECK(u32j.dump(-1, ' ', true) == U32(ESCAPED_STR));
+        CHECK(u32j.dump(-1, U' ', false) == U32(QUOTE_STR));
+        CHECK(u32j.dump(-1, U' ', true) == U32(ESCAPED_STR));
     }
 
     SECTION("test_ignore_encoding")
@@ -125,5 +125,5 @@ TEST_CASE_METHOD(WCharTest, "test_write_to_stream_w")
 
     ss.str(L"");
     ss << std::setw(2) << std::setfill(L'.') << j;
-    CHECK(ss.str() == j.dump(2, '.'));
+    CHECK(ss.str() == j.dump(2, L'.'));
 }

@@ -46,7 +46,7 @@ namespace configor
 namespace detail
 {
 
-template <typename _ConfTy, typename _Ty, typename _Check = void>
+template <typename _ConfTy, typename _Ty, typename _Void = void>
 struct has_to_config : std::false_type
 {
 };
@@ -64,7 +64,7 @@ public:
     static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ConfTy&, _Ty>::value;
 };
 
-template <typename _ConfTy, typename _Ty, typename _Check = void>
+template <typename _ConfTy, typename _Ty, typename _Void = void>
 struct has_from_config : std::false_type
 {
 };
@@ -82,7 +82,7 @@ public:
     static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ConfTy, _Ty&>::value;
 };
 
-template <typename _ConfTy, typename _Ty, typename _Check = void>
+template <typename _ConfTy, typename _Ty, typename _Void = void>
 struct has_non_default_from_config : std::false_type
 {
 };
@@ -100,7 +100,7 @@ public:
     static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ConfTy>::value;
 };
 
-template <typename _ConfTy, typename _Ty, typename _Check = void>
+template <typename _ConfTy, typename _Ty, typename _Void = void>
 struct is_configor_getable : std::false_type
 {
 };

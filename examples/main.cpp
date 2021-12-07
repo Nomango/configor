@@ -6,8 +6,8 @@
 
 int main(int argc, char** argv)
 {
-    istringstream req("{\n    \"user_id\": 10001\n}\n");
-    ostringstream resp;
+    std::istringstream req("{\n    \"user_id\": 10001\n}\n");
+    std::ostringstream resp;
 
     GetUserInfoHandler handler;
     handler.POST(req, resp);

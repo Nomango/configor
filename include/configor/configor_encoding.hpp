@@ -73,6 +73,12 @@ inline void encode_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint
 }  // namespace unicode
 
 template <typename _CharTy>
+using encoder = void(*)(std::basic_ostream<_CharTy>&, uint32_t);
+
+template <typename _CharTy>
+using decoder = bool(*)(std::basic_istream<_CharTy>&, uint32_t&);
+
+template <typename _CharTy>
 class ignore
 {
 public:
