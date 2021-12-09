@@ -37,6 +37,25 @@ namespace configor
 template <typename _Ty>
 class config_binder;
 
+namespace detail
+{
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class parser;
+
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class serializer;
+
+struct nonesuch
+{
+    nonesuch()                 = delete;
+    ~nonesuch()                = delete;
+    nonesuch(nonesuch const&)  = delete;
+    nonesuch(nonesuch const&&) = delete;
+    void operator=(nonesuch const&) = delete;
+    void operator=(nonesuch&&) = delete;
+};
+}  // namespace detail
+
 struct config_args
 {
     using boolean_type = bool;
@@ -59,17 +78,17 @@ struct config_args
     template <class _Ty>
     using allocator_type = std::allocator<_Ty>;
 
-    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using lexer_type = void;
+    template <class _ConfTy>
+    using reader_type = detail::nonesuch;
+
+    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using parser_type = detail::parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
 
     template <class _ConfTy>
-    using lexer_args_type = void;
+    using writer_type = detail::nonesuch;
 
-    template <class _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = void;
-
-    template <class _ConfTy>
-    using serializer_args_type = void;
+    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = detail::serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
 
     template <class _Ty>
     using binder_type = config_binder<_Ty>;
@@ -103,6 +122,8 @@ struct is_config<basic_config<_Args>> : std::true_type
 namespace detail
 {
 
+// priority
+
 template <int p>
 struct priority : priority<p - 1>
 {
@@ -113,29 +134,23 @@ struct priority<0>
 {
 };
 
+// remove_cvref
+
 template <typename _Ty>
 struct remove_cvref
 {
     using type = typename std::remove_cv<typename std::remove_reference<_Ty>::type>::type;
 };
 
-template <typename _Ty, typename... _Args>
-struct get_last
-{
-    using type = typename get_last<_Args...>::type;
-};
-
-template <typename _Ty>
-struct get_last<_Ty>
-{
-    using type = _Ty;
-};
+// always_void
 
 template <typename _Ty>
 struct always_void
 {
     using type = void;
 };
+
+// exact_detect
 
 template <class _Void, template <class...> class _Op, class... _Args>
 struct detect_impl
@@ -148,21 +163,25 @@ struct detect_impl
     };
 
     using type = dummy;
+
+    static constexpr bool value = false;
 };
 
 template <template <class...> class _Op, class... _Args>
 struct detect_impl<typename always_void<_Op<_Args...>>::type, _Op, _Args...>
 {
     using type = _Op<_Args...>;
-};
 
-template <template <class...> class _Op, class... _Args>
-struct detect : detect_impl<void, _Op, _Args...>
-{
+    static constexpr bool value = true;
 };
 
 template <class _Expected, template <class...> class _Op, class... _Args>
-using exact_detect = std::is_same<_Expected, typename detect<_Op, _Args...>::type>;
+using exact_detect = std::is_same<_Expected, typename detect_impl<void, _Op, _Args...>::type>;
+
+template <template <class...> class _Op, class... _Args>
+using is_detected = std::integral_constant<bool, detect_impl<void, _Op, _Args...>::value>;
+
+// static_const
 
 template <typename _Ty>
 struct static_const

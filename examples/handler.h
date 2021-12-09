@@ -5,9 +5,6 @@
 #include <iomanip>
 #include <sstream>
 
-using std::istringstream;
-using std::ostringstream;
-
 struct Request
 {
     int user_id;
@@ -27,7 +24,7 @@ class GetUserInfoHandler
 {
 public:
     // POST请求
-    void POST(istringstream& req, ostringstream& resp)
+    void POST(std::istringstream& req, std::ostringstream& resp)
     {
         // 解析请求，可以直接反序列化到 Request 结构体中
         Request req_body;

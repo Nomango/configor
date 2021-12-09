@@ -151,25 +151,17 @@ auto myObj = j.get<MyObject>();
 同时 get 支持取出引用和指针类型：
 
 ```cpp
-auto s = j.get<const std::string&>();
-j.get<std::string&>() = "test";
-
-auto s = j.get<const std::string*>();
-*(j.get<std::string*>()) = "test";
+j.get<const std::string&>();
+j.get<std::string&>();
+j.get<const std::string*>();
+j.get<std::string*>();
 ```
 
 通过有参数的 get 函数，可以传入对象引用来取值：
 
 ```cpp
 int n = 0;
-j.get(n);  // 取值失败时抛出
-```
-
-通过 try_get 函数，可以判断是否成功取值：
-
-```cpp
-int n = 0;
-if (j.try_get(n))
+if (j.get(n))
 {
     // 成功读取到 n 的值
 }

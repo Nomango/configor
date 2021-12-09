@@ -112,11 +112,11 @@ TEST_CASE_METHOD(BasicConfigTest, "test_get_reference")
 TEST_CASE_METHOD(BasicConfigTest, "test_try_get")
 {
     double d = 0;
-    CHECK(c["pi"].try_get(d));
+    CHECK(c["pi"].get(d));
     CHECK(d == Approx(3.141));
 
     int i = 1;
-    CHECK_FALSE(c["pi"].try_get(i));
+    CHECK_FALSE(c["pi"].get(i));
     CHECK(i == 1);
 }
 

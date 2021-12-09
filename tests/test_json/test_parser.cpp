@@ -11,7 +11,15 @@ TEST_CASE("test_parser")
     SECTION("test_parse")
     {
         json j;
+
+        // parse c-style string
         CHECK_NOTHROW(j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }"));
+        CHECK(j["happy"].get<bool>());
+        CHECK(j["pi"].get<double>() == Approx(3.141));
+        CHECK(j["name"].get<std::string>() == "中文测试");
+
+        // parse string
+        CHECK_NOTHROW(j = json::parse(std::string("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }")));
         CHECK(j["happy"].get<bool>());
         CHECK(j["pi"].get<double>() == Approx(3.141));
         CHECK(j["name"].get<std::string>() == "中文测试");
@@ -67,13 +75,6 @@ TEST_CASE("test_parser")
         // unexpected character
         CHECK_THROWS_AS(json::parse("()"), configor_deserialization_error);
 
-        // check document
-        {
-            json::parse_args args;
-            args.check_document = true;
-            CHECK_THROWS_AS(json::parse("true", args), configor_deserialization_error);
-        }
-
         // invalid literal
         CHECK_THROWS_AS(json::parse("trux"), configor_deserialization_error);
         CHECK_THROWS_AS(json::parse("falsx"), configor_deserialization_error);
@@ -106,14 +107,10 @@ TEST_CASE("test_parser")
 
         // not allow comments
         {
-            CHECK_THROWS_AS(json::parse("{/**/}"), configor_deserialization_error);
-            CHECK_THROWS_AS(json::parse("{//\n}"), configor_deserialization_error);
-
-            json::parse_args args;
-            args.allow_comments = true;
-            CHECK_NOTHROW(json::parse("{/**/}", args));
-            CHECK_NOTHROW(json::parse("{//\n}", args));
-            CHECK_THROWS_AS(json::parse("{/x\n}", args), configor_deserialization_error);
+            // TODO
+            CHECK_NOTHROW(json::parse("{/**/}"));
+            CHECK_NOTHROW(json::parse("{//\n}"));
+            CHECK_THROWS_AS(json::parse("{/x\n}"), configor_deserialization_error);
         }
 
         // unexpect end
@@ -130,21 +127,19 @@ TEST_CASE("test_parser")
     SECTION("test_error_policy")
     {
         error_handler_with<error_policy::strict> strict_handler{};
-        CHECK_THROWS_AS(json::parse("\f", json::parse_args{}, &strict_handler), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\f", &strict_handler), configor_deserialization_error);
 
         error_handler_with<error_policy::ignore> ignore_handler{};
-        CHECK_NOTHROW(json::parse("\f", json::parse_args{}, &ignore_handler));
+        CHECK_NOTHROW(json::parse("\f", &ignore_handler));
 
         error_handler_with<error_policy::record> record_handler{};
-        CHECK_NOTHROW(json::parse("\f", json::parse_args{}, &record_handler));
+        CHECK_NOTHROW(json::parse("\f", &record_handler));
         CHECK_FALSE(record_handler.error.empty());
     }
 
     SECTION("test_comment")
     {
-        json::parse_args args;
-        args.allow_comments = true;
-
+        // TODO
         auto j = json::parse(R"(// some comments
         /* some comments */
         {
@@ -157,8 +152,7 @@ TEST_CASE("test_parser")
             some comments
             "pi": 3,
             */"name": "中文测试"
-        }// some comments)",
-                             args);
+        }// some comments)");
         CHECK(j["happy"].get<bool>());
         CHECK(j["pi"].get<double>() == Approx(3.141));
         CHECK(j["name"].get<std::string>() == "中文测试");
@@ -174,7 +168,8 @@ TEST_CASE("test_parser")
     SECTION("test_read_from_file")
     {
         std::array<std::string, 5> files = {
-            "tests/data/json.org/1.json", "tests/data/json.org/2.json", "tests/data/json.org/3.json", "tests/data/json.org/4.json", "tests/data/json.org/5.json",
+            "tests/data/json.org/1.json", "tests/data/json.org/2.json", "tests/data/json.org/3.json",
+            "tests/data/json.org/4.json", "tests/data/json.org/5.json",
         };
 
         std::function<void(json&)> tests[] = {
