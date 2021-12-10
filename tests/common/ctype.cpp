@@ -1,6 +1,6 @@
 // Copyright (c) 2021 Nomango
 
-#include "../include/ctype.h"
+#include "ctype.h"
 
 #if defined(__clang__)
 

@@ -6,10 +6,10 @@
 #include <iomanip>  // std::setw, std::fill, std::setprecision
 #include <sstream>  // std::stringstream
 
-class SerializerTest
+class JsonSerializationTest
 {
 protected:
-    SerializerTest()
+    JsonSerializationTest()
     {
         j = {
             { "pi", 3.141 },
@@ -25,7 +25,7 @@ protected:
     json j;
 };
 
-TEST_CASE_METHOD(SerializerTest, "test_dump")
+TEST_CASE_METHOD(JsonSerializationTest, "test_json_dump")
 {
     CHECK_NOTHROW(j.dump());
     CHECK_NOTHROW(j.dump(4, ' '));
@@ -72,7 +72,7 @@ TEST_CASE_METHOD(SerializerTest, "test_dump")
     CHECK_FALSE(record_handler.error.empty());
 }
 
-TEST_CASE_METHOD(SerializerTest, "test_write_to_stream")
+TEST_CASE_METHOD(JsonSerializationTest, "test_json_write_to_stream")
 {
     std::stringstream ss;
     ss << j;
@@ -87,7 +87,7 @@ TEST_CASE_METHOD(SerializerTest, "test_write_to_stream")
     CHECK(ss.str() == j.dump(2, '.'));
 }
 
-TEST_CASE_METHOD(SerializerTest, "test_adapter")
+TEST_CASE_METHOD(JsonSerializationTest, "test_json_adapter")
 {
     struct myadapter : public oadapter
     {
@@ -124,7 +124,7 @@ TEST_CASE_METHOD(SerializerTest, "test_adapter")
     }
 }
 
-TEST_CASE("test_serializer")
+TEST_CASE("test_json_serialization")
 {
     SECTION("test_numeric")
     {

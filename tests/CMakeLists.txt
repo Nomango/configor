@@ -1,17 +1,15 @@
-# Catch2
-include_directories(
-    ${CMAKE_CURRENT_LIST_DIR}/3rd-party
-    ${CMAKE_CURRENT_LIST_DIR}/common/include
-)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd-party)
 
 # Testing
-aux_source_directory(./common/src COMMON_SRC)
+aux_source_directory(./common COMMON_SRC)
 aux_source_directory(./test_basic_config BASIC_SRC)
 aux_source_directory(./test_json JSON_SRC)
+aux_source_directory(./test_json5 JSON5_SRC)
 add_executable(${PROJECT_NAME}_test main.cpp
     ${COMMON_SRC}
     ${BASIC_SRC}
     ${JSON_SRC}
+    ${JSON5_SRC}
 )
 
 add_test(NAME ${PROJECT_NAME}_test

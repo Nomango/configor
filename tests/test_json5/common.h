@@ -3,21 +3,21 @@
 #pragma once
 
 #include "../common/forward_include.h"
-#include <configor/json.hpp>
+#include <configor/json5.hpp>
 
 using namespace configor;
 
-struct u16json_args : json_args
+struct u16json5_args : json5_args
 {
     using char_type = char16_t;
 };
 
-struct u32json_args : json_args
+struct u32json5_args : json5_args
 {
     using char_type = char32_t;
 };
 
 // char16_t
-using u16json = configor::basic_config<u16json_args>;
+using u16json5 = configor::basic_config<u16json5_args>;
 // char32_t
-using u32json = configor::basic_config<u32json_args>;
+using u32json5 = configor::basic_config<u32json5_args>;
