@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <catch2/catch.hpp>
+#include <forward_include.h>
 #include <configor/configor.hpp>
 
 using namespace configor;

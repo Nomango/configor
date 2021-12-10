@@ -1,6 +1,13 @@
 // Copyright (c) 2021 Nomango
 
+#pragma once
+
 #if defined(__clang__)
+
+#ifdef __APPLE__
+# include <string.h>
+# include <xlocale.h>
+#endif
 
 #include <locale>
 

@@ -4,6 +4,10 @@
 
 #include <sstream>  // std::wstringstream
 
+#define RAW_STR "我是地球🌍"
+#define QUOTE_STR "\"我是地球🌍\""
+#define ESCAPED_STR "\"\\u6211\\u662F\\u5730\\u7403\\uD83C\\uDF0D\""
+
 TEST_CASE("test_unicode")
 {
     SECTION("test_numeric")
