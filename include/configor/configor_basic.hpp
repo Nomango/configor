@@ -33,6 +33,37 @@
 namespace configor
 {
 
+namespace detail
+{
+template <typename _ConfTy>
+struct basic_config_array
+{
+    using value_type = _ConfTy;
+
+    explicit basic_config_array(const std::initializer_list<value_type>& list)
+        : list(list)
+    {
+    }
+
+    const std::initializer_list<value_type>& list;
+};
+
+template <typename _ConfTy>
+struct basic_config_object
+{
+    using key_type    = typename _ConfTy::string_type;
+    using mapped_type = _ConfTy;
+    using value_type  = std::pair<const key_type, _ConfTy>;
+
+    explicit basic_config_object(const std::initializer_list<value_type>& pairs)
+        : pairs(pairs)
+    {
+    }
+
+    const std::initializer_list<value_type>& pairs;
+};
+}  // namespace detail
+
 template <typename _Args>
 class basic_config
 {
@@ -80,6 +111,9 @@ public:
               template <typename> class _TargetEncoding = _SourceEncoding>
     using serializer = typename _Args::template serializer_type<basic_config, _SourceEncoding, _TargetEncoding>;
 
+    using array  = detail::basic_config_array<basic_config>;
+    using object = detail::basic_config_object<basic_config>;
+
 public:
     basic_config(std::nullptr_t = nullptr) {}
 
@@ -101,39 +135,6 @@ public:
         other.value_.data.object = nullptr;
     }
 
-    basic_config(const std::initializer_list<basic_config>& init_list,
-                 config_value_type                          exact_type = config_value_type::null)
-    {
-        bool is_an_object = std::all_of(init_list.begin(), init_list.end(),
-                                        [](const basic_config& config)
-                                        { return (config.is_array() && config.size() == 2 && config[0].is_string()); });
-
-        if (exact_type != config_value_type::object && exact_type != config_value_type::array)
-        {
-            exact_type = is_an_object ? config_value_type::object : config_value_type::array;
-        }
-
-        if (exact_type == config_value_type::object)
-        {
-            if (!is_an_object)
-                throw configor_type_error("initializer_list is not object type");
-
-            value_ = config_value_type::object;
-            std::for_each(init_list.begin(), init_list.end(),
-                          [this](const basic_config& config)
-                          {
-                              value_.data.object->emplace(*((*config.value_.data.vector)[0].value_.data.string),
-                                                          (*config.value_.data.vector)[1]);
-                          });
-        }
-        else
-        {
-            value_ = config_value_type::array;
-            value_.data.vector->reserve(init_list.size());
-            value_.data.vector->assign(init_list.begin(), init_list.end());
-        }
-    }
-
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
               typename std::enable_if<!is_config<_UTy>::value && detail::has_to_config<basic_config, _UTy>::value,
                                       int>::type = 0>
@@ -142,14 +143,19 @@ public:
         binder_type<_UTy>::to_config(*this, std::forward<_CompatibleTy>(value));
     }
 
-    static inline basic_config object(const std::initializer_list<basic_config>& init_list)
+    basic_config(array&& arr)
+        : value_(config_value_type::array)
     {
-        return basic_config(init_list, config_value_type::object);
+        value_.data.vector->reserve(arr.list.size());
+        value_.data.vector->assign(arr.list.begin(), arr.list.end());
     }
 
-    static inline basic_config array(const std::initializer_list<basic_config>& init_list)
+    basic_config(object&& obj)
+        : value_(config_value_type::object)
     {
-        return basic_config(init_list, config_value_type::array);
+        std::for_each(obj.pairs.begin(), obj.pairs.end(),
+                      [this](const typename object::value_type& pair)
+                      { value_.data.object->emplace(pair.first, pair.second); });
     }
 
     inline bool is_object() const
