@@ -26,6 +26,7 @@
 #include "configor_serializer.hpp"
 #include "configor_value.hpp"
 
+#include <sstream>      // std::stringstream
 #include <algorithm>    // std::for_each, std::all_of
 #include <type_traits>  // std::enable_if, std::is_same, std::is_integral, std::is_floating_point
 #include <utility>      // std::forward, std::declval
@@ -676,6 +677,7 @@ public:
         case config_value_type::number_float:
             return value_.data.number_float != 0;
         case config_value_type::string:
+            return !(*value_.data.string).empty();
         case config_value_type::array:
         case config_value_type::object:
             return !empty();
@@ -720,7 +722,7 @@ public:
         case config_value_type::array:
         case config_value_type::object:
         case config_value_type::null:
-            throw detail::make_conversion_error(type(), config_value_type::number_integer);
+            throw detail::make_conversion_error(type(), config_value_type::number_float);
         }
         return 0;
     }
@@ -732,12 +734,21 @@ public:
         case config_value_type::string:
             return *value_.data.string;
         case config_value_type::number_integer:
+        {
+            std::basic_stringstream<char_type> ss;
+            ss << detail::serialize_integer(value_.data.number_integer);
+            return ss.str();
+        }
         case config_value_type::number_float:
+        {
+            std::basic_stringstream<char_type> ss;
+            ss << std::defaultfloat << detail::serialize_float(value_.data.number_float);
+            return ss.str();
+        }
         case config_value_type::boolean:
-            return dump(*this);
         case config_value_type::array:
         case config_value_type::object:
-            throw detail::make_conversion_error(type(), config_value_type::number_integer);
+            throw detail::make_conversion_error(type(), config_value_type::string);
         case config_value_type::null:
             break;
         }

@@ -184,7 +184,7 @@ TEST_CASE_METHOD(BasicConfigTest, "test_numeric_type")
     }
 }
 
-TEST_CASE_METHOD(BasicConfigTest, "test_equal")
+TEST_CASE_METHOD(BasicConfigTest, "test_compare")
 {
     CHECK(c["pi"] == 3.141);
     CHECK(c["pi"] > 3);
@@ -262,6 +262,86 @@ TEST_CASE("test_basic_config")
         CHECK_THROWS_AS(c["test"], configor_invalid_key);
         CHECK_THROWS_AS(const_cast<const config&>(c)["test"], configor_invalid_key);
         CHECK_THROWS_AS(const_cast<const config&>(c)[1], std::out_of_range);
+    }
+
+    SECTION("test_as_bool")
+    {
+        // string
+        CHECK(!config("").as_bool());
+        CHECK(config("string").as_bool());
+        // integer
+        CHECK(!config(0).as_bool());
+        CHECK(config(1).as_bool());
+        // floating
+        CHECK(!config(0.0).as_bool());
+        CHECK(config(1.0).as_bool());
+        // boolean
+        CHECK(!config(false).as_bool());
+        CHECK(config(true).as_bool());
+        // null
+        CHECK(!config(nullptr).as_bool());
+        // array
+        CHECK(!config::array({}).as_bool());
+        CHECK(config::array({1}).as_bool());
+        // object
+        CHECK(!config::object({}).as_bool());
+        CHECK(config::object({{"1", 1}}).as_bool());
+    }
+
+    SECTION("test_as_integer")
+    {
+        // string
+        CHECK_THROWS_AS(config("12").as_integer(), configor_type_error);
+        // integer
+        CHECK(config(123).as_integer() == 123);
+        // floating
+        CHECK(config(123.334).as_integer() == config::integer_type(123.334));
+        // boolean
+        CHECK(config(false).as_integer() == 0);
+        CHECK(config(true).as_integer() == 1);
+        // null
+        CHECK_THROWS_AS(config(nullptr).as_integer(), configor_type_error);
+        // array
+        CHECK_THROWS_AS(config::array({}).as_integer(), configor_type_error);
+        // object
+        CHECK_THROWS_AS(config::object({}).as_integer(), configor_type_error);
+    }
+
+    SECTION("test_as_float")
+    {
+        // string
+        CHECK_THROWS_AS(config("12").as_float(), configor_type_error);
+        // integer
+        CHECK(config(123).as_float() == config::float_type(123));
+        // floating
+        CHECK(config(123.334).as_float() == config::float_type(123.334));
+        // boolean
+        CHECK(config(false).as_float() == 0);
+        CHECK(config(true).as_float() == 1);
+        // null
+        CHECK_THROWS_AS(config(nullptr).as_float(), configor_type_error);
+        // array
+        CHECK_THROWS_AS(config::array({}).as_float(), configor_type_error);
+        // object
+        CHECK_THROWS_AS(config::object({}).as_float(), configor_type_error);
+    }
+
+    SECTION("test_as_string")
+    {
+        // string
+        CHECK(config("string").as_string() == "string");
+        // integer
+        CHECK(config(123).as_string() == "123");
+        // floating
+        CHECK(config(0.01).as_string() == "0.01");
+        // boolean
+        CHECK_THROWS_AS(config(false).as_string(), configor_type_error);
+        // null
+        CHECK(config(nullptr).as_string() == "");
+        // array
+        CHECK_THROWS_AS(config::array({}).as_string(), configor_type_error);
+        // object
+        CHECK_THROWS_AS(config::object({}).as_string(), configor_type_error);
     }
 
     SECTION("test_method_size")
