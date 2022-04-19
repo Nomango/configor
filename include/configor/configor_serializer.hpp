@@ -33,14 +33,14 @@ namespace configor
 
 namespace detail
 {
-template <typename _ConfTy>
+template <typename Config>
 class basic_writer
 {
 public:
-    using integer_type = typename _ConfTy::integer_type;
-    using float_type   = typename _ConfTy::float_type;
-    using char_type    = typename _ConfTy::char_type;
-    using string_type  = typename _ConfTy::string_type;
+    using integer_type = typename Config::integer_type;
+    using float_type   = typename Config::float_type;
+    using char_type    = typename Config::char_type;
+    using string_type  = typename Config::string_type;
 
     virtual void target(std::basic_ostream<char_type>& os, encoding::decoder<char_type> src_decoder,
                         encoding::encoder<char_type> target_encoder) = 0;
@@ -54,29 +54,29 @@ public:
     virtual error_handler* get_error_handler() = 0;
 };
 
-template <typename _ConfTy, typename... _Args>
+template <typename Config, typename... _Args>
 struct can_serialize
 {
 private:
-    using serializer_type = typename _ConfTy::template serializer<>;
-    using char_type       = typename _ConfTy::char_type;
+    using serializer_type = typename Config::template serializer<>;
+    using char_type       = typename Config::char_type;
     using ostream_type    = std::basic_ostream<char_type>;
 
     template <typename _UTy, typename... _UArgs>
     using dump_fn = decltype(_UTy::dump(std::declval<_UArgs>()...));
 
 public:
-    static constexpr bool value = is_detected<dump_fn, serializer_type, _ConfTy, ostream_type&, _Args...>::value;
+    static constexpr bool value = is_detected<dump_fn, serializer_type, Config, ostream_type&, _Args...>::value;
 };
 
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename Config, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class serializer
 {
 public:
-    using config_type     = _ConfTy;
-    using char_type       = typename _ConfTy::char_type;
-    using string_type     = typename _ConfTy::string_type;
-    using writer_type     = typename _ConfTy::writer;
+    using config_type     = Config;
+    using char_type       = typename Config::char_type;
+    using string_type     = typename Config::string_type;
+    using writer_type     = typename Config::writer;
     using ostream_type    = std::basic_ostream<char_type>;
     using source_encoding = _SourceEncoding<char_type>;
     using target_encoding = _TargetEncoding<char_type>;
@@ -218,11 +218,11 @@ private:
 // indent
 //
 
-template <typename _CharTy>
+template <typename CharT>
 class indent
 {
 public:
-    using char_type   = _CharTy;
+    using char_type   = CharT;
     using string_type = std::basic_string<char_type>;
 
     indent(int step, char_type ch)

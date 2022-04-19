@@ -34,15 +34,15 @@ namespace configor
 // forward declare
 //
 
-template <typename _Ty>
+template <typename T>
 class config_binder;
 
 namespace detail
 {
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename Config, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class parser;
 
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename Config, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class serializer;
 
 struct nonesuch
@@ -66,35 +66,35 @@ struct config_args
 
     using char_type = char;
 
-    template <class _CharTy, class... _Args>
-    using string_type = std::basic_string<_CharTy, _Args...>;
+    template <class CharT, class... _Args>
+    using string_type = std::basic_string<CharT, _Args...>;
 
     template <class _Kty, class... _Args>
     using array_type = std::vector<_Kty, _Args...>;
 
-    template <class _Kty, class _Ty, class... _Args>
-    using object_type = std::map<_Kty, _Ty, _Args...>;
+    template <class _Kty, class T, class... _Args>
+    using object_type = std::map<_Kty, T, _Args...>;
 
-    template <class _Ty>
-    using allocator_type = std::allocator<_Ty>;
+    template <class T>
+    using allocator_type = std::allocator<T>;
 
-    template <class _ConfTy>
+    template <class Config>
     using reader_type = detail::nonesuch;
 
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using parser_type = detail::parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
+    template <typename Config, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using parser_type = detail::parser<Config, _SourceEncoding, _TargetEncoding>;
 
-    template <class _ConfTy>
+    template <class Config>
     using writer_type = detail::nonesuch;
 
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = detail::serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
+    template <typename Config, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = detail::serializer<Config, _SourceEncoding, _TargetEncoding>;
 
-    template <class _Ty>
-    using binder_type = config_binder<_Ty>;
+    template <class T>
+    using binder_type = config_binder<T>;
 
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
+    template <typename CharT>
+    using default_encoding = encoding::ignore<CharT>;
 };
 
 struct wconfig_args : config_args
@@ -136,15 +136,15 @@ struct priority<0>
 
 // remove_cvref
 
-template <typename _Ty>
+template <typename T>
 struct remove_cvref
 {
-    using type = typename std::remove_cv<typename std::remove_reference<_Ty>::type>::type;
+    using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 };
 
 // always_void
 
-template <typename _Ty>
+template <typename T>
 struct always_void
 {
     using type = void;
@@ -183,14 +183,14 @@ using is_detected = std::integral_constant<bool, detect_impl<void, _Op, _Args...
 
 // static_const
 
-template <typename _Ty>
+template <typename T>
 struct static_const
 {
-    static constexpr _Ty value = {};
+    static constexpr T value = {};
 };
 
-template <typename _Ty>
-constexpr _Ty static_const<_Ty>::value;
+template <typename T>
+constexpr T static_const<T>::value;
 
 }  // namespace detail
 

@@ -43,8 +43,8 @@ struct json_args : config_args
     template <class _Json>
     using writer_type = detail::json_writer<_Json>;
 
-    template <typename _CharTy>
-    using default_encoding = encoding::auto_utf<_CharTy>;
+    template <typename CharT>
+    using default_encoding = encoding::auto_utf<CharT>;
 };
 
 struct wjson_args : json_args

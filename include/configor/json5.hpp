@@ -43,8 +43,8 @@ struct json5_args : config_args
     template <class _Json5>
     using writer_type = detail::json5_writer<_Json5>;
 
-    template <typename _CharTy>
-    using default_encoding = encoding::auto_utf<_CharTy>;
+    template <typename CharT>
+    using default_encoding = encoding::auto_utf<CharT>;
 };
 
 struct wjson5_args : json5_args

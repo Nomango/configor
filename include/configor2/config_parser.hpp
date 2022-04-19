@@ -19,10 +19,40 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "config_encoding.hpp"
+#include "config_stream.hpp"
+#include "config_value.hpp"
 
-namespace configor
-{
+#include <istream> // std::basic_istream
 
+namespace configor {
 
+namespace detail {
 
-}  // namespace configor
+template <typename ValueT>
+class basic_parser {
+public:
+    using boolean_type = typename ValueT::boolean_type;
+    using integer_type = typename ValueT::integer_type;
+    using float_type   = typename ValueT::float_type;
+    using char_type    = typename ValueT::char_type;
+    using string_type  = typename ValueT::string_type;
+    using size_type    = typename ValueT::size_type;
+    using decoder      = encoding::decoder<char_type>;
+    using encoder      = encoding::encoder<char_type>;
+
+    virtual void source(std::basic_istream<char_type>& is, decoder src_decoder, encoder target_encoder) = 0;
+
+    virtual token_type scan() = 0;
+
+    virtual void get_boolean(integer_type& out) = 0;
+    virtual void get_integer(integer_type& out) = 0;
+    virtual void get_float(float_type& out)     = 0;
+    virtual void get_string(string_type& out)   = 0;
+
+    virtual error_handler* get_error_handler() = 0;
+};
+
+} // namespace detail
+
+} // namespace configor

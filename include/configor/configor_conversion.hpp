@@ -46,201 +46,201 @@ namespace configor
 namespace detail
 {
 
-template <typename _ConfTy, typename _Ty, typename _Void = void>
+template <typename Config, typename T, typename _Void = void>
 struct has_to_config : std::false_type
 {
 };
 
-template <typename _ConfTy, typename _Ty>
-struct has_to_config<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+template <typename Config, typename T>
+struct has_to_config<Config, T, typename std::enable_if<!is_config<T>::value>::type>
 {
 private:
-    using binder_type = typename _ConfTy::template binder_type<_Ty>;
+    using binder_type = typename Config::template binder_type<T>;
 
     template <typename _UTy, typename... _Args>
     using to_config_fn = decltype(_UTy::to_config(std::declval<_Args>()...));
 
 public:
-    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ConfTy&, _Ty>::value;
+    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, Config&, T>::value;
 };
 
-template <typename _ConfTy, typename _Ty, typename _Void = void>
+template <typename Config, typename T, typename _Void = void>
 struct has_from_config : std::false_type
 {
 };
 
-template <typename _ConfTy, typename _Ty>
-struct has_from_config<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+template <typename Config, typename T>
+struct has_from_config<Config, T, typename std::enable_if<!is_config<T>::value>::type>
 {
 private:
-    using binder_type = typename _ConfTy::template binder_type<_Ty>;
+    using binder_type = typename Config::template binder_type<T>;
 
     template <typename _UTy, typename... _Args>
     using from_config_fn = decltype(_UTy::from_config(std::declval<_Args>()...));
 
 public:
-    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ConfTy, _Ty&>::value;
+    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, Config, T&>::value;
 };
 
-template <typename _ConfTy, typename _Ty, typename _Void = void>
+template <typename Config, typename T, typename _Void = void>
 struct has_non_default_from_config : std::false_type
 {
 };
 
-template <typename _ConfTy, typename _Ty>
-struct has_non_default_from_config<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+template <typename Config, typename T>
+struct has_non_default_from_config<Config, T, typename std::enable_if<!is_config<T>::value>::type>
 {
 private:
-    using binder_type = typename _ConfTy::template binder_type<_Ty>;
+    using binder_type = typename Config::template binder_type<T>;
 
     template <typename _UTy, typename... _Args>
     using from_config_fn = decltype(_UTy::from_config(std::declval<_Args>()...));
 
 public:
-    static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ConfTy>::value;
+    static constexpr bool value = exact_detect<T, from_config_fn, binder_type, Config>::value;
 };
 
-template <typename _ConfTy, typename _Ty, typename _Void = void>
+template <typename Config, typename T, typename _Void = void>
 struct is_configor_getable : std::false_type
 {
 };
 
-template <typename _ConfTy, typename _Ty>
-struct is_configor_getable<_ConfTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+template <typename Config, typename T>
+struct is_configor_getable<Config, T, typename std::enable_if<!is_config<T>::value>::type>
 {
 private:
     template <typename _UTy, typename... _Args>
     using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
 
 public:
-    static constexpr bool value = exact_detect<_Ty, get_fn, _ConfTy, _Ty>::value;
+    static constexpr bool value = exact_detect<T, get_fn, Config, T>::value;
 };
 
 // to_config functions
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_same<_Ty, typename _ConfTy::boolean_type>::value, int>::type = 0>
-void to_config(_ConfTy& c, _Ty v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_same<T, typename Config::boolean_type>::value, int>::type = 0>
+void to_config(Config& c, T v)
 {
     auto& cv        = c.raw_value();
     cv.type         = config_value_type::boolean;
     cv.data.boolean = v;
 }
 
-template <typename _ConfTy, typename _Ty,
+template <typename Config, typename T,
           typename std::enable_if<
-              std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ConfTy::boolean_type>::value, int>::type = 0>
-void to_config(_ConfTy& c, _Ty v)
+              std::is_integral<T>::value && !std::is_same<T, typename Config::boolean_type>::value, int>::type = 0>
+void to_config(Config& c, T v)
 {
     auto& cv               = c.raw_value();
     cv.type                = config_value_type::number_integer;
-    cv.data.number_integer = static_cast<typename _ConfTy::integer_type>(v);
+    cv.data.number_integer = static_cast<typename Config::integer_type>(v);
 }
 
-template <typename _ConfTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, _Ty v)
+template <typename Config, typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+void to_config(Config& c, T v)
 {
     auto& cv             = c.raw_value();
     cv.type              = config_value_type::number_float;
-    cv.data.number_float = static_cast<typename _ConfTy::float_type>(v);
+    cv.data.number_float = static_cast<typename Config::float_type>(v);
 }
 
-template <typename _ConfTy>
-void to_config(_ConfTy& c, const typename _ConfTy::string_type& v)
+template <typename Config>
+void to_config(Config& c, const typename Config::string_type& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::string;
-    cv.data.string = cv.template create<typename _ConfTy::string_type>(v);
+    cv.data.string = cv.template create<typename Config::string_type>(v);
 }
 
-template <typename _ConfTy>
-void to_config(_ConfTy& c, typename _ConfTy::string_type&& v)
+template <typename Config>
+void to_config(Config& c, typename Config::string_type&& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::string;
-    cv.data.string = cv.template create<typename _ConfTy::string_type>(std::move(v));
+    cv.data.string = cv.template create<typename Config::string_type>(std::move(v));
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<typename _ConfTy::string_type, _Ty>::value
-                                      && !std::is_same<_Ty, typename _ConfTy::string_type>::value,
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<typename Config::string_type, T>::value
+                                      && !std::is_same<T, typename Config::string_type>::value,
                                   int>::type = 0>
-void to_config(_ConfTy& c, const _Ty& v)
+void to_config(Config& c, const T& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::string;
-    cv.data.string = cv.template create<typename _ConfTy::string_type>(v);
+    cv.data.string = cv.template create<typename Config::string_type>(v);
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_same<_Ty, typename _ConfTy::array_type>::value, int>::type = 0>
-void to_config(_ConfTy& c, _Ty& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_same<T, typename Config::array_type>::value, int>::type = 0>
+void to_config(Config& c, T& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::array;
-    cv.data.vector = cv.template create<typename _ConfTy::array_type>(v);
+    cv.data.vector = cv.template create<typename Config::array_type>(v);
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_same<_Ty, typename _ConfTy::object_type>::value, int>::type = 0>
-void to_config(_ConfTy& c, _Ty& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_same<T, typename Config::object_type>::value, int>::type = 0>
+void to_config(Config& c, T& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::object;
-    cv.data.object = cv.template create<typename _ConfTy::object_type>(v);
+    cv.data.object = cv.template create<typename Config::object_type>(v);
 }
 
 // from_config functions
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_same<_Ty, typename _ConfTy::boolean_type>::value, int>::type = 0>
-void from_config(const _ConfTy& c, _Ty& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_same<T, typename Config::boolean_type>::value, int>::type = 0>
+void from_config(const Config& c, T& v)
 {
     if (!c.is_bool())
         throw make_conversion_error(c.type(), config_value_type::boolean);
     v = c.raw_value().data.boolean;
 }
 
-template <typename _ConfTy, typename _Ty,
+template <typename Config, typename T,
           typename std::enable_if<
-              std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ConfTy::boolean_type>::value, int>::type = 0>
-void from_config(const _ConfTy& c, _Ty& v)
+              std::is_integral<T>::value && !std::is_same<T, typename Config::boolean_type>::value, int>::type = 0>
+void from_config(const Config& c, T& v)
 {
     if (!c.is_integer())
         throw make_conversion_error(c.type(), config_value_type::number_integer);
-    v = static_cast<_Ty>(c.raw_value().data.number_integer);
+    v = static_cast<T>(c.raw_value().data.number_integer);
 }
 
-template <typename _ConfTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, _Ty& v)
+template <typename Config, typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+void from_config(const Config& c, T& v)
 {
     if (!c.is_float())
         throw make_conversion_error(c.type(), config_value_type::number_float);
-    v = static_cast<_Ty>(c.raw_value().data.number_float);
+    v = static_cast<T>(c.raw_value().data.number_float);
 }
 
-template <typename _ConfTy>
-void from_config(const _ConfTy& c, typename _ConfTy::string_type& v)
+template <typename Config>
+void from_config(const Config& c, typename Config::string_type& v)
 {
     if (!c.is_string())
         throw make_conversion_error(c.type(), config_value_type::string);
     v = *c.raw_value().data.string;
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_Ty, typename _ConfTy::string_type>::value
-                                      && !std::is_same<_Ty, typename _ConfTy::string_type>::value,
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<T, typename Config::string_type>::value
+                                      && !std::is_same<T, typename Config::string_type>::value,
                                   int>::type = 0>
-void from_config(const _ConfTy& c, _Ty& v)
+void from_config(const Config& c, T& v)
 {
     if (!c.is_string())
         throw make_conversion_error(c.type(), config_value_type::string);
     v = *c.raw_value().data.string;
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_same<_Ty, typename _ConfTy::array_type>::value, int>::type = 0>
-void from_config(const _ConfTy& c, _Ty& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_same<T, typename Config::array_type>::value, int>::type = 0>
+void from_config(const Config& c, T& v)
 {
     if (c.is_null())
     {
@@ -252,9 +252,9 @@ void from_config(const _ConfTy& c, _Ty& v)
     v.assign((*c.raw_value().data.vector).begin(), (*c.raw_value().data.vector).end());
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_same<_Ty, typename _ConfTy::object_type>::value, int>::type = 0>
-void from_config(const _ConfTy& c, _Ty& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_same<T, typename Config::object_type>::value, int>::type = 0>
+void from_config(const Config& c, T& v)
 {
     if (c.is_null())
     {
@@ -269,11 +269,11 @@ void from_config(const _ConfTy& c, _Ty& v)
 // c-style array
 
 template <
-    typename _ConfTy, typename _Ty, size_t _Num,
-    typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value
-                                && !std::is_constructible<typename _ConfTy::string_type, const _Ty (&)[_Num]>::value,
+    typename Config, typename T, size_t _Num,
+    typename std::enable_if<std::is_constructible<Config, T>::value
+                                && !std::is_constructible<typename Config::string_type, const T (&)[_Num]>::value,
                             int>::type = 0>
-void to_config(_ConfTy& c, const _Ty (&v)[_Num])
+void to_config(Config& c, const T (&v)[_Num])
 {
     c = nullptr;
     for (size_t i = 0; i < _Num; i++)
@@ -283,23 +283,23 @@ void to_config(_ConfTy& c, const _Ty (&v)[_Num])
 }
 
 template <
-    typename _ConfTy, typename _Ty, size_t _Num,
-    typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value
-                                && !std::is_constructible<typename _ConfTy::string_type, const _Ty (&)[_Num]>::value,
+    typename Config, typename T, size_t _Num,
+    typename std::enable_if<detail::is_configor_getable<Config, T>::value
+                                && !std::is_constructible<typename Config::string_type, const T (&)[_Num]>::value,
                             int>::type = 0>
-void from_config(const _ConfTy& c, _Ty (&v)[_Num])
+void from_config(const Config& c, T (&v)[_Num])
 {
     for (size_t i = 0; i < c.size() && i < _Num; i++)
     {
-        v[i] = c[i].template get<_Ty>();
+        v[i] = c[i].template get<T>();
     }
 }
 
 // other conversions
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::unique_ptr<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::unique_ptr<T>& v)
 {
     if (v != nullptr)
     {
@@ -311,9 +311,9 @@ void to_config(_ConfTy& c, const std::unique_ptr<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::unique_ptr<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::unique_ptr<T>& v)
 {
     if (c.is_null())
     {
@@ -321,13 +321,13 @@ void from_config(const _ConfTy& c, std::unique_ptr<_Ty>& v)
     }
     else
     {
-        v.reset(new _Ty(c.template get<_Ty>()));
+        v.reset(new T(c.template get<T>()));
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::shared_ptr<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::shared_ptr<T>& v)
 {
     if (v != nullptr)
     {
@@ -339,9 +339,9 @@ void to_config(_ConfTy& c, const std::shared_ptr<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::shared_ptr<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::shared_ptr<T>& v)
 {
     if (c.is_null())
     {
@@ -349,13 +349,13 @@ void from_config(const _ConfTy& c, std::shared_ptr<_Ty>& v)
     }
     else
     {
-        v = std::make_shared<_Ty>(c.template get<_Ty>());
+        v = std::make_shared<T>(c.template get<T>());
     }
 }
 
-template <typename _ConfTy, typename _Ty, size_t _Num,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::array<_Ty, _Num>& v)
+template <typename Config, typename T, size_t _Num,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::array<T, _Num>& v)
 {
     c = nullptr;
     for (size_t i = 0; i < _Num; i++)
@@ -364,19 +364,19 @@ void to_config(_ConfTy& c, const std::array<_Ty, _Num>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty, size_t _Num,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::array<_Ty, _Num>& v)
+template <typename Config, typename T, size_t _Num,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::array<T, _Num>& v)
 {
     for (size_t i = 0; i < c.size() && i < _Num; i++)
     {
-        v[i] = c[i].template get<_Ty>();
+        v[i] = c[i].template get<T>();
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::vector<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::vector<T>& v)
 {
     c = nullptr;
     for (size_t i = 0; i < v.size(); ++i)
@@ -385,20 +385,20 @@ void to_config(_ConfTy& c, const std::vector<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::vector<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::vector<T>& v)
 {
     v.resize(c.size());
     for (size_t i = 0; i < c.size(); ++i)
     {
-        v[i] = c[i].template get<_Ty>();
+        v[i] = c[i].template get<T>();
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::deque<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::deque<T>& v)
 {
     c = nullptr;
     for (size_t i = 0; i < v.size(); ++i)
@@ -407,20 +407,20 @@ void to_config(_ConfTy& c, const std::deque<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::deque<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::deque<T>& v)
 {
     v.resize(c.size());
     for (size_t i = 0; i < c.size(); ++i)
     {
-        v[i] = c[i].template get<_Ty>();
+        v[i] = c[i].template get<T>();
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::list<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::list<T>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -430,20 +430,20 @@ void to_config(_ConfTy& c, const std::list<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::list<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::list<T>& v)
 {
     v.clear();
     for (size_t i = 0; i < c.size(); i++)
     {
-        v.push_back(c[i].template get<_Ty>());
+        v.push_back(c[i].template get<T>());
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::forward_list<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::forward_list<T>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -453,21 +453,21 @@ void to_config(_ConfTy& c, const std::forward_list<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::forward_list<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::forward_list<T>& v)
 {
     v.clear();
     size_t size = c.size();
     for (size_t i = 0; i < size; i++)
     {
-        v.push_front(c[size - i - 1].template get<_Ty>());
+        v.push_front(c[size - i - 1].template get<T>());
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::set<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::set<T>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -477,20 +477,20 @@ void to_config(_ConfTy& c, const std::set<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::set<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::set<T>& v)
 {
     v.clear();
     for (size_t i = 0; i < c.size(); i++)
     {
-        v.insert(c[i].template get<_Ty>());
+        v.insert(c[i].template get<T>());
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value, int>::type = 0>
-void to_config(_ConfTy& c, const std::unordered_set<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value, int>::type = 0>
+void to_config(Config& c, const std::unordered_set<T>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -500,22 +500,22 @@ void to_config(_ConfTy& c, const std::unordered_set<_Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value, int>::type = 0>
-void from_config(const _ConfTy& c, std::unordered_set<_Ty>& v)
+template <typename Config, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value, int>::type = 0>
+void from_config(const Config& c, std::unordered_set<T>& v)
 {
     v.clear();
     for (size_t i = 0; i < c.size(); i++)
     {
-        v.insert(c[i].template get<_Ty>());
+        v.insert(c[i].template get<T>());
     }
 }
 
-template <typename _ConfTy, typename _KeyTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value
-                                      && std::is_constructible<typename _ConfTy::string_type, _KeyTy>::value,
+template <typename Config, typename _KeyTy, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value
+                                      && std::is_constructible<typename Config::string_type, _KeyTy>::value,
                                   int>::type = 0>
-void to_config(_ConfTy& c, const std::map<_KeyTy, _Ty>& v)
+void to_config(Config& c, const std::map<_KeyTy, T>& v)
 {
     c = nullptr;
     for (const auto& p : v)
@@ -524,23 +524,23 @@ void to_config(_ConfTy& c, const std::map<_KeyTy, _Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _KeyTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value
-                                      && std::is_constructible<_KeyTy, typename _ConfTy::string_type>::value,
+template <typename Config, typename _KeyTy, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value
+                                      && std::is_constructible<_KeyTy, typename Config::string_type>::value,
                                   int>::type = 0>
-void from_config(const _ConfTy& c, std::map<_KeyTy, _Ty>& v)
+void from_config(const Config& c, std::map<_KeyTy, T>& v)
 {
     for (auto iter = c.cbegin(); iter != c.cend(); iter++)
     {
-        v.emplace(iter.key(), iter.value().template get<_Ty>());
+        v.emplace(iter.key(), iter.value().template get<T>());
     }
 }
 
-template <typename _ConfTy, typename _KeyTy, typename _Ty,
-          typename std::enable_if<std::is_constructible<_ConfTy, _Ty>::value
-                                      && std::is_constructible<typename _ConfTy::string_type, _KeyTy>::value,
+template <typename Config, typename _KeyTy, typename T,
+          typename std::enable_if<std::is_constructible<Config, T>::value
+                                      && std::is_constructible<typename Config::string_type, _KeyTy>::value,
                                   int>::type = 0>
-void to_config(_ConfTy& c, const std::unordered_map<_KeyTy, _Ty>& v)
+void to_config(Config& c, const std::unordered_map<_KeyTy, T>& v)
 {
     c = nullptr;
     for (const auto& p : v)
@@ -549,15 +549,15 @@ void to_config(_ConfTy& c, const std::unordered_map<_KeyTy, _Ty>& v)
     }
 }
 
-template <typename _ConfTy, typename _KeyTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ConfTy, _Ty>::value
-                                      && std::is_constructible<_KeyTy, typename _ConfTy::string_type>::value,
+template <typename Config, typename _KeyTy, typename T,
+          typename std::enable_if<detail::is_configor_getable<Config, T>::value
+                                      && std::is_constructible<_KeyTy, typename Config::string_type>::value,
                                   int>::type = 0>
-void from_config(const _ConfTy& c, std::unordered_map<_KeyTy, _Ty>& v)
+void from_config(const Config& c, std::unordered_map<_KeyTy, T>& v)
 {
     for (auto iter = c.cbegin(); iter != c.cend(); iter++)
     {
-        v.emplace(iter.key(), iter.value().template get<_Ty>());
+        v.emplace(iter.key(), iter.value().template get<T>());
     }
 }
 
@@ -567,21 +567,21 @@ void from_config(const _ConfTy& c, std::unordered_map<_KeyTy, _Ty>& v)
 //
 struct to_config_fn
 {
-    template <typename _ConfTy, typename _Ty>
-    auto operator()(_ConfTy& c, _Ty&& v) const noexcept(noexcept(to_config(c, std::forward<_Ty>(v))))
-        -> decltype(to_config(c, std::forward<_Ty>(v)))
+    template <typename Config, typename T>
+    auto operator()(Config& c, T&& v) const noexcept(noexcept(to_config(c, std::forward<T>(v))))
+        -> decltype(to_config(c, std::forward<T>(v)))
     {
-        return to_config(c, std::forward<_Ty>(v));
+        return to_config(c, std::forward<T>(v));
     }
 };
 
 struct from_config_fn
 {
-    template <typename _ConfTy, typename _Ty>
-    auto operator()(const _ConfTy& c, _Ty&& v) const noexcept(noexcept(from_config(c, std::forward<_Ty>(v))))
-        -> decltype(from_config(c, std::forward<_Ty>(v)))
+    template <typename Config, typename T>
+    auto operator()(const Config& c, T&& v) const noexcept(noexcept(from_config(c, std::forward<T>(v))))
+        -> decltype(from_config(c, std::forward<T>(v)))
     {
-        return from_config(c, std::forward<_Ty>(v));
+        return from_config(c, std::forward<T>(v));
     }
 };
 
@@ -597,23 +597,23 @@ constexpr auto const& from_config = detail::static_const<detail::from_config_fn>
 // config_binder
 //
 
-template <typename _Ty>
+template <typename T>
 class config_binder
 {
 public:
-    template <typename _ConfTy, typename _UTy = _Ty>
-    static auto to_config(_ConfTy& c, _UTy&& v) noexcept(noexcept(::configor::to_config(c, std::forward<_UTy>(v))))
+    template <typename Config, typename _UTy = T>
+    static auto to_config(Config& c, _UTy&& v) noexcept(noexcept(::configor::to_config(c, std::forward<_UTy>(v))))
         -> decltype(::configor::to_config(c, std::forward<_UTy>(v)))
     {
         return ::configor::to_config(c, std::forward<_UTy>(v));
     }
 
-    template <typename _ConfTy, typename _UTy = _Ty>
-    static auto from_config(_ConfTy&& c,
-                            _UTy&     v) noexcept(noexcept(::configor::from_config(std::forward<_ConfTy>(c), v)))
-        -> decltype(::configor::from_config(std::forward<_ConfTy>(c), v))
+    template <typename Config, typename _UTy = T>
+    static auto from_config(Config&& c,
+                            _UTy&     v) noexcept(noexcept(::configor::from_config(std::forward<Config>(c), v)))
+        -> decltype(::configor::from_config(std::forward<Config>(c), v))
     {
-        return ::configor::from_config(std::forward<_ConfTy>(c), v);
+        return ::configor::from_config(std::forward<Config>(c), v);
     }
 };
 
@@ -623,13 +623,13 @@ namespace detail
 // configor_wrapper
 //
 
-template <typename _ConfTy, typename _Ty>
+template <typename Config, typename T>
 class read_configor_wrapper
 {
 public:
-    using char_type = typename _ConfTy::char_type;
+    using char_type = typename Config::char_type;
 
-    explicit read_configor_wrapper(const _Ty& v)
+    explicit read_configor_wrapper(const T& v)
         : v_(v)
     {
     }
@@ -637,22 +637,22 @@ public:
     friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& out,
                                                      const read_configor_wrapper&   wrapper)
     {
-        out << _ConfTy(wrapper.v_);
+        out << Config(wrapper.v_);
         return out;
     }
 
 private:
-    const _Ty& v_;
+    const T& v_;
 };
 
-template <typename _ConfTy, typename _Ty>
-class write_configor_wrapper : public read_configor_wrapper<_ConfTy, _Ty>
+template <typename Config, typename T>
+class write_configor_wrapper : public read_configor_wrapper<Config, T>
 {
 public:
-    using char_type = typename _ConfTy::char_type;
+    using char_type = typename Config::char_type;
 
-    explicit write_configor_wrapper(_Ty& v)
-        : read_configor_wrapper<_ConfTy, _Ty>(v)
+    explicit write_configor_wrapper(T& v)
+        : read_configor_wrapper<Config, T>(v)
         , v_(v)
     {
     }
@@ -660,14 +660,14 @@ public:
     friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in,
                                                      const write_configor_wrapper&  wrapper)
     {
-        _ConfTy c{};
+        Config c{};
         in >> c;
-        const_cast<_Ty&>(wrapper.v_) = c.template get<_Ty>();
+        const_cast<T&>(wrapper.v_) = c.template get<T>();
         return in;
     }
 
 private:
-    _Ty& v_;
+    T& v_;
 };
 }  // namespace detail
 

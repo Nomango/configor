@@ -19,10 +19,36 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "config_conversion.hpp"
 
-namespace configor
-{
+namespace configor {
+namespace detail {
 
+struct serialization_args {
+    template <typename ValueT>
+    using parser_type = nonesuch;
 
+    template <typename ValueT>
+    using serializer_type = nonesuch;
+};
 
-}  // namespace configor
+template <class ValueArgs, class SerializationArgs>
+class basic_config {
+public:
+    using value = config_value<ValueArgs>;
+    using type  = config_value_type;
+
+    using parser     = typename SerializationArgs::template parser_type<value>;
+    using serializer = typename SerializationArgs::template serializer_type<value>;
+
+    // TODO parse
+    // TODO dump
+
+    static void dump()
+    {
+        
+    }
+};
+
+} // namespace detail
+} // namespace configor

@@ -36,14 +36,14 @@ namespace configor
 namespace detail
 {
 
-template <typename _ConfTy>
+template <typename Config>
 class basic_reader
 {
 public:
-    using integer_type = typename _ConfTy::integer_type;
-    using float_type   = typename _ConfTy::float_type;
-    using char_type    = typename _ConfTy::char_type;
-    using string_type  = typename _ConfTy::string_type;
+    using integer_type = typename Config::integer_type;
+    using float_type   = typename Config::float_type;
+    using char_type    = typename Config::char_type;
+    using string_type  = typename Config::string_type;
     using encoder_type = encoding::encoder<char_type>;
 
     virtual void source(std::basic_istream<char_type>& is, encoding::decoder<char_type> src_decoder,
@@ -58,29 +58,29 @@ public:
     virtual error_handler* get_error_handler() = 0;
 };
 
-template <typename _ConfTy, typename... _Args>
+template <typename Config, typename... _Args>
 struct can_parse
 {
 private:
-    using parser_type  = typename _ConfTy::template parser<>;
-    using char_type    = typename _ConfTy::char_type;
+    using parser_type  = typename Config::template parser<>;
+    using char_type    = typename Config::char_type;
     using istream_type = std::basic_istream<char_type>;
 
     template <typename _UTy, typename... _UArgs>
     using parse_fn = decltype(_UTy::parse(std::declval<_UArgs>()...));
 
 public:
-    static constexpr bool value = is_detected<parse_fn, parser_type, _ConfTy&, istream_type&, _Args...>::value;
+    static constexpr bool value = is_detected<parse_fn, parser_type, Config&, istream_type&, _Args...>::value;
 };
 
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename Config, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class parser
 {
 public:
-    using config_type     = _ConfTy;
-    using char_type       = typename _ConfTy::char_type;
-    using string_type     = typename _ConfTy::string_type;
-    using reader_type     = typename _ConfTy::reader;
+    using config_type     = Config;
+    using char_type       = typename Config::char_type;
+    using string_type     = typename Config::string_type;
+    using reader_type     = typename Config::reader;
     using istream_type    = std::basic_istream<char_type>;
     using source_encoding = _SourceEncoding<char_type>;
     using target_encoding = _TargetEncoding<char_type>;
@@ -118,7 +118,7 @@ private:
 
     void do_parse(config_type& c, reader_type& reader, token_type last_token, bool read_next = true)
     {
-        using string_type = typename _ConfTy::string_type;
+        using string_type = typename Config::string_type;
 
         token_type token = last_token;
         if (read_next)
@@ -180,7 +180,7 @@ private:
                 if (is_end)
                     break;
 
-                c.raw_value().data.vector->push_back(_ConfTy());
+                c.raw_value().data.vector->push_back(Config());
                 do_parse(c.raw_value().data.vector->back(), reader, token, false);
 
                 // read ','
@@ -207,7 +207,7 @@ private:
                 if (token != token_type::name_separator)
                     break;
 
-                _ConfTy object;
+                Config object;
                 do_parse(object, reader, token);
                 c.raw_value().data.object->emplace(key, object);
 

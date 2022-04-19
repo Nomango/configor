@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 configor - Nomango
+// Copyright (c) 2021-2022 configor - Nomango
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,10 +19,34 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "config.hpp"
 
-namespace configor
-{
+#include <iomanip> // std::setprecision, std::right, std::noshowbase
 
+namespace configor {
 
+namespace detail {
 
-}  // namespace configor
+template <typename ValueT>
+class json_parser;
+
+template <typename ValueT>
+class json_serializer;
+
+struct json_serialization_args {
+    template <typename ValueT>
+    using parser_type = json_parser<ValueT>;
+
+    template <typename ValueT>
+    using serializer_type = json_serializer<ValueT>;
+};
+
+} // namespace detail
+
+template <class ValueArgs>
+using basic_json = detail::basic_config<ValueArgs, detail::json_serialization_args>;
+
+using json  = basic_json<config_value_args>;
+using wjson = basic_json<wconfig_value_args>;
+
+} // namespace configor
