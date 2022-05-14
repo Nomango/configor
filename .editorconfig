@@ -11,7 +11,7 @@ insert_final_newline = true
 # Matches multiple files with brace expansion notation
 # Set default charset
 [*.{h,hpp,cpp}]
-charset = utf8
+charset = utf-8
 
 # 4 space indentation
 indent_style = space
