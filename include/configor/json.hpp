@@ -210,6 +210,9 @@ public:
         case '9':
             return scan_number();
 
+        case '\0':
+            return token_type::end_of_input;
+
         default:
         {
             fail("unexpected character", current_);
