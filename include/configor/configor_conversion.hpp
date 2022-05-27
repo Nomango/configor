@@ -733,4 +733,4 @@ private:
         CONFIGOR_EXPAND(CONFIGOR_PASTE(CONFIGOR_FROM_CONF, __VA_ARGS__)) \
     }
 
-#define CONFIGOR_BIND(value_type, ...) CONFIGOR_BIND_WITH_CONF(basic_config<>, value_type, __VA_ARGS__)
+#define CONFIGOR_BIND(value_type, ...) CONFIGOR_BIND_WITH_CONF(::configor::basic_config<>, value_type, __VA_ARGS__)
