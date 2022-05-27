@@ -227,7 +227,8 @@ TEST_CASE("test_parser")
             virtual char read() override
             {
                 if (idx_ >= str_.size())
-                    return std::char_traits<char>::eof();
+                    return '\0';
+                    // return std::char_traits<char>::eof();
                 return str_[idx_++];
             }
 
