@@ -1,5 +1,4 @@
-# Catch2
-include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd-party/Catch2/single_include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd-party)
 
 # Testing
 aux_source_directory(./test_basic_config BASIC_SRC)
