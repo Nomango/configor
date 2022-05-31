@@ -518,7 +518,7 @@ configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串�
 struct fifo_json_args : json_args
 {
     template <class _Kty, class _Ty, class... _Args>
-    using object_type = nlohmann::fifo_map<_Kty, _Ty, _Args...>;
+    using object_type = nlohmann::fifo_map<_Kty, _Ty>;
 };
 
 // fifo_json 是按插入序排列的

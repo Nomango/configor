@@ -478,3 +478,41 @@ TEST_CASE("test_basic_config")
         CHECK(c.get<config::object_type>() == config::object_type{});
     }
 }
+
+#include <fifo_map/fifo_map.hpp>
+
+struct fifo_config_args : config_args
+{
+    template <class _Kty, class _Ty, class... _Args>
+    using object_type = nlohmann::fifo_map<_Kty, _Ty>;
+};
+
+using fifo_config = basic_config<fifo_config_args>;
+
+TEST_CASE("test_tpl_args")
+{
+    SECTION("test_tpl_args_map")
+    {
+        fifo_config c = fifo_config::object({ { "1", 1 }, { "2", 2 } });
+        CHECK(c.size() == 2);
+        CHECK(c["1"] == 1);
+        CHECK(c["2"] == 2);
+
+        std::string result;
+        for (const auto& p : c)
+        {
+            result += p.as_string();
+        }
+        CHECK(result == "12");
+
+        c.erase("1");
+        c["1"] = 1;
+
+        result.clear();
+        for (const auto& p : c)
+        {
+            result += p.as_string();
+        }
+        CHECK(result == "21");
+    }
+}
