@@ -107,8 +107,9 @@ struct config_value
     }
 
     config_value(const config_value_type t)
+        : type(t)
+        , data{}
     {
-        type = t;
         switch (type)
         {
         case config_value_type::object:
@@ -136,6 +137,7 @@ struct config_value
 
     config_value(config_value const& other)
         : type(other.type)
+        , data{}
     {
         switch (other.type)
         {
@@ -163,7 +165,7 @@ struct config_value
         }
     }
 
-    config_value(config_value&& other)
+    config_value(config_value&& other) noexcept
     {
         type              = other.type;
         data              = other.data;
@@ -230,7 +232,7 @@ struct config_value
         return (*this);
     }
 
-    inline config_value& operator=(config_value&& other)
+    inline config_value& operator=(config_value&& other) noexcept
     {
         clear();
         type = other.type;

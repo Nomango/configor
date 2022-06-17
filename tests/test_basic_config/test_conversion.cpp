@@ -131,7 +131,8 @@ public:
     }
 
 public:
-    CONFIGOR_BIND(Bus, license_, driver_, passengers_, olders_);
+    CONFIGOR_BIND(config, Bus, CONFIGOR_OPTIONAL(license_), CONFIGOR_OPTIONAL(driver_), CONFIGOR_OPTIONAL(passengers_),
+                  CONFIGOR_OPTIONAL(olders_));
 };
 
 class ConversionTest
@@ -323,7 +324,7 @@ struct CStylePassengers
 {
     Passenger passengers[2];
 
-    CONFIGOR_BIND(CStylePassengers, passengers);
+    CONFIGOR_BIND_ALL_REQUIRED(config, CStylePassengers, passengers);
 };
 
 TEST_CASE("test_conversion")
