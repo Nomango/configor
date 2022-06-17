@@ -385,6 +385,23 @@ std::vector<std::shared_ptr<User>> user_list;
 json j = user_list;  // 可以正确处理复合类型的转换
 ```
 
+如果某些字段是非必选的，在序列化和反序列化时你也许想要忽略空值，可以使用更灵活的 `CONFIGOR_BIND` 宏：
+
+```cpp
+class User
+{
+private:
+    int user_id;
+    std::string user_name;
+
+public:
+    CONFIGOR_BIND(json, User,
+        CONFIGOR_REQUIRED(user_id),   // 这个字段是必须的
+        CONFIGOR_OPTIONAL(user_name)  // 这个字段是可选的，当json中不存在这个字段时忽略，当这个值为空时也不会写入json
+    );
+};
+```
+
 对于第三方库的类型，由于无法侵入式的在其内部声明 JSON_BIND，可以通过特化实现 config_bind 类，非侵入式的绑定到 JSON。
 
 特化实现 config_bind 的例子：
