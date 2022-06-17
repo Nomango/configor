@@ -71,8 +71,8 @@ struct is_json<basic_config<_Args>>
                               && std::is_same<typename type::writer, detail::json_writer<type>>::value;
 };
 
-#define JSON_BIND(value_type, ...) CONFIGOR_BIND_WITH_CONF(::configor::json, value_type, __VA_ARGS__)
-#define WJSON_BIND(value_type, ...) CONFIGOR_BIND_WITH_CONF(::configor::wjson, value_type, __VA_ARGS__)
+#define JSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::json, value_type, __VA_ARGS__)
+#define WJSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::wjson, value_type, __VA_ARGS__)
 
 template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
 std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os,
