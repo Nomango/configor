@@ -9,14 +9,14 @@ struct Request
 {
     int user_id;
 
-    JSON_BIND(Request, user_id);
+    CONFIGOR_BIND_ALL_REQUIRED(json, Request, user_id);
 };
 
 struct Response
 {
     std::shared_ptr<UserInfo> user_info;
 
-    JSON_BIND(Response, user_info);
+    CONFIGOR_BIND_ALL_REQUIRED(json, Response, user_info);
 };
 
 // 获取用户信息接口
