@@ -142,7 +142,7 @@ auto d = j.get<double>();       // 仅当 j.is_float() 时可用
 auto s = j.get<std::string>();  // 仅当 j.is_string() 时可用
 
 // 对于实现了 config_bind 的自定义数据类型，也可以直接取值
-// 详情请参考下方 `JSON 与任意类型的转换`
+// 详情请参考下方 `与自定义类型转换`
 class MyObject;
 auto myObj = j.get<MyObject>();
 ```
@@ -190,7 +190,7 @@ int i = (int)j["number"];
 float d = (float)j["float"];
 
 // 对于实现了 config_bind 的自定义数据类型，也可以直接转换
-// 详情请参考下方 `JSON 与任意类型的转换`
+// 详情请参考下方 `与自定义类型转换`
 class MyObject;
 MyObject myObj = (MyObject)j;
 MyObject myObj = j;
@@ -316,6 +316,7 @@ std::wstring str = j[L"name"].get<std::wstring>();
 ```
 
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
+
 ```cpp
 struct u16json_args : json_args
 {
@@ -340,7 +341,7 @@ using u32json = configor::basic_config<u32json_args>;
 
 - 将自定义类型与 JSON 绑定
 
-configor 提供了 `JSON_BIND` 宏，可以用一行代码快速完成 json 绑定：
+configor 提供了 `CONFIGOR_BIND` 宏，可以用一行代码快速完成 json 绑定：
 
 ```cpp
 struct User
@@ -348,7 +349,14 @@ struct User
     int user_id;
     std::string user_name;
 
-    JSON_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
+    CONFIGOR_BIND(
+        json, User,                     // 将 User 类绑定到 json
+        CONFIGOR_REQUIRED(user_id),     // user_id 字段必填，空值会引发异常
+        CONFIGOR_OPTIONAL(user_name)    // user_name 字段非必填，空值会被忽略
+    );
+
+    // 如果所有字段都是必填的，也可以用 CONFIGOR_BIND_ALL_REQUIRED 宏简写，如下
+    // CONFIGOR_BIND_ALL_REQUIRED(json, User, user_id, user_name);
 };
 
 // 对私有成员变量同样适用
@@ -359,7 +367,7 @@ private:
     std::string user_name;
 
 public:
-    JSON_BIND(User, user_id, user_name); // 将 user_id 和 user_name 字段绑定到 json
+    CONFIGOR_BIND(json, User, REQUIRED(user_id), OPTIONAL(user_name));  // 支持 REQUIRED 和 OPTIONAL 的简写
 };
 ```
 
@@ -383,23 +391,6 @@ user = (User)j;
 ```cpp
 std::vector<std::shared_ptr<User>> user_list;
 json j = user_list;  // 可以正确处理复合类型的转换
-```
-
-如果某些字段是非必选的，在序列化和反序列化时你也许想要忽略空值，可以使用更灵活的 `CONFIGOR_BIND` 宏：
-
-```cpp
-class User
-{
-private:
-    int user_id;
-    std::string user_name;
-
-public:
-    CONFIGOR_BIND(json, User,
-        CONFIGOR_REQUIRED(user_id),   // 这个字段是必须的
-        CONFIGOR_OPTIONAL(user_name)  // 这个字段是可选的，当json中不存在这个字段时忽略，当这个值为空时也不会写入json
-    );
-};
 ```
 
 对于第三方库的类型，由于无法侵入式的在其内部声明 JSON_BIND，可以通过特化实现 config_bind 类，非侵入式的绑定到 JSON。
@@ -466,7 +457,7 @@ struct User
     int user_id;
     std::string user_name;
 
-    JSON_BIND(User, user_id, user_name);
+    CONFIGOR_BIND(json, User, REQUIRED(user_id), OPTIONAL(user_name));
 };
 
 int main(int argc, char** argv)
