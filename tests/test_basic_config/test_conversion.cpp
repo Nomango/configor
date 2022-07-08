@@ -84,11 +84,6 @@ using DriverPtr    = std::unique_ptr<Driver>;
 
 class Bus
 {
-    int                                 license_ = 0;
-    DriverPtr                           driver_;
-    std::vector<PassengerPtr>           passengers_;
-    std::map<std::string, PassengerPtr> olders_;
-
 public:
     Bus() = default;
     Bus(int license, DriverPtr&& driver, const std::vector<PassengerPtr>& passengers,
@@ -131,8 +126,14 @@ public:
     }
 
 public:
-    CONFIGOR_BIND(config, Bus, CONFIGOR_OPTIONAL(license_), CONFIGOR_OPTIONAL(driver_), CONFIGOR_OPTIONAL(passengers_),
-                  CONFIGOR_OPTIONAL(olders_));
+    CONFIGOR_BIND(config, Bus, (license_, "license", REQUIRED), REQUIRED(driver_, "driver"),
+                  CONFIGOR_FIELD(passengers_, "passengers", OPTIONAL), OPTIONAL(olders_, "olders"))
+
+private:
+    int                                 license_ = 0;
+    DriverPtr                           driver_;
+    std::vector<PassengerPtr>           passengers_;
+    std::map<std::string, PassengerPtr> olders_;
 };
 
 class ConversionTest
@@ -151,15 +152,15 @@ protected:
         };
 
         expect_config = {
-            { "license_", 100 },
-            { "driver_", { { "name", "driver" } } },
-            { "passengers_",
+            { "license", 100 },
+            { "driver", { { "name", "driver" } } },
+            { "passengers",
               {
                   { { "name", "p1" }, { "age", 18 } },
                   { { "name", "p2" }, { "age", 54 } },
                   nullptr,
               } },
-            { "olders_",
+            { "olders",
               {
                   { "p2", { { "name", "p2" }, { "age", 54 } } },
               } },
