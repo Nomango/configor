@@ -125,9 +125,8 @@ public:
         return *this;
     }
 
-public:
-    CONFIGOR_BIND(config, Bus, (license_, "license", REQUIRED), REQUIRED(driver_, "driver"),
-                  CONFIGOR_FIELD(passengers_, "passengers", OPTIONAL), OPTIONAL(olders_, "olders"))
+    CONFIGOR_BIND(config, Bus, REQUIRED(license_, "license"), REQUIRED(driver_, "driver"),
+                  OPTIONAL(passengers_, "passengers"), OPTIONAL(olders_, "olders"))
 
 private:
     int                                 license_ = 0;
