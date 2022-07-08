@@ -63,6 +63,23 @@ using namespace configor;
 using namespace configor;
 ```
 
+- 快速完成自定义类型与 JSON 转换
+
+```cpp
+struct User {
+    std::string name;
+    int age;
+
+    // 一行代码完成字段绑定
+    CONFIGOR_BIND(json, User, REQUIRED(name), OPTIONAL(age))
+};
+
+// User 转换到 json
+json j = User{"John", 18};
+// json 转换到 User
+User u = json({{"name", "John"}, {"age", 18}});
+```
+
 - 使用 C++ 的方式的创建 JSON 对象
 
 使用 `operator[]` 为 JSON 对象赋值
@@ -356,7 +373,7 @@ struct User
     );
 
     // 如果所有字段都是必填的，也可以用 CONFIGOR_BIND_ALL_REQUIRED 宏简写，如下
-    // CONFIGOR_BIND_ALL_REQUIRED(json, User, user_id, user_name);
+    CONFIGOR_BIND_ALL_REQUIRED(json, User, user_id, user_name);
 };
 
 // 对私有成员变量同样适用
@@ -367,7 +384,20 @@ private:
     std::string user_name;
 
 public:
-    CONFIGOR_BIND(json, User, REQUIRED(user_id), OPTIONAL(user_name));  // 支持 REQUIRED 和 OPTIONAL 的简写
+    // 绑定私有字段，支持 REQUIRED 和 OPTIONAL 的简写
+    CONFIGOR_BIND(json, User, REQUIRED(user_id), OPTIONAL(user_name));
+};
+
+// 指定与 C++ 字段名不同的 JSON 名
+class User
+{
+private:
+    int user_id_;
+    std::string user_name_;
+
+public:
+    // 为 JSON 指定不同的名称，使 User 可以接受如 {"id": 1, "name": "John"} 这样的 JSON 内容
+    CONFIGOR_BIND(json, User, REQUIRED(user_id_, "id"), OPTIONAL(user_name_, "name"));
 };
 ```
 
