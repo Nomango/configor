@@ -1,18 +1,30 @@
 // Copyright (c) 2021 Nomango
 
-#include "handler.h"
-
+#include <configor/json.hpp>
 #include <iostream>
+
+using namespace configor;
 
 int main(int argc, char** argv)
 {
-    std::istringstream req("{\n    \"user_id\": 10001\n}\n");
-    std::ostringstream resp;
+    json::value v{ "sdf" };
+    std::cout << "v is string " << (v.is_string()) << std::endl;
 
-    GetUserInfoHandler handler;
-    handler.POST(req, resp);
+    {
+        json::value k{ v };
+        std::cout << "k is string " << (k.is_string()) << std::endl;
+        std::cout << "v is string " << (v.is_string()) << std::endl;
+    }
 
-    std::cout << "request: \n" << req.str() << std::endl;
-    std::cout << "response: \n" << resp.str() << std::endl;
+    {
+        json::value j{ std::move(v) };
+        std::cout << "j is string " << (j.is_string()) << std::endl;
+        std::cout << "v is string " << (v.is_string()) << std::endl;
+    }
+
+    {
+        wjson::value w{ L"sdf" };
+        std::cout << "w is string " << (w.is_string()) << std::endl;
+    }
     return 0;
 }
