@@ -14,7 +14,7 @@ endif()
 # Root path
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
 
 add_subdirectory(examples examples)
 
