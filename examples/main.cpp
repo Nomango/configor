@@ -9,7 +9,10 @@ struct config {};
 
 template <class serializer>
 struct serializable {
-    static string dump(serializer& s);
+    template <class T>
+    static string dump(serializer& s, const T& v) {
+        ::dump(s, v);
+    }
 };
 
 template <class parser>
@@ -20,55 +23,56 @@ struct deserializable {
 template <class JSONArgs>
 struct json : public serializable<JSONArgs::serializer>, deserializable<JSONArgs::parser> {
     using value = config;
+};
 
-    void 
+enum class token_t {
+    object_begin,
+    object_end,
+    object_value_spliter,
 };
 
 struct basic_serializer {
-    struct object_path {
-        object_path(object_path* prev, std::string key) : prev_(prev), key(key) {}
+    std::ostream& os_;
+    bool prev_is_object_value_;
 
-        object_path operator[](strig key) const {
-            return object_path(this, key);
-        }
-
-        template <class T>
-        object_path& operator=(const T& t) {
-            s_.apply(*this);
-            dump(s_, t);
-        }
-
-        json_serializer& s_;
-        std::string key;
-        object_path* prev_;
-    };
-
-    object_path operator[](strig key) const {
-        return object_path(nullptr, key);
-    }
-
-    virtual void apply_key(object_path& p) = 0;
+    virtual void apply_key(std::vector<std::string> path) = 0;
     virtual void apply_index(int i) = 0;
-
-    virtual void object_begin() = 0;
-    virtual void object_end() = 0;
-    virtual void object_value_spliter() = 0;
+    virtual void apply_token(token_t) = 0;
 
     template <class T>
-    void object_value(coinst T& t) {
-        if (prev_is_object_value) {
+    void object_value(const T& t) {
+        if (prev_is_object_value_) {
             object_value_spliter();
         }
-        
+        dump()
     }
 
     virtual void put_string(const std::string& str) = 0;
+};
 
-    std::ostream os_;
+struct serializer_context {
+    basic_serializer& s_;
+    std::vector<std::string> path_;
+
+    serializer_context(basic_serializer& s) : s_(s) {}
+
+    serializer_context(const serializer_context& prev, std::string key) : s_(prev.s_), path_(prev.path_) {
+        path_.push_back(key);
+    }
+
+    serializer_context operator[](std::string key) const {
+        return serializer_context(*this, key);
+    }
+
+    template <class T>
+    serializer_context& operator=(const T& t) {
+        s_.apply_key(path_);
+        dump(s_, t);
+    }
 };
 
 struct json_serializer : public basic_serializer {
-    virtual void apply_key(object_path& p) override {
+    virtual void apply_key(std::vector<std::string> path) override {
         put_string(p.key);
         os_ << ": ";
     }
@@ -78,13 +82,22 @@ struct json_serializer : public basic_serializer {
         os_ << ": ";
     }
 
-    virtual void begin_object() override {
-        os_ << '{' ;
-    }
-
-    virtual void end_object() override {
-        os_ << '}';
-        prev_is_object_value = false;
+    virtual void apply_token(token_t t) override {
+        switch (t)
+        {
+        case token_t::object_begin:
+            os_ << '{' ;
+            break;
+        case token_t::object_end:
+            os_ << '}';
+            prev_is_object_value_ = false;
+            break;
+        case token_t::object_value_spliter:
+            os_ << ', ' ;
+            break;
+        default:
+            break;
+        }
     }
 
     virtual void put_string(const std::string& str) override {
@@ -96,9 +109,6 @@ template <class serializer_context>
 void dump(serializer_context& s, const User& u) {
     s.object_begin();
     s["name"] = u.name;
-    auto ss = s["sub"];
-    ss.object_begin();
-    ss.object_end();
     s.object_end();
 }
 
