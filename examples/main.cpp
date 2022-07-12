@@ -1,18 +1,31 @@
 // Copyright (c) 2021 Nomango
 
-#include <configor/json.hpp>
+// #include <configor/json.hpp>
 #include <iostream>
+#include <stack>
+#include <vector>
 
-using namespace configor;
+// using namespace configor;
 
-struct config {};
+struct User{
+    int id;
+    std::string name;
+};
+
+struct value {};
 
 template <class serializer>
 struct serializable {
     template <class T>
-    static string dump(serializer& s, const T& v) {
+    static std::string dump(const T& v) {
+        serializer s{};
+        dump(s, v);
+    }
+
+    template <class T>
+    static std::string dump(serializer& s, const T& v) {
         serializer_context ctx{ s };
-        ::dump(s, v);
+        ::dump(ctx, v);
     }
 };
 
@@ -21,10 +34,17 @@ struct deserializable {
     static void parse(parser& p, string in);
 };
 
-template <class JSONArgs>
-struct json : public serializable<JSONArgs::serializer>, deserializable<JSONArgs::parser> {
-    using value = config;
+struct jsonArgs {
+    using serializer = json_serializer;
+    using parser = void;
 };
+
+template <class JSONArgs = jsonArgs>
+struct basic_json : public serializable<JSONArgs::serializer>, deserializable<JSONArgs::parser> {
+    using value = value;
+};
+
+using json = basic_json<>;
 
 enum class token_t {
     object_begin,
@@ -114,6 +134,45 @@ struct json_serializer : public basic_serializer {
     }
 };
 
+struct value_serializer : public basic_serializer {
+    std::stack<value> values_;
+
+    virtual void apply_key(std::vector<std::string> path) override {
+        for (const auto& s : path) {
+            auto& top = values_.top();
+            values_.push(value{});
+            top[s] = values_.top(); // FIXME
+        }
+    }
+
+    virtual void apply_index(int i) override {
+        put_string(p.key);
+        os_ << ": ";
+    }
+
+    virtual void apply_token(token_t t) override {
+        switch (t)
+        {
+        case token_t::object_begin:
+            os_ << '{' ;
+            break;
+        case token_t::object_end:
+            os_ << '}';
+            prev_is_object_value_ = false;
+            break;
+        case token_t::object_value_spliter:
+            os_ << ', ' ;
+            break;
+        default:
+            break;
+        }
+    }
+
+    virtual void put_string(const std::string& str) override {
+        os_ << '"' << str << '"';
+    }
+};
+
 void dump(serializer_context& ctx, const User& u) {
     auto& s = ctx.get_serializer();
     s.apply_token(token_t::object_begin);
@@ -140,6 +199,8 @@ void dump(serializer_context& ctx, const std::string& str) {
 
 int main(int argc, char** argv)
 {
+    std::string str;
+
     User u;
     json::parse(str, u);
     str = json::dump(u);
@@ -151,24 +212,24 @@ int main(int argc, char** argv)
     u = User(v);
     v = json::value(u);
 
-    json::value v{ "sdf" };
-    std::cout << "v is string " << (v.is_string()) << std::endl;
+    // json::value v{ "sdf" };
+    // std::cout << "v is string " << (v.is_string()) << std::endl;
 
-    {
-        json::value k{ v };
-        std::cout << "k is string " << (k.is_string()) << std::endl;
-        std::cout << "v is string " << (v.is_string()) << std::endl;
-    }
+    // {
+    //     json::value k{ v };
+    //     std::cout << "k is string " << (k.is_string()) << std::endl;
+    //     std::cout << "v is string " << (v.is_string()) << std::endl;
+    // }
 
-    {
-        json::value j{ std::move(v) };
-        std::cout << "j is string " << (j.is_string()) << std::endl;
-        std::cout << "v is string " << (v.is_string()) << std::endl;
-    }
+    // {
+    //     json::value j{ std::move(v) };
+    //     std::cout << "j is string " << (j.is_string()) << std::endl;
+    //     std::cout << "v is string " << (v.is_string()) << std::endl;
+    // }
 
-    {
-        wjson::value w{ L"sdf" };
-        std::cout << "w is string " << (w.is_string()) << std::endl;
-    }
+    // {
+    //     wjson::value w{ L"sdf" };
+    //     std::cout << "w is string " << (w.is_string()) << std::endl;
+    // }
     return 0;
 }
