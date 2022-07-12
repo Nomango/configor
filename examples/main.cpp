@@ -11,6 +11,7 @@ template <class serializer>
 struct serializable {
     template <class T>
     static string dump(serializer& s, const T& v) {
+        serializer_context ctx{ s };
         ::dump(s, v);
     }
 };
@@ -29,6 +30,10 @@ enum class token_t {
     object_begin,
     object_end,
     object_value_spliter,
+
+    array_begin,
+    array_end,
+    array_value_spliter,
 };
 
 struct basic_serializer {
@@ -69,6 +74,10 @@ struct serializer_context {
         s_.apply_key(path_);
         dump(s_, t);
     }
+
+    basic_serializer& get_serializer() const {
+        return s_;
+    }
 };
 
 struct json_serializer : public basic_serializer {
@@ -105,28 +114,28 @@ struct json_serializer : public basic_serializer {
     }
 };
 
-template <class serializer_context>
-void dump(serializer_context& s, const User& u) {
-    s.object_begin();
-    s["name"] = u.name;
-    s.object_end();
+void dump(serializer_context& ctx, const User& u) {
+    auto& s = ctx.get_serializer();
+    s.apply_token(token_t::object_begin);
+    ctx["name"] = u.name;
+    s.apply_token(token_t::object_end);
 }
 
-template <class serializer_context, class T>
-void dump(serializer_context& s, const std::vector<T>& arr) {
-    s.begin_array();
+template <class T>
+void dump(serializer_context& ctx, const std::vector<T>& arr) {
+    auto& s = ctx.get_serializer();
+    s.apply_token(token_t::array_begin);
     s.reserve(arr.size());
     size_t i = 0;
     for (const auto& v : arr) {
-        s[i] = v;
+        ctx[i] = v;
         ++i;
     }
-    s.end_array();
+    s.apply_token(token_t::array_end);
 }
 
-template <class serializer_context>
-void dump(serializer_context& s, const std::string& str) {
-    s.put_string(str);
+void dump(serializer_context& ctx, const std::string& str) {
+    ctx.get_serializer().put_string(str);
 }
 
 int main(int argc, char** argv)
