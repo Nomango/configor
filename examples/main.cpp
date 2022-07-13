@@ -117,16 +117,19 @@ struct serializer_context {
 
 struct json_serializer : public basic_serializer {
     bool insert_value_spliter = false;
+    int indent = 0;
 
     virtual void put_token(token_t t) override {
         switch (t)
         {
         case token_t::object_begin:
             os_ << '{' ;
+            indent += 2;
             insert_value_spliter = false;
             break;
         case token_t::object_end:
             os_ << '}';
+            indent -= 2;
             insert_value_spliter = false;
             break;
         case token_t::object_key:
@@ -141,10 +144,12 @@ struct json_serializer : public basic_serializer {
 
         case token_t::array_begin:
             os_ << '[' ;
+            indent += 2;
             insert_value_spliter = false;
             break;
         case token_t::array_end:
             os_ << ']';
+            indent -= 2;
             insert_value_spliter = false;
             break;
         case token_t::array_value:
