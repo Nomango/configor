@@ -31,7 +31,7 @@ struct serializable {
 
 template <class parser>
 struct deserializable {
-    static void parse(parser& p, string in);
+    static void parse(parser& p, std::string in);
 };
 
 struct jsonArgs {
@@ -49,29 +49,18 @@ using json = basic_json<>;
 enum class token_t {
     object_begin,
     object_end,
-    object_value_spliter,
+    object_key,
+    object_value,
 
     array_begin,
     array_end,
-    array_value_spliter,
+    array_value,
 };
 
 struct basic_serializer {
     std::ostream& os_;
-    bool prev_is_object_value_;
 
-    virtual void apply_key(std::vector<std::string> path) = 0;
-    virtual void apply_index(int i) = 0;
-    virtual void apply_token(token_t) = 0;
-
-    template <class T>
-    void object_value(const T& t) {
-        if (prev_is_object_value_) {
-            object_value_spliter();
-        }
-        dump()
-    }
-
+    virtual void put_token(token_t) = 0;
     virtual void put_string(const std::string& str) = 0;
 };
 
@@ -85,83 +74,84 @@ struct serializer_context {
         path_.push_back(key);
     }
 
-    serializer_context operator[](std::string key) const {
-        return serializer_context(*this, key);
+    basic_serializer& get_serializer() const {
+        return s_;
+    }
+
+    void put_token(token_t t) {
+        s_.put_token(t);
+    }
+
+    struct object_context {
+        serializer_context& parent_;
+        object_context(serializer_context& parent, std::string key) : parent_(parent) {
+            parent_.put_token(token_t::object_key);
+            dump(parent_, key);
+        }
+
+        template <class T>
+        object_context& operator=(const T& v) {
+            parent_.put_token(token_t::object_value);
+            dump(parent_, v);
+        }
+    };
+
+    object_context operator[](std::string key) {
+        return object_context{*this, key};
     }
 
     template <class T>
-    serializer_context& operator=(const T& t) {
-        s_.apply_key(path_);
-        dump(s_, t);
+    void insert(std::string key, const T& v) {
+        put_token(token_t::object_key);
+        dump(*this, key);
+        put_token(token_t::object_value);
+        dump(*this, v);
     }
 
-    basic_serializer& get_serializer() const {
-        return s_;
+    template <class T>
+    void push_back(const T& v) {
+        put_token(token_t::array_value);
+        dump(*this, v);
     }
 };
 
 struct json_serializer : public basic_serializer {
-    virtual void apply_key(std::vector<std::string> path) override {
-        put_string(p.key);
-        os_ << ": ";
-    }
+    bool insert_value_spliter = false;
 
-    virtual void apply_index(int i) override {
-        put_string(p.key);
-        os_ << ": ";
-    }
-
-    virtual void apply_token(token_t t) override {
+    virtual void put_token(token_t t) override {
         switch (t)
         {
         case token_t::object_begin:
             os_ << '{' ;
+            insert_value_spliter = false;
             break;
         case token_t::object_end:
             os_ << '}';
-            prev_is_object_value_ = false;
+            insert_value_spliter = false;
             break;
-        case token_t::object_value_spliter:
-            os_ << ', ' ;
+        case token_t::object_key:
+            if (insert_value_spliter) {
+                os_ << ', ' ;
+            }
             break;
-        default:
+        case token_t::object_value:
+            os_ << ": ";
+            insert_value_spliter = true;
             break;
-        }
-    }
 
-    virtual void put_string(const std::string& str) override {
-        os_ << '"' << str << '"';
-    }
-};
-
-struct value_serializer : public basic_serializer {
-    std::stack<value> values_;
-
-    virtual void apply_key(std::vector<std::string> path) override {
-        for (const auto& s : path) {
-            auto& top = values_.top();
-            values_.push(value{});
-            top[s] = values_.top(); // FIXME
-        }
-    }
-
-    virtual void apply_index(int i) override {
-        put_string(p.key);
-        os_ << ": ";
-    }
-
-    virtual void apply_token(token_t t) override {
-        switch (t)
-        {
-        case token_t::object_begin:
-            os_ << '{' ;
+        case token_t::array_begin:
+            os_ << '[' ;
+            insert_value_spliter = false;
             break;
-        case token_t::object_end:
-            os_ << '}';
-            prev_is_object_value_ = false;
+        case token_t::array_end:
+            os_ << ']';
+            insert_value_spliter = false;
             break;
-        case token_t::object_value_spliter:
-            os_ << ', ' ;
+        case token_t::array_value:
+            if (insert_value_spliter) {
+                os_ << ', ' ;
+            }
+            insert_value_spliter = true;
             break;
         default:
             break;
@@ -174,23 +164,19 @@ struct value_serializer : public basic_serializer {
 };
 
 void dump(serializer_context& ctx, const User& u) {
-    auto& s = ctx.get_serializer();
-    s.apply_token(token_t::object_begin);
+    ctx.put_token(token_t::object_begin);
     ctx["name"] = u.name;
-    s.apply_token(token_t::object_end);
+    ctx.insert("name", u.name);
+    ctx.put_token(token_t::object_end);
 }
 
 template <class T>
 void dump(serializer_context& ctx, const std::vector<T>& arr) {
-    auto& s = ctx.get_serializer();
-    s.apply_token(token_t::array_begin);
-    s.reserve(arr.size());
-    size_t i = 0;
+    ctx.put_token(token_t::array_begin);
     for (const auto& v : arr) {
-        ctx[i] = v;
-        ++i;
+        ctx.push_back(v);
     }
-    s.apply_token(token_t::array_end);
+    ctx.put_token(token_t::array_end);
 }
 
 void dump(serializer_context& ctx, const std::string& str) {
