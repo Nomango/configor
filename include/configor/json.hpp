@@ -248,7 +248,7 @@ public:
             read_next();
 
         // skip comments
-        if (true && current_ == '/')  // TODO
+        if (current_ == '/')
         {
             skip_comments();
         }
@@ -289,6 +289,11 @@ public:
                         read_next();
                         break;
                     }
+                }
+
+                if (is_.eof())
+                {
+                    fail("unexpected eof while reading comment");
                 }
             }
             skip_spaces();

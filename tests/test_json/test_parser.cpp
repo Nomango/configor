@@ -139,7 +139,6 @@ TEST_CASE("test_parser")
 
     SECTION("test_comment")
     {
-        // TODO
         auto j = json::parse(R"(// some comments
         /* some comments */
         {
@@ -156,6 +155,9 @@ TEST_CASE("test_parser")
         CHECK(j["happy"].get<bool>());
         CHECK(j["pi"].get<double>() == Approx(3.141));
         CHECK(j["name"].get<std::string>() == "中文测试");
+
+        CHECK_THROWS_AS(json::parse("/* aaaa"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("/* aaaa *"), configor_deserialization_error);
     }
 
     SECTION("test_parse_surrogate")
