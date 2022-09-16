@@ -74,16 +74,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04 ]
-        compiler: [ clang++-10, clang++-11 ] #, clang++-12 ]
+        os: [ ubuntu-20.04, windows-2019, macos-10.15 ]
+        clang_version: [ 10, 11, 12, 13 ]
         build_type: [ Debug ]
         include:
-          - compiler: clang++-10
-            clang_version: 10
-          - compiler: clang++-11
-            clang_version: 11
-          # - compiler: clang++-12
-          #   clang_version: 12
+          - os: ubuntu-20.04
+            cmake_params: -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -stdlib=libc++"
+          - os: windows-2019
+            cmake_params: -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} /EHsc"
+          - os: macos-10.15
+            cmake_params: -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"
     steps:
     - uses: actions/checkout@v2
     - name: Install LLVM and Clang
@@ -93,7 +93,7 @@ jobs:
     - name: Configure CMake
       run: |
         clang++ --version
-        cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="clang++" -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+        cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="clang++" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_params}}
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} --parallel 10
     - name: Run tests
@@ -125,6 +125,7 @@ jobs:
   ci_mingw:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ windows-2019 ]
         architecture: [ x64, x86 ]
@@ -145,11 +146,16 @@ jobs:
   ci_msvc:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ windows-2019 ]
-        vsversion: [ Visual Studio 16 2019 ]
+        os: [ windows-2019, windows-2022 ]
         build_type: [ Debug ]
         architecture: [ Win32, x64 ]
+        include:
+          - os: windows-2019
+            vsversion: Visual Studio 16 2019
+          - os: windows-2022
+            vsversion: Visual Studio 17 2022
     steps:
     - uses: actions/checkout@v2
     - name: Configure CMake

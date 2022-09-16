@@ -24,8 +24,8 @@ TEST_CASE("test_iterator")
 
         CHECK_THROWS_AS(c.end().operator*(), std::out_of_range);
 
-        CHECK(std::distance(c.begin(), c.end()) == c.size());
-        CHECK(std::distance(c.rbegin(), c.rend()) == c.size());
+        CHECK((std::size_t)std::distance(c.begin(), c.end()) == c.size());
+        CHECK((std::size_t)std::distance(c.rbegin(), c.rend()) == c.size());
 
         CHECK_THROWS_AS(c.erase(0), configor_invalid_key);
         CHECK_THROWS_AS(c.erase(""), configor_invalid_key);
@@ -52,8 +52,8 @@ TEST_CASE("test_iterator")
 
         CHECK_THROWS_AS(c.end().operator*(), std::out_of_range);
 
-        CHECK(std::distance(c.begin(), c.end()) == c.size());
-        CHECK(std::distance(c.rbegin(), c.rend()) == c.size());
+        CHECK((std::size_t)std::distance(c.begin(), c.end()) == c.size());
+        CHECK((std::size_t)std::distance(c.rbegin(), c.rend()) == c.size());
 
         CHECK_THROWS_AS(c.erase(0), configor_invalid_key);
         CHECK_THROWS_AS(c.erase(""), configor_invalid_key);
@@ -80,8 +80,8 @@ TEST_CASE("test_iterator")
 
         CHECK_THROWS_AS(c.end().operator*(), std::out_of_range);
 
-        CHECK(std::distance(c.begin(), c.end()) == c.size());
-        CHECK(std::distance(c.rbegin(), c.rend()) == c.size());
+        CHECK((std::size_t)std::distance(c.begin(), c.end()) == c.size());
+        CHECK((std::size_t)std::distance(c.rbegin(), c.rend()) == c.size());
 
         CHECK_THROWS_AS(c.erase(0), configor_invalid_key);
         CHECK_THROWS_AS(c.erase(""), configor_invalid_key);
@@ -108,8 +108,8 @@ TEST_CASE("test_iterator")
 
         CHECK_THROWS_AS(c.end().operator*(), std::out_of_range);
 
-        CHECK(std::distance(c.begin(), c.end()) == c.size());
-        CHECK(std::distance(c.rbegin(), c.rend()) == c.size());
+        CHECK((std::size_t)std::distance(c.begin(), c.end()) == c.size());
+        CHECK((std::size_t)std::distance(c.rbegin(), c.rend()) == c.size());
 
         CHECK_THROWS_AS(c.erase(0), configor_invalid_key);
         CHECK_THROWS_AS(c.erase(""), configor_invalid_key);
@@ -134,8 +134,8 @@ TEST_CASE("test_iterator")
         CHECK(iter == c.end());
         CHECK(iter == c.begin());
 
-        CHECK(std::distance(c.begin(), c.end()) == c.size());
-        CHECK(std::distance(c.rbegin(), c.rend()) == c.size());
+        CHECK((std::size_t)std::distance(c.begin(), c.end()) == c.size());
+        CHECK((std::size_t)std::distance(c.rbegin(), c.rend()) == c.size());
 
         CHECK_THROWS_AS(c.erase(0), configor_invalid_key);
         CHECK_THROWS_AS(c.erase(""), configor_invalid_key);
@@ -162,8 +162,8 @@ TEST_CASE("test_iterator")
         CHECK(obj.find("user") != obj.end());
         CHECK(obj.find("missing") == obj.end());
 
-        CHECK(std::distance(obj.begin(), obj.end()) == obj.size());
-        CHECK(std::distance(obj.rbegin(), obj.rend()) == obj.size());
+        CHECK((std::size_t)std::distance(obj.begin(), obj.end()) == obj.size());
+        CHECK((std::size_t)std::distance(obj.rbegin(), obj.rend()) == obj.size());
 
         {
             config c = config::object({ { "1", 1 }, { "2", 2 } });
@@ -225,8 +225,8 @@ TEST_CASE("test_iterator")
 
         CHECK_THROWS_AS(arr.end().operator*(), std::out_of_range);
 
-        CHECK(std::distance(arr.begin(), arr.end()) == arr.size());
-        CHECK(std::distance(arr.rbegin(), arr.rend()) == arr.size());
+        CHECK((std::size_t)std::distance(arr.begin(), arr.end()) == arr.size());
+        CHECK((std::size_t)std::distance(arr.rbegin(), arr.rend()) == arr.size());
 
         {
             config c = config::array({ 1, 2, 3 });
