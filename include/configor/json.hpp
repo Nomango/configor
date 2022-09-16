@@ -118,12 +118,14 @@ public:
     using float_type    = typename _JsonTy::float_type;
 
     explicit json_reader(error_handler* eh = nullptr)
-        : is_(nullptr)
-        , is_negative_(false)
+        : is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
         , current_(0)
+        , is_(nullptr)
         , err_handler_(eh)
+        , src_decoder_(nullptr)
+        , target_encoder_(nullptr)
     {
         is_ >> std::noskipws;
     }
@@ -663,13 +665,15 @@ public:
     };
 
     explicit json_writer(const args& args, error_handler* eh = nullptr)
-        : os_(nullptr)
+        : pretty_print_(args.indent > 0)
         , object_or_array_began_(false)
-        , pretty_print_(args.indent > 0)
         , last_token_(token_type::uninitialized)
         , args_(args)
         , indent_(args.indent, args.indent_char)
+        , os_(nullptr)
         , err_handler_(eh)
+        , src_decoder_(nullptr)
+        , target_encoder_(nullptr)
     {
     }
 
