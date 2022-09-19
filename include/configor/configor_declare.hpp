@@ -78,23 +78,8 @@ struct config_args
     template <class _Ty>
     using allocator_type = std::allocator<_Ty>;
 
-    template <class _ConfTy>
-    using reader_type = detail::nonesuch;
-
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using parser_type = detail::parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
-
-    template <class _ConfTy>
-    using writer_type = detail::nonesuch;
-
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = detail::serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
-
     template <class _Ty>
     using binder_type = config_binder<_Ty>;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
 };
 
 struct wconfig_args : config_args

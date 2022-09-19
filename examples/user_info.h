@@ -15,7 +15,7 @@ struct UserRole
     // 权限列表
     vector<string> permission_list;
 
-    CONFIGOR_BIND_ALL_REQUIRED(json, UserRole, code, permission_list);
+    CONFIGOR_BIND(UserRole, code, permission_list);
 };
 
 // 用户信息
@@ -28,7 +28,7 @@ struct UserInfo
     // 角色列表
     vector<UserRole> role_list;
 
-    CONFIGOR_BIND_ALL_REQUIRED(json, UserInfo, user_id, user_name, role_list);
+    CONFIGOR_BIND(UserInfo, user_id, user_name, role_list);
 };
 
 extern std::shared_ptr<UserInfo> QueryUser(int user_id);

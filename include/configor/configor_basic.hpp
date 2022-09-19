@@ -22,12 +22,10 @@
 #include "configor_conversion.hpp"
 #include "configor_declare.hpp"
 #include "configor_iterator.hpp"
-#include "configor_parser.hpp"
-#include "configor_serializer.hpp"
 #include "configor_value.hpp"
 
-#include <sstream>      // std::stringstream
 #include <algorithm>    // std::for_each, std::all_of
+#include <sstream>      // std::stringstream
 #include <type_traits>  // std::enable_if, std::is_same, std::is_integral, std::is_floating_point
 #include <utility>      // std::forward, std::declval
 
@@ -66,20 +64,6 @@ public:
 
     template <typename _Ty>
     using binder_type = typename _Args::template binder_type<_Ty>;
-
-    template <typename _CharTy>
-    using default_encoding = typename _Args::template default_encoding<_CharTy>;
-
-    using reader = typename _Args::template reader_type<basic_config>;
-    using writer = typename _Args::template writer_type<basic_config>;
-
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding>
-    using parser = typename _Args::template parser_type<basic_config, _SourceEncoding, _TargetEncoding>;
-
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding>
-    using serializer = typename _Args::template serializer_type<basic_config, _SourceEncoding, _TargetEncoding>;
 
 public:
     basic_config(std::nullptr_t = nullptr) {}
@@ -878,88 +862,6 @@ public:
     }
 
 public:
-    // dump to stream
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename = typename std::enable_if<detail::can_serialize<basic_config, _DumpArgs...>::value>::type>
-    void dump(std::basic_ostream<char_type>& os, _DumpArgs&&... args) const
-    {
-        serializer<_SourceEncoding, _TargetEncoding>::dump(*this, os, std::forward<_DumpArgs>(args)...);
-    }
-
-    // dump to string
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename = typename std::enable_if<detail::can_serialize<basic_config, _DumpArgs...>::value>::type>
-    void dump(string_type& str, _DumpArgs&&... args) const
-    {
-        detail::fast_string_ostreambuf<char_type> buf{ str };
-        std::basic_ostream<char_type>             os{ &buf };
-        return dump<_SourceEncoding, _TargetEncoding>(os, std::forward<_DumpArgs>(args)...);
-    }
-
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename = typename std::enable_if<detail::can_serialize<basic_config, _DumpArgs...>::value>::type>
-    string_type dump(_DumpArgs&&... args) const
-    {
-        string_type result;
-        dump<_SourceEncoding, _TargetEncoding>(result, std::forward<_DumpArgs>(args)...);
-        return result;
-    }
-
-    // parse from stream
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static void parse(basic_config& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
-    {
-        parser<_SourceEncoding, _TargetEncoding>::parse(c, is, std::forward<_ParserArgs>(args)...);
-    }
-
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
-    {
-        basic_config c;
-        parse<_SourceEncoding, _TargetEncoding>(c, is, std::forward<_ParserArgs>(args)...);
-        return c;
-    }
-
-    // parse from string
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(const string_type& str, _ParserArgs&&... args)
-    {
-        detail::fast_string_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type>             is{ &buf };
-        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
-    }
-
-    // parse from c-style string
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(const char_type* str, _ParserArgs&&... args)
-    {
-        detail::fast_buffer_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type>             is{ &buf };
-        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
-    }
-
-    // parse from c-style file
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(std::FILE* file, _ParserArgs&&... args)
-    {
-        detail::fast_cfile_istreambuf<char_type> buf{ file };
-        std::basic_istream<char_type>            is{ &buf };
-        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
-    }
-
     // wrap
 
     template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value

@@ -371,9 +371,6 @@ struct User
         CONFIGOR_REQUIRED(user_id),     // user_id 字段必填，空值会引发异常
         CONFIGOR_OPTIONAL(user_name)    // user_name 字段非必填，空值会被忽略
     );
-
-    // 如果所有字段都是必填的，也可以用 CONFIGOR_BIND_ALL_REQUIRED 宏简写，如下
-    CONFIGOR_BIND_ALL_REQUIRED(json, User, user_id, user_name);
 };
 
 // 对私有成员变量同样适用

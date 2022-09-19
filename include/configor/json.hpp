@@ -20,6 +20,8 @@
 
 #pragma once
 #include "configor.hpp"
+#include "configor_parser.hpp"
+#include "configor_serializer.hpp"
 
 #include <iomanip>  // std::setprecision, std::right, std::noshowbase
 
@@ -52,8 +54,17 @@ struct wjson_args : json_args
     using char_type = wchar_t;
 };
 
-using json  = basic_config<json_args>;
-using wjson = basic_config<wjson_args>;
+template <typename _JsonArgs>
+class basic_json final
+    : public serializable<_JsonArgs>
+    , public parsable<_JsonArgs>
+{
+public:
+    using value = basic_config<_JsonArgs>;
+};
+
+using json  = basic_json<json_args>;
+using wjson = basic_json<wjson_args>;
 
 // type traits
 
@@ -63,18 +74,9 @@ struct is_json : std::false_type
 };
 
 template <typename _Args>
-struct is_json<basic_config<_Args>>
+struct is_json<basic_json<_Args>> : std::true_type
 {
-    using type = basic_config<_Args>;
-
-    static const bool value = std::is_same<typename type::reader, detail::json_reader<type>>::value
-                              && std::is_same<typename type::writer, detail::json_writer<type>>::value;
 };
-
-// deprecated
-#define JSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::json, value_type, __VA_ARGS__)
-// deprecated
-#define WJSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::wjson, value_type, __VA_ARGS__)
 
 template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
 std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os,

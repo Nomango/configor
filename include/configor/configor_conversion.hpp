@@ -968,15 +968,3 @@ private:
         __CONFIGOR_EXPAND(                                                                                            \
             __CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_FROM_CONF_CALL_OVERLOAD, __VA_ARGS__))             \
     }
-
-// for forward compatibility
-
-#define __CONFIGOR_BIND_WRAPPER(...) __CONFIGOR_EXPAND(CONFIGOR_BIND(__VA_ARGS__))
-
-#define __CONFIGOR_FIELD_COMMA(_1) , REQUIRED(_1)
-
-// deprecated
-#define CONFIGOR_BIND_ALL_REQUIRED(config_type, value_type, ...) \
-    __CONFIGOR_EXPAND(__CONFIGOR_BIND_WRAPPER(                   \
-        config_type,                                             \
-        value_type __CONFIGOR_EXPAND(__CONFIGOR_PASTE(__CONFIGOR_CALL_PASTE1, __CONFIGOR_FIELD_COMMA, __VA_ARGS__))))

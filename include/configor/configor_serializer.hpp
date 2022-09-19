@@ -215,6 +215,72 @@ private:
 };
 
 //
+// serializable
+//
+
+struct serializable_args
+{
+    using config_type = void;
+
+    template <typename _CharTy>
+    using default_encoding = encoding::ignore<_CharTy>;
+
+    template <class _ConfTy>
+    using writer_type = detail::nonesuch;
+
+    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = detail::serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
+};
+
+template <typename _Args>
+class serializable
+{
+public:
+    using config_type = typename _Args::config_type;
+    using char_type   = typename config_type::char_type;
+    using string_type = typename config_type::string_type;
+
+    template <typename _CharTy>
+    using default_encoding = typename _Args::template default_encoding<_CharTy>;
+
+    using writer = typename _Args::template writer_type<basic_config>;
+
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding>
+    using serializer = typename _Args::template serializer_type<config_type, _SourceEncoding, _TargetEncoding>;
+
+    // dump to stream
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
+              typename = typename std::enable_if<detail::can_serialize<config_type, _DumpArgs...>::value>::type>
+    void dump(std::basic_ostream<char_type>& os, _DumpArgs&&... args) const
+    {
+        serializer<_SourceEncoding, _TargetEncoding>::dump(*this, os, std::forward<_DumpArgs>(args)...);
+    }
+
+    // dump to string
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
+              typename = typename std::enable_if<detail::can_serialize<config_type, _DumpArgs...>::value>::type>
+    void dump(string_type& str, _DumpArgs&&... args) const
+    {
+        detail::fast_string_ostreambuf<char_type> buf{ str };
+        std::basic_ostream<char_type>             os{ &buf };
+        return dump<_SourceEncoding, _TargetEncoding>(os, std::forward<_DumpArgs>(args)...);
+    }
+
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
+              typename = typename std::enable_if<detail::can_serialize<config_type, _DumpArgs...>::value>::type>
+    string_type dump(_DumpArgs&&... args) const
+    {
+        string_type result;
+        dump<_SourceEncoding, _TargetEncoding>(result, std::forward<_DumpArgs>(args)...);
+        return result;
+    }
+};
+
+//
 // indent
 //
 
