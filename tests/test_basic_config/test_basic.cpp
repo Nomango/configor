@@ -487,7 +487,7 @@ struct fifo_config_args : config_args
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;
 };
 
-using fifo_config = basic_config<fifo_config_args>;
+using fifo_config = basic_value<fifo_config_args>;
 
 TEST_CASE("test_tpl_args")
 {

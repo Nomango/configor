@@ -324,7 +324,7 @@ struct CStylePassengers
 {
     Passenger passengers[2];
 
-    CONFIGOR_BIND_ALL_REQUIRED(config, CStylePassengers, passengers);
+    CONFIGOR_BIND(config, CStylePassengers, REQUIRED(passengers));
 };
 
 TEST_CASE("test_conversion")

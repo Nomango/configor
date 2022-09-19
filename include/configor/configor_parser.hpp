@@ -36,15 +36,18 @@ namespace configor
 namespace detail
 {
 
-template <typename _ConfTy>
-class basic_reader
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class basic_parser
 {
 public:
-    using integer_type = typename _ConfTy::integer_type;
-    using float_type   = typename _ConfTy::float_type;
-    using char_type    = typename _ConfTy::char_type;
-    using string_type  = typename _ConfTy::string_type;
-    using encoder_type = encoding::encoder<char_type>;
+    using value_type     = _ConfTy;
+    using integer_type    = typename _ConfTy::integer_type;
+    using float_type      = typename _ConfTy::float_type;
+    using char_type       = typename _ConfTy::char_type;
+    using string_type     = typename _ConfTy::string_type;
+    using istream_type    = std::basic_istream<char_type>;
+    using source_encoding = _SourceEncoding<char_type>;
+    using target_encoding = _TargetEncoding<char_type>;
 
     virtual void source(std::basic_istream<char_type>& is, encoding::decoder<char_type> src_decoder,
                         encoding::encoder<char_type> target_encoder) = 0;
@@ -56,59 +59,20 @@ public:
     virtual void get_string(string_type& out)   = 0;
 
     virtual error_handler* get_error_handler() = 0;
-};
 
-template <typename _ConfTy, typename... _Args>
-struct can_parse
-{
-private:
-    using parser_type  = typename _ConfTy::template parser<>;
-    using char_type    = typename _ConfTy::char_type;
-    using istream_type = std::basic_istream<char_type>;
-
-    template <typename _UTy, typename... _UArgs>
-    using parse_fn = decltype(_UTy::parse(std::declval<_UArgs>()...));
-
-public:
-    static constexpr bool value = is_detected<parse_fn, parser_type, _ConfTy&, istream_type&, _Args...>::value;
-};
-
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class parser
-{
-public:
-    using config_type     = _ConfTy;
-    using char_type       = typename _ConfTy::char_type;
-    using string_type     = typename _ConfTy::string_type;
-    using reader_type     = typename _ConfTy::reader;
-    using istream_type    = std::basic_istream<char_type>;
-    using source_encoding = _SourceEncoding<char_type>;
-    using target_encoding = _TargetEncoding<char_type>;
-
-    parser() = default;
-
-    template <typename... _ReaderArgs, typename _ReaderTy = reader_type,
-              typename = typename std::enable_if<std::is_constructible<_ReaderTy, _ReaderArgs...>::value>::type>
-    static void parse(config_type& c, istream_type& is, _ReaderArgs&&... args)
-    {
-        _ReaderTy r{ std::forward<_ReaderArgs>(args)... };
-        return parser{}.do_parse(c, r, is);
-    }
-
-private:
-    void do_parse(config_type& c, reader_type& reader, istream_type& is)
+    void parse(value_type& c, istream_type& is)
     {
         try
         {
-            reader.source(is, source_encoding::decode, target_encoding::encode);
+            source(is, source_encoding::decode, target_encoding::encode);
 
-            do_parse(c, reader, token_type::uninitialized);
-            if (reader.scan() != token_type::end_of_input)
+            do_parse(c, token_type::uninitialized);
+            if (scan() != token_type::end_of_input)
                 fail(token_type::end_of_input);
         }
         catch (...)
         {
-            auto eh = reader.get_error_handler();
+            auto eh = get_error_handler();
             if (eh)
                 eh->handle(std::current_exception());
             else
@@ -116,14 +80,15 @@ private:
         }
     }
 
-    void do_parse(config_type& c, reader_type& reader, token_type last_token, bool read_next = true)
+protected:
+    virtual void do_parse(value_type& c, token_type last_token, bool read_next = true)
     {
         using string_type = typename _ConfTy::string_type;
 
         token_type token = last_token;
         if (read_next)
         {
-            token = reader.scan();
+            token = scan();
         }
 
         switch (token)
@@ -142,24 +107,24 @@ private:
 
         case token_type::value_string:
             c = config_value_type::string;
-            reader.get_string(*c.raw_value().data.string);
+            get_string(*c.raw_value().data.string);
             break;
 
         case token_type::value_integer:
             c = config_value_type::number_integer;
-            reader.get_integer(c.raw_value().data.number_integer);
+            get_integer(c.raw_value().data.number_integer);
             break;
 
         case token_type::value_float:
             c = config_value_type::number_float;
-            reader.get_float(c.raw_value().data.number_float);
+            get_float(c.raw_value().data.number_float);
             break;
 
         case token_type::begin_array:
             c = config_value_type::array;
             while (true)
             {
-                token = reader.scan();
+                token = scan();
 
                 bool is_end = false;
                 switch (token)
@@ -181,10 +146,10 @@ private:
                     break;
 
                 c.raw_value().data.vector->push_back(_ConfTy());
-                do_parse(c.raw_value().data.vector->back(), reader, token, false);
+                do_parse(c.raw_value().data.vector->back(), token, false);
 
                 // read ','
-                token = reader.scan();
+                token = scan();
                 if (token != token_type::value_separator)
                     break;
             }
@@ -196,23 +161,23 @@ private:
             c = config_value_type::object;
             while (true)
             {
-                token = reader.scan();
+                token = scan();
                 if (token != token_type::value_string)
                     break;
 
                 string_type key{};
-                reader.get_string(key);
+                get_string(key);
 
-                token = reader.scan();
+                token = scan();
                 if (token != token_type::name_separator)
                     break;
 
                 _ConfTy object;
-                do_parse(object, reader, token);
+                do_parse(object, token);
                 c.raw_value().data.object->emplace(key, object);
 
                 // read ','
-                token = reader.scan();
+                token = scan();
                 if (token != token_type::value_separator)
                     break;
             }
@@ -236,6 +201,84 @@ private:
     void fail(token_type actual_token, token_type expected_token, const std::string& msg = "unexpected token")
     {
         fail(actual_token, msg + ", expect '" + to_string(expected_token) + "', but got");
+    }
+};
+
+//
+// parsable
+//
+
+template <typename _Args>
+class parsable
+{
+public:
+    using value_type = typename _Args::value_type;
+    using char_type   = typename value_type::char_type;
+    using string_type = typename value_type::string_type;
+
+    template <typename _CharTy>
+    using default_encoding = typename _Args::template default_encoding<_CharTy>;
+
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding>
+    using parser = typename _Args::template parser_type<value_type, _SourceEncoding, _TargetEncoding>;
+
+    // parse from stream
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
+    static void parse(value_type& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
+    {
+        parser<_SourceEncoding, _TargetEncoding> p{ std::forward<_ParserArgs>(args)... };
+        p.parse(c, is);
+    }
+
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
+    static value_type parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
+    {
+        value_type c;
+        parse<_SourceEncoding, _TargetEncoding>(c, is, std::forward<_ParserArgs>(args)...);
+        return c;
+    }
+
+    // parse from string
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
+    static value_type parse(const string_type& str, _ParserArgs&&... args)
+    {
+        detail::fast_string_istreambuf<char_type> buf{ str };
+        std::basic_istream<char_type>             is{ &buf };
+        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
+    }
+
+    // parse from c-style string
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
+    static value_type parse(const char_type* str, _ParserArgs&&... args)
+    {
+        detail::fast_buffer_istreambuf<char_type> buf{ str };
+        std::basic_istream<char_type>             is{ &buf };
+        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
+    }
+
+    // parse from c-style file
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
+    static value_type parse(std::FILE* file, _ParserArgs&&... args)
+    {
+        detail::fast_cfile_istreambuf<char_type> buf{ file };
+        std::basic_istream<char_type>            is{ &buf };
+        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
     }
 };
 

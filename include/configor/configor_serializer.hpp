@@ -33,14 +33,21 @@ namespace configor
 
 namespace detail
 {
-template <typename _ConfTy>
-class basic_writer
+
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class basic_serializer
 {
 public:
-    using integer_type = typename _ConfTy::integer_type;
-    using float_type   = typename _ConfTy::float_type;
-    using char_type    = typename _ConfTy::char_type;
-    using string_type  = typename _ConfTy::string_type;
+    using value_type     = _ConfTy;
+    using integer_type    = typename _ConfTy::integer_type;
+    using float_type      = typename _ConfTy::float_type;
+    using char_type       = typename _ConfTy::char_type;
+    using string_type     = typename _ConfTy::string_type;
+    using ostream_type    = std::basic_ostream<char_type>;
+    using source_encoding = _SourceEncoding<char_type>;
+    using target_encoding = _TargetEncoding<char_type>;
+
+    basic_serializer() = default;
 
     virtual void target(std::basic_ostream<char_type>& os, encoding::decoder<char_type> src_decoder,
                         encoding::encoder<char_type> target_encoder) = 0;
@@ -52,58 +59,19 @@ public:
     virtual void put_string(const string_type& scalbn) = 0;
 
     virtual error_handler* get_error_handler() = 0;
-};
 
-template <typename _ConfTy, typename... _Args>
-struct can_serialize
-{
-private:
-    using serializer_type = typename _ConfTy::template serializer<>;
-    using char_type       = typename _ConfTy::char_type;
-    using ostream_type    = std::basic_ostream<char_type>;
-
-    template <typename _UTy, typename... _UArgs>
-    using dump_fn = decltype(_UTy::dump(std::declval<_UArgs>()...));
-
-public:
-    static constexpr bool value = is_detected<dump_fn, serializer_type, _ConfTy, ostream_type&, _Args...>::value;
-};
-
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class serializer
-{
-public:
-    using config_type     = _ConfTy;
-    using char_type       = typename _ConfTy::char_type;
-    using string_type     = typename _ConfTy::string_type;
-    using writer_type     = typename _ConfTy::writer;
-    using ostream_type    = std::basic_ostream<char_type>;
-    using source_encoding = _SourceEncoding<char_type>;
-    using target_encoding = _TargetEncoding<char_type>;
-
-    serializer() = default;
-
-    template <typename... _WriterArgs, typename _WriterTy = writer_type,
-              typename = typename std::enable_if<std::is_constructible<_WriterTy, _WriterArgs...>::value>::type>
-    static void dump(const config_type& c, ostream_type& os, _WriterArgs&&... args)
-    {
-        _WriterTy w{ std::forward<_WriterArgs>(args)... };
-        return serializer{}.do_dump(c, w, os);
-    }
-
-private:
-    void do_dump(const config_type& c, writer_type& writer, ostream_type& os)
+    void dump(const value_type& c, ostream_type& os)
     {
         try
         {
-            writer.target(os, source_encoding::decode, target_encoding::encode);
+            target(os, source_encoding::decode, target_encoding::encode);
 
-            do_dump(c, writer);
-            writer.next(token_type::end_of_input);
+            do_dump(c);
+            next(token_type::end_of_input);
         }
         catch (...)
         {
-            auto eh = writer.get_error_handler();
+            auto eh = get_error_handler();
             if (eh)
                 eh->handle(std::current_exception());
             else
@@ -111,7 +79,8 @@ private:
         }
     }
 
-    void do_dump(const config_type& c, writer_type& writer)
+protected:
+    virtual void do_dump(const value_type& c)
     {
         switch (c.type())
         {
@@ -119,10 +88,10 @@ private:
         {
             const auto& object = *c.raw_value().data.object;
 
-            writer.next(token_type::begin_object);
+            next(token_type::begin_object);
             if (object.empty())
             {
-                writer.next(token_type::end_object);
+                next(token_type::end_object);
                 return;
             }
 
@@ -130,51 +99,51 @@ private:
             auto size = object.size();
             for (std::size_t i = 0; i < size; ++i, ++iter)
             {
-                writer.next(token_type::value_string);
-                writer.put_string(iter->first);
-                writer.next(token_type::name_separator);
+                next(token_type::value_string);
+                put_string(iter->first);
+                next(token_type::name_separator);
 
-                do_dump(iter->second, writer);
+                do_dump(iter->second);
 
                 // not last element
                 if (i != size - 1)
                 {
-                    writer.next(token_type::value_separator);
+                    next(token_type::value_separator);
                 }
             }
-            writer.next(token_type::end_object);
+            next(token_type::end_object);
             return;
         }
 
         case config_value_type::array:
         {
-            writer.next(token_type::begin_array);
+            next(token_type::begin_array);
 
             auto& v = *c.raw_value().data.vector;
             if (v.empty())
             {
-                writer.next(token_type::end_array);
+                next(token_type::end_array);
                 return;
             }
 
             const auto size = v.size();
             for (std::size_t i = 0; i < size; ++i)
             {
-                do_dump(v.at(i), writer);
+                do_dump(v.at(i));
                 // not last element
                 if (i != size - 1)
                 {
-                    writer.next(token_type::value_separator);
+                    next(token_type::value_separator);
                 }
             }
-            writer.next(token_type::end_array);
+            next(token_type::end_array);
             return;
         }
 
         case config_value_type::string:
         {
-            writer.next(token_type::value_string);
-            writer.put_string(*c.raw_value().data.string);
+            next(token_type::value_string);
+            put_string(*c.raw_value().data.string);
             return;
         }
 
@@ -182,35 +151,89 @@ private:
         {
             if (c.raw_value().data.boolean)
             {
-                writer.next(token_type::literal_true);
+                next(token_type::literal_true);
             }
             else
             {
-                writer.next(token_type::literal_false);
+                next(token_type::literal_false);
             }
             return;
         }
 
         case config_value_type::number_integer:
         {
-            writer.next(token_type::value_integer);
-            writer.put_integer(c.raw_value().data.number_integer);
+            next(token_type::value_integer);
+            put_integer(c.raw_value().data.number_integer);
             return;
         }
 
         case config_value_type::number_float:
         {
-            writer.next(token_type::value_float);
-            writer.put_float(c.raw_value().data.number_float);
+            next(token_type::value_float);
+            put_float(c.raw_value().data.number_float);
             return;
         }
 
         case config_value_type::null:
         {
-            writer.next(token_type::literal_null);
+            next(token_type::literal_null);
             return;
         }
         }
+    }
+};
+
+//
+// serializable
+//
+
+template <typename _Args>
+class serializable
+{
+public:
+    using value_type = typename _Args::value_type;
+    using char_type   = typename value_type::char_type;
+    using string_type = typename value_type::string_type;
+
+    template <typename _CharTy>
+    using default_encoding = typename _Args::template default_encoding<_CharTy>;
+
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding>
+    using serializer = typename _Args::template serializer_type<value_type, _SourceEncoding, _TargetEncoding>;
+
+    // dump to stream
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<serializer<_SourceEncoding, _TargetEncoding>, _DumpArgs...>::value>::type>
+    static void dump(std::basic_ostream<char_type>& os, const value_type& v, _DumpArgs&&... args)
+    {
+        serializer<_SourceEncoding, _TargetEncoding> s{ std::forward<_DumpArgs>(args)... };
+        s.dump(v, os);
+    }
+
+    // dump to string
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<serializer<_SourceEncoding, _TargetEncoding>, _DumpArgs...>::value>::type>
+    static void dump(string_type& str, const value_type& v, _DumpArgs&&... args)
+    {
+        detail::fast_string_ostreambuf<char_type> buf{ str };
+        std::basic_ostream<char_type>             os{ &buf };
+        return dump<_SourceEncoding, _TargetEncoding>(os, v, std::forward<_DumpArgs>(args)...);
+    }
+
+    template <template <typename> class _SourceEncoding = default_encoding,
+              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
+              typename                                  = typename std::enable_if<
+                  std::is_constructible<serializer<_SourceEncoding, _TargetEncoding>, _DumpArgs...>::value>::type>
+    static string_type dump(const value_type& v, _DumpArgs&&... args)
+    {
+        string_type result;
+        dump<_SourceEncoding, _TargetEncoding>(result, v, std::forward<_DumpArgs>(args)...);
+        return result;
     }
 };
 

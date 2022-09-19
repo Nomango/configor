@@ -20,6 +20,8 @@
 
 #pragma once
 #include "configor.hpp"
+#include "configor_parser.hpp"
+#include "configor_serializer.hpp"
 
 #include <iomanip>  // std::setprecision, std::right, std::noshowbase
 
@@ -28,20 +30,22 @@ namespace configor
 
 namespace detail
 {
-template <typename _JsonTy>
-class json_reader;
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class json_parser;
 
-template <typename _JsonTy>
-class json_writer;
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class json_serializer;
 }  // namespace detail
 
 struct json_args : config_args
 {
-    template <class _JsonTy>
-    using reader_type = detail::json_reader<_JsonTy>;
+    using value_type = basic_value<json_args>;
 
-    template <class _JsonTy>
-    using writer_type = detail::json_writer<_JsonTy>;
+    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using parser_type = detail::json_parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
+
+    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using serializer_type = detail::json_serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
 
     template <typename _CharTy>
     using default_encoding = encoding::auto_utf<_CharTy>;
@@ -52,8 +56,17 @@ struct wjson_args : json_args
     using char_type = wchar_t;
 };
 
-using json  = basic_config<json_args>;
-using wjson = basic_config<wjson_args>;
+template <typename _JsonArgs>
+class basic_json final
+    : public detail::serializable<_JsonArgs>
+    , public detail::parsable<_JsonArgs>
+{
+public:
+    using value = basic_value<_JsonArgs>;
+};
+
+using json  = basic_json<json_args>;
+using wjson = basic_json<wjson_args>;
 
 // type traits
 
@@ -63,18 +76,9 @@ struct is_json : std::false_type
 };
 
 template <typename _Args>
-struct is_json<basic_config<_Args>>
+struct is_json<basic_json<_Args>> : std::true_type
 {
-    using type = basic_config<_Args>;
-
-    static const bool value = std::is_same<typename type::reader, detail::json_reader<type>>::value
-                              && std::is_same<typename type::writer, detail::json_writer<type>>::value;
 };
-
-// deprecated
-#define JSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::json, value_type, __VA_ARGS__)
-// deprecated
-#define WJSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::wjson, value_type, __VA_ARGS__)
 
 template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
 std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os,
@@ -104,20 +108,20 @@ std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, _Js
 namespace detail
 {
 
-// json_reader
+// json_parser
 
-template <typename _JsonTy>
-class json_reader : public basic_reader<_JsonTy>
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class json_parser : public basic_parser<_ConfTy, _SourceEncoding, _TargetEncoding>
 {
 public:
-    using char_type     = typename _JsonTy::char_type;
+    using char_type     = typename _ConfTy::char_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _JsonTy::string_type;
-    using integer_type  = typename _JsonTy::integer_type;
-    using float_type    = typename _JsonTy::float_type;
+    using string_type   = typename _ConfTy::string_type;
+    using integer_type  = typename _ConfTy::integer_type;
+    using float_type    = typename _ConfTy::float_type;
 
-    explicit json_reader(error_handler* eh = nullptr)
+    explicit json_parser(error_handler* eh = nullptr)
         : is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
@@ -633,18 +637,18 @@ private:
     encoding::encoder<char_type> target_encoder_;
 };
 
-// json_writer
+// json_serializer
 
-template <typename _JsonTy>
-class json_writer : public basic_writer<_JsonTy>
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class json_serializer : public basic_serializer<_ConfTy, _SourceEncoding, _TargetEncoding>
 {
 public:
-    using char_type     = typename _JsonTy::char_type;
+    using char_type     = typename _ConfTy::char_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _JsonTy::string_type;
-    using integer_type  = typename _JsonTy::integer_type;
-    using float_type    = typename _JsonTy::float_type;
+    using string_type   = typename _ConfTy::string_type;
+    using integer_type  = typename _ConfTy::integer_type;
+    using float_type    = typename _ConfTy::float_type;
     using encoder_type  = encoding::encoder<char_type>;
 
     struct args
@@ -664,7 +668,7 @@ public:
         }
     };
 
-    explicit json_writer(const args& args, error_handler* eh = nullptr)
+    explicit json_serializer(const args& args, error_handler* eh = nullptr)
         : pretty_print_(args.indent > 0)
         , object_or_array_began_(false)
         , last_token_(token_type::uninitialized)
@@ -677,14 +681,14 @@ public:
     {
     }
 
-    explicit json_writer(error_handler* eh = nullptr)
-        : json_writer(args{}, eh)
+    explicit json_serializer(error_handler* eh = nullptr)
+        : json_serializer(args{}, eh)
     {
     }
 
-    explicit json_writer(int indent, char_type indent_char = ' ', bool escape_unicode = false,
-                         error_handler* eh = nullptr)
-        : json_writer(args(indent, indent_char, escape_unicode), eh)
+    explicit json_serializer(int indent, char_type indent_char = ' ', bool escape_unicode = false,
+                             error_handler* eh = nullptr)
+        : json_serializer(args(indent, indent_char, escape_unicode), eh)
     {
     }
 

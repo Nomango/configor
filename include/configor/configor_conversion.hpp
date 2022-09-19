@@ -958,25 +958,13 @@ private:
 // e.g.
 // CONFIGOR_BIND(json, myclass, REQUIRED(field1), REQUIRED(field2, "field2 name"))
 // CONFIGOR_BIND(json, myclass, OPTIONAL(field1), OPTIONAL(field2, "field2 name"))
-#define CONFIGOR_BIND(config_type, value_type, ...)                                                                   \
-    friend void to_config(config_type& c, const value_type& v)                                                        \
+#define CONFIGOR_BIND(value_type, custom_type, ...)                                                                   \
+    friend void to_config(value_type& c, const custom_type& v)                                                        \
     {                                                                                                                 \
         __CONFIGOR_EXPAND(__CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_TO_CONF_CALL_OVERLOAD, __VA_ARGS__)) \
     }                                                                                                                 \
-    friend void from_config(const config_type& c, value_type& v)                                                      \
+    friend void from_config(const value_type& c, custom_type& v)                                                      \
     {                                                                                                                 \
         __CONFIGOR_EXPAND(                                                                                            \
             __CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_FROM_CONF_CALL_OVERLOAD, __VA_ARGS__))             \
     }
-
-// for forward compatibility
-
-#define __CONFIGOR_BIND_WRAPPER(...) __CONFIGOR_EXPAND(CONFIGOR_BIND(__VA_ARGS__))
-
-#define __CONFIGOR_FIELD_COMMA(_1) , REQUIRED(_1)
-
-// deprecated
-#define CONFIGOR_BIND_ALL_REQUIRED(config_type, value_type, ...) \
-    __CONFIGOR_EXPAND(__CONFIGOR_BIND_WRAPPER(                   \
-        config_type,                                             \
-        value_type __CONFIGOR_EXPAND(__CONFIGOR_PASTE(__CONFIGOR_CALL_PASTE1, __CONFIGOR_FIELD_COMMA, __VA_ARGS__))))

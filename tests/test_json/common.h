@@ -32,6 +32,6 @@ struct u32json_args : json_args
 };
 
 // char16_t
-using u16json = configor::basic_config<u16json_args>;
+using u16json = configor::basic_value<u16json_args>;
 // char32_t
-using u32json = configor::basic_config<u32json_args>;
+using u32json = configor::basic_value<u32json_args>;

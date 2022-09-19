@@ -47,12 +47,12 @@ class serializer;
 
 struct nonesuch
 {
-    nonesuch()                 = delete;
-    ~nonesuch()                = delete;
-    nonesuch(nonesuch const&)  = delete;
-    nonesuch(nonesuch const&&) = delete;
+    nonesuch()                      = delete;
+    ~nonesuch()                     = delete;
+    nonesuch(nonesuch const&)       = delete;
+    nonesuch(nonesuch const&&)      = delete;
     void operator=(nonesuch const&) = delete;
-    void operator=(nonesuch&&) = delete;
+    void operator=(nonesuch&&)      = delete;
 };
 }  // namespace detail
 
@@ -78,23 +78,8 @@ struct config_args
     template <class _Ty>
     using allocator_type = std::allocator<_Ty>;
 
-    template <class _ConfTy>
-    using reader_type = detail::nonesuch;
-
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using parser_type = detail::parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
-
-    template <class _ConfTy>
-    using writer_type = detail::nonesuch;
-
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = detail::serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
-
     template <class _Ty>
     using binder_type = config_binder<_Ty>;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
 };
 
 struct wconfig_args : config_args
@@ -103,7 +88,7 @@ struct wconfig_args : config_args
 };
 
 template <typename _Args = config_args>
-class basic_config;
+class basic_value;
 
 //
 // is_config
@@ -115,7 +100,7 @@ struct is_config : std::false_type
 };
 
 template <typename _Args>
-struct is_config<basic_config<_Args>> : std::true_type
+struct is_config<basic_value<_Args>> : std::true_type
 {
 };
 
