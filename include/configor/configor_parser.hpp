@@ -58,21 +58,6 @@ public:
     virtual error_handler* get_error_handler() = 0;
 };
 
-template <typename _ConfTy, typename... _Args>
-struct can_parse
-{
-private:
-    using parser_type  = typename _ConfTy::template parser<>;
-    using char_type    = typename _ConfTy::char_type;
-    using istream_type = std::basic_istream<char_type>;
-
-    template <typename _UTy, typename... _UArgs>
-    using parse_fn = decltype(_UTy::parse(std::declval<_UArgs>()...));
-
-public:
-    static constexpr bool value = is_detected<parse_fn, parser_type, _ConfTy&, istream_type&, _Args...>::value;
-};
-
 template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class parser
 {
@@ -80,18 +65,15 @@ public:
     using config_type     = _ConfTy;
     using char_type       = typename _ConfTy::char_type;
     using string_type     = typename _ConfTy::string_type;
-    using reader_type     = typename _ConfTy::reader;
+    using reader_type     = basic_reader<_ConfTy>;
     using istream_type    = std::basic_istream<char_type>;
     using source_encoding = _SourceEncoding<char_type>;
     using target_encoding = _TargetEncoding<char_type>;
 
     parser() = default;
 
-    template <typename... _ReaderArgs, typename _ReaderTy = reader_type,
-              typename = typename std::enable_if<std::is_constructible<_ReaderTy, _ReaderArgs...>::value>::type>
-    static void parse(config_type& c, istream_type& is, _ReaderArgs&&... args)
+    static void parse(reader_type& r, config_type& c, istream_type& is)
     {
-        _ReaderTy r{ std::forward<_ReaderArgs>(args)... };
         return parser{}.do_parse(c, r, is);
     }
 
@@ -263,7 +245,7 @@ public:
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
-    using reader = typename _Args::template reader_type<config_type>;
+    using reader_type = typename _Args::template reader_type<config_type>;
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding>
@@ -272,15 +254,16 @@ public:
     // parse from stream
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+              typename = typename std::enable_if<std::is_constructible<reader_type, _ParserArgs...>::value>::type>
     static void parse(config_type& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
     {
-        parser<_SourceEncoding, _TargetEncoding>::parse(c, is, std::forward<_ParserArgs>(args)...);
+        reader_type r{ std::forward<_ParserArgs>(args)... };
+        parser<_SourceEncoding, _TargetEncoding>::parse(r, c, is);
     }
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+              typename = typename std::enable_if<std::is_constructible<reader_type, _ParserArgs...>::value>::type>
     static config_type parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
     {
         config_type c;
@@ -291,7 +274,7 @@ public:
     // parse from string
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+              typename = typename std::enable_if<std::is_constructible<reader_type, _ParserArgs...>::value>::type>
     static config_type parse(const string_type& str, _ParserArgs&&... args)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
@@ -302,7 +285,7 @@ public:
     // parse from c-style string
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+              typename = typename std::enable_if<std::is_constructible<reader_type, _ParserArgs...>::value>::type>
     static config_type parse(const char_type* str, _ParserArgs&&... args)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
@@ -313,7 +296,7 @@ public:
     // parse from c-style file
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+              typename = typename std::enable_if<std::is_constructible<reader_type, _ParserArgs...>::value>::type>
     static config_type parse(std::FILE* file, _ParserArgs&&... args)
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
