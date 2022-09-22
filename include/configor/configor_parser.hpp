@@ -245,11 +245,6 @@ private:
 
 struct parsable_args
 {
-    using config_type = void;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
-
     template <class _ConfTy>
     using reader_type = detail::nonesuch;
 
@@ -268,27 +263,27 @@ public:
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
-    using reader = typename _Args::template reader_type<basic_config>;
+    using reader = typename _Args::template reader_type<config_type>;
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding>
-    using parser = typename _Args::template parser_type<basic_config, _SourceEncoding, _TargetEncoding>;
+    using parser = typename _Args::template parser_type<config_type, _SourceEncoding, _TargetEncoding>;
 
     // parse from stream
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static void parse(basic_config& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
+              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+    static void parse(config_type& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
     {
         parser<_SourceEncoding, _TargetEncoding>::parse(c, is, std::forward<_ParserArgs>(args)...);
     }
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
+              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+    static config_type parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
     {
-        basic_config c;
+        config_type c;
         parse<_SourceEncoding, _TargetEncoding>(c, is, std::forward<_ParserArgs>(args)...);
         return c;
     }
@@ -296,8 +291,8 @@ public:
     // parse from string
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(const string_type& str, _ParserArgs&&... args)
+              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+    static config_type parse(const string_type& str, _ParserArgs&&... args)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
@@ -307,8 +302,8 @@ public:
     // parse from c-style string
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(const char_type* str, _ParserArgs&&... args)
+              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+    static config_type parse(const char_type* str, _ParserArgs&&... args)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
@@ -318,8 +313,8 @@ public:
     // parse from c-style file
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename = typename std::enable_if<detail::can_parse<basic_config, _ParserArgs...>::value>::type>
-    static basic_config parse(std::FILE* file, _ParserArgs&&... args)
+              typename = typename std::enable_if<detail::can_parse<config_type, _ParserArgs...>::value>::type>
+    static config_type parse(std::FILE* file, _ParserArgs&&... args)
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
         std::basic_istream<char_type>            is{ &buf };

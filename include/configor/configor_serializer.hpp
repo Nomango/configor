@@ -54,21 +54,6 @@ public:
     virtual error_handler* get_error_handler() = 0;
 };
 
-template <typename _ConfTy, typename... _Args>
-struct can_serialize
-{
-private:
-    using serializer_type = typename _ConfTy::template serializer<>;
-    using char_type       = typename _ConfTy::char_type;
-    using ostream_type    = std::basic_ostream<char_type>;
-
-    template <typename _UTy, typename... _UArgs>
-    using dump_fn = decltype(_UTy::dump(std::declval<_UArgs>()...));
-
-public:
-    static constexpr bool value = is_detected<dump_fn, serializer_type, _ConfTy, ostream_type&, _Args...>::value;
-};
-
 template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class serializer
 {
@@ -76,18 +61,15 @@ public:
     using config_type     = _ConfTy;
     using char_type       = typename _ConfTy::char_type;
     using string_type     = typename _ConfTy::string_type;
-    using writer_type     = typename _ConfTy::writer;
+    using writer_type     = basic_writer<_ConfTy>;
     using ostream_type    = std::basic_ostream<char_type>;
     using source_encoding = _SourceEncoding<char_type>;
     using target_encoding = _TargetEncoding<char_type>;
 
     serializer() = default;
 
-    template <typename... _WriterArgs, typename _WriterTy = writer_type,
-              typename = typename std::enable_if<std::is_constructible<_WriterTy, _WriterArgs...>::value>::type>
-    static void dump(const config_type& c, ostream_type& os, _WriterArgs&&... args)
+    static void dump(writer_type& w, const config_type& c, ostream_type& os)
     {
-        _WriterTy w{ std::forward<_WriterArgs>(args)... };
         return serializer{}.do_dump(c, w, os);
     }
 
@@ -220,11 +202,6 @@ private:
 
 struct serializable_args
 {
-    using config_type = void;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
-
     template <class _ConfTy>
     using writer_type = detail::nonesuch;
 
@@ -243,7 +220,7 @@ public:
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
-    using writer = typename _Args::template writer_type<basic_config>;
+    using writer_type = typename _Args::template writer_type<config_type>;
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding>
@@ -252,30 +229,31 @@ public:
     // dump to stream
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename = typename std::enable_if<detail::can_serialize<config_type, _DumpArgs...>::value>::type>
-    void dump(std::basic_ostream<char_type>& os, _DumpArgs&&... args) const
+              typename = typename std::enable_if<std::is_constructible<writer_type, _DumpArgs...>::value>::type>
+    static void dump(std::basic_ostream<char_type>& os, const config_type& v, _DumpArgs&&... args)
     {
-        serializer<_SourceEncoding, _TargetEncoding>::dump(*this, os, std::forward<_DumpArgs>(args)...);
+        writer_type w{ std::forward<_DumpArgs>(args)... };
+        serializer<_SourceEncoding, _TargetEncoding>::dump(w, v, os);
     }
 
     // dump to string
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename = typename std::enable_if<detail::can_serialize<config_type, _DumpArgs...>::value>::type>
-    void dump(string_type& str, _DumpArgs&&... args) const
+              typename = typename std::enable_if<std::is_constructible<writer_type, _DumpArgs...>::value>::type>
+    static void dump(string_type& str, const config_type& v, _DumpArgs&&... args)
     {
         detail::fast_string_ostreambuf<char_type> buf{ str };
         std::basic_ostream<char_type>             os{ &buf };
-        return dump<_SourceEncoding, _TargetEncoding>(os, std::forward<_DumpArgs>(args)...);
+        return dump<_SourceEncoding, _TargetEncoding>(os, v, std::forward<_DumpArgs>(args)...);
     }
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename = typename std::enable_if<detail::can_serialize<config_type, _DumpArgs...>::value>::type>
-    string_type dump(_DumpArgs&&... args) const
+              typename = typename std::enable_if<std::is_constructible<writer_type, _DumpArgs...>::value>::type>
+    static string_type dump(const config_type& v, _DumpArgs&&... args)
     {
         string_type result;
-        dump<_SourceEncoding, _TargetEncoding>(result, std::forward<_DumpArgs>(args)...);
+        dump<_SourceEncoding, _TargetEncoding>(result, v, std::forward<_DumpArgs>(args)...);
         return result;
     }
 };

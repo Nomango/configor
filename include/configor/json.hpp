@@ -37,8 +37,13 @@ template <typename _JsonTy>
 class json_writer;
 }  // namespace detail
 
-struct json_args : config_args
+struct json_args
+    : config_args
+    , detail::serializable_args
+    , detail::parsable_args
 {
+    using config_type = basic_config<json_args>;
+
     template <class _JsonTy>
     using reader_type = detail::json_reader<_JsonTy>;
 
@@ -56,8 +61,8 @@ struct wjson_args : json_args
 
 template <typename _JsonArgs>
 class basic_json final
-    : public serializable<_JsonArgs>
-    , public parsable<_JsonArgs>
+    : public detail::serializable<_JsonArgs>
+    , public detail::parsable<_JsonArgs>
 {
 public:
     using value = basic_config<_JsonArgs>;
