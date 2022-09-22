@@ -30,8 +30,8 @@ namespace configor
 
 namespace detail
 {
-template <typename _JsonTy>
-class json_reader;
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class json_parser;
 
 template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class json_serializer;
@@ -39,13 +39,11 @@ class json_serializer;
 
 struct json_args
     : config_args
-    , detail::serializable_args
-    , detail::parsable_args
 {
     using config_type = basic_config<json_args>;
 
-    template <class _JsonTy>
-    using reader_type = detail::json_reader<_JsonTy>;
+    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+    using parser_type = detail::json_parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
 
     template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
     using serializer_type = detail::json_serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
@@ -111,20 +109,20 @@ std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, _Js
 namespace detail
 {
 
-// json_reader
+// json_parser
 
-template <typename _JsonTy>
-class json_reader : public basic_reader<_JsonTy>
+template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+class json_parser : public basic_parser<_ConfTy, _SourceEncoding, _TargetEncoding>
 {
 public:
-    using char_type     = typename _JsonTy::char_type;
+    using char_type     = typename _ConfTy::char_type;
     using char_traits   = std::char_traits<char_type>;
     using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _JsonTy::string_type;
-    using integer_type  = typename _JsonTy::integer_type;
-    using float_type    = typename _JsonTy::float_type;
+    using string_type   = typename _ConfTy::string_type;
+    using integer_type  = typename _ConfTy::integer_type;
+    using float_type    = typename _ConfTy::float_type;
 
-    explicit json_reader(error_handler* eh = nullptr)
+    explicit json_parser(error_handler* eh = nullptr)
         : is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
@@ -690,7 +688,7 @@ public:
     }
 
     explicit json_serializer(int indent, char_type indent_char = ' ', bool escape_unicode = false,
-                         error_handler* eh = nullptr)
+                             error_handler* eh = nullptr)
         : json_serializer(args(indent, indent_char, escape_unicode), eh)
     {
     }

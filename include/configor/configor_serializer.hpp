@@ -187,12 +187,6 @@ protected:
 // serializable
 //
 
-struct serializable_args
-{
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = detail::basic_serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
-};
-
 template <typename _Args>
 class serializable
 {
