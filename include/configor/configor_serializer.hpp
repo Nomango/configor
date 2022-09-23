@@ -56,7 +56,7 @@ public:
         os_.copyfmt(os);
     }
 
-    void dump(const value_type& c)
+    virtual void dump(const value_type& c)
     {
         try
         {

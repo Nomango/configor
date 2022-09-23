@@ -24,6 +24,7 @@
 #include "configor_token.hpp"
 #include "configor_value.hpp"
 
+#include <functional>        // std::function
 #include <initializer_list>  // std::initializer_list
 #include <ios>               // std::noskipws
 #include <istream>           // std::basic_istream
@@ -36,51 +37,68 @@ namespace configor
 namespace detail
 {
 
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename _ValTy>
 class basic_parser
 {
 public:
-    using value_type      = _ValTy;
-    using integer_type    = typename _ValTy::integer_type;
-    using float_type      = typename _ValTy::float_type;
-    using char_type       = typename _ValTy::char_type;
-    using string_type     = typename _ValTy::string_type;
-    using istream_type    = std::basic_istream<char_type>;
-    using source_encoding = _SourceEncoding<char_type>;
-    using target_encoding = _TargetEncoding<char_type>;
+    using value_type   = _ValTy;
+    using integer_type = typename _ValTy::integer_type;
+    using float_type   = typename _ValTy::float_type;
+    using char_type    = typename _ValTy::char_type;
+    using string_type  = typename _ValTy::string_type;
+    using istream_type = std::basic_istream<char_type>;
 
-    virtual void source(std::basic_istream<char_type>& is, encoding::decoder<char_type> src_decoder,
-                        encoding::encoder<char_type> target_encoder) = 0;
+    basic_parser(istream_type& is)
+        : is_(nullptr)
+        , err_handler_(nullptr)
+        , source_decoder_(nullptr)
+        , target_encoder_(nullptr)
+    {
+        is_.rdbuf(is.rdbuf());
+        is_.copyfmt(is);
+    }
 
-    virtual token_type scan() = 0;
-
-    virtual void get_integer(integer_type& out) = 0;
-    virtual void get_float(float_type& out)     = 0;
-    virtual void get_string(string_type& out)   = 0;
-
-    virtual error_handler* get_error_handler() = 0;
-
-    void parse(value_type& c, istream_type& is)
+    virtual void parse(value_type& c)
     {
         try
         {
-            source(is, source_encoding::decode, target_encoding::encode);
-
             do_parse(c, token_type::uninitialized);
             if (scan() != token_type::end_of_input)
                 fail(token_type::end_of_input);
         }
         catch (...)
         {
-            auto eh = get_error_handler();
-            if (eh)
-                eh->handle(std::current_exception());
+            if (err_handler_)
+                err_handler_->handle(std::current_exception());
             else
                 throw;
         }
     }
 
+    inline void set_error_handler(configor::error_handler* eh)
+    {
+        err_handler_ = eh;
+    }
+
+    template <template <class> class _Encoding>
+    inline void set_source_encoding()
+    {
+        source_decoder_ = _Encoding<char_type>::decode;
+    }
+
+    template <template <class> class _Encoding>
+    inline void set_target_encoding()
+    {
+        target_encoder_ = _Encoding<char_type>::encode;
+    }
+
 protected:
+    virtual token_type scan() = 0;
+
+    virtual void get_integer(integer_type& out) = 0;
+    virtual void get_float(float_type& out)     = 0;
+    virtual void get_string(string_type& out)   = 0;
+
     virtual void do_parse(value_type& c, token_type last_token, bool read_next = true)
     {
         using string_type = typename _ValTy::string_type;
@@ -202,6 +220,12 @@ protected:
     {
         fail(actual_token, msg + ", expect '" + to_string(expected_token) + "', but got");
     }
+
+protected:
+    std::basic_istream<char_type> is_;
+    error_handler*                err_handler_;
+    encoding::decoder<char_type>  source_decoder_;
+    encoding::encoder<char_type>  target_encoder_;
 };
 
 //
@@ -219,66 +243,73 @@ public:
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding>
-    using parser = typename _Args::template parser_type<value_type, _SourceEncoding, _TargetEncoding>;
+    using parser        = typename _Args::template parser_type<value_type>;
+    using parser_option = std::function<void(parser&)>;
 
     // parse from stream
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static void parse(value_type& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
+    static void parse(value_type& c, std::basic_istream<char_type>& is,
+                      std::initializer_list<parser_option> options = {})
     {
-        parser<_SourceEncoding, _TargetEncoding> p{ std::forward<_ParserArgs>(args)... };
-        p.parse(c, is);
+        parser p{ is };
+        p.template set_source_encoding<default_encoding>();
+        p.template set_target_encoding<default_encoding>();
+        for (const auto& option : options)
+        {
+            option(p);
+        }
+        p.parse(c);
     }
 
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static value_type parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
+    static value_type parse(std::basic_istream<char_type>& is, std::initializer_list<parser_option> options = {})
     {
         value_type c;
-        parse<_SourceEncoding, _TargetEncoding>(c, is, std::forward<_ParserArgs>(args)...);
+        parse(c, is, options);
         return c;
     }
 
     // parse from string
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static value_type parse(const string_type& str, _ParserArgs&&... args)
+    static void parse(value_type& c, const string_type& str, std::initializer_list<parser_option> options = {})
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
-        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
+        parse(c, is, options);
+    }
+
+    static value_type parse(const string_type& str, std::initializer_list<parser_option> options = {})
+    {
+        detail::fast_string_istreambuf<char_type> buf{ str };
+        std::basic_istream<char_type>             is{ &buf };
+        return parse(is, options);
     }
 
     // parse from c-style string
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static value_type parse(const char_type* str, _ParserArgs&&... args)
+    static void parse(value_type& c, const char_type* str, std::initializer_list<parser_option> options = {})
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
-        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
+        parse(c, is, options);
+    }
+
+    static value_type parse(const char_type* str, std::initializer_list<parser_option> options = {})
+    {
+        detail::fast_buffer_istreambuf<char_type> buf{ str };
+        std::basic_istream<char_type>             is{ &buf };
+        return parse(is, options);
     }
 
     // parse from c-style file
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static value_type parse(std::FILE* file, _ParserArgs&&... args)
+    static void parse(value_type& c, std::FILE* file, std::initializer_list<parser_option> options = {})
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
         std::basic_istream<char_type>            is{ &buf };
-        return parse<_SourceEncoding, _TargetEncoding>(is, std::forward<_ParserArgs>(args)...);
+        parse(c, is, options);
+    }
+
+    static value_type parse(std::FILE* file, std::initializer_list<parser_option> options = {})
+    {
+        detail::fast_cfile_istreambuf<char_type> buf{ file };
+        std::basic_istream<char_type>            is{ &buf };
+        return parse(is, options);
     }
 };
 

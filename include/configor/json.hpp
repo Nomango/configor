@@ -31,7 +31,7 @@ namespace configor
 
 namespace detail
 {
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename _ValTy>
 class json_parser;
 
 template <typename _ValTy>
@@ -42,8 +42,8 @@ struct json_args : config_args
 {
     using value_type = basic_value<json_args>;
 
-    template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using parser_type = detail::json_parser<_ValTy, _SourceEncoding, _TargetEncoding>;
+    template <typename _ValTy>
+    using parser_type = detail::json_parser<_ValTy>;
 
     template <typename _ValTy>
     using serializer_type = detail::json_serializer<_ValTy>;
@@ -126,43 +126,50 @@ namespace detail
 
 // json_parser
 
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class json_parser : public basic_parser<_ValTy, _SourceEncoding, _TargetEncoding>
+template <typename _ValTy>
+class json_parser : public basic_parser<_ValTy>
 {
 public:
-    using char_type     = typename _ValTy::char_type;
-    using char_traits   = std::char_traits<char_type>;
-    using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _ValTy::string_type;
-    using integer_type  = typename _ValTy::integer_type;
-    using float_type    = typename _ValTy::float_type;
+    using value_type   = _ValTy;
+    using char_type    = typename _ValTy::char_type;
+    using string_type  = typename _ValTy::string_type;
+    using integer_type = typename _ValTy::integer_type;
+    using float_type   = typename _ValTy::float_type;
 
-    explicit json_parser(error_handler* eh = nullptr)
-        : is_negative_(false)
+    using option = std::function<void(json_parser&)>;
+
+    static option with_error_handler(error_handler* eh)
+    {
+        return [=](json_parser& p) { p.set_error_handler(eh); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_source_encoding()
+    {
+        return [=](json_parser& p) { p.template set_source_encoding<_Encoding>(); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_target_encoding()
+    {
+        return [=](json_parser& p) { p.template set_target_encoding<_Encoding>(); };
+    }
+
+    explicit json_parser(std::basic_istream<char_type>& is)
+        : basic_parser<_ValTy>(is)
+        , is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
         , current_(0)
-        , is_(nullptr)
-        , err_handler_(eh)
-        , src_decoder_(nullptr)
-        , target_encoder_(nullptr)
     {
-        is_ >> std::noskipws;
+        this->is_ >> std::noskipws;
     }
 
-    virtual error_handler* get_error_handler() override
+    virtual void parse(value_type& c) override
     {
-        return err_handler_;
-    }
-
-    virtual void source(std::basic_istream<char_type>& is, encoding::decoder<char_type> src_decoder,
-                        encoding::encoder<char_type> target_encoder) override
-    {
-        is_.rdbuf(is.rdbuf());
-        src_decoder_    = src_decoder;
-        target_encoder_ = target_encoder;
         // read first char
         read_next();
+        basic_parser<_ValTy>::parse(c);
     }
 
     virtual void get_integer(integer_type& out) override
@@ -184,7 +191,7 @@ public:
     {
         skip_spaces();
 
-        if (is_.eof())
+        if (this->is_.eof())
             return token_type::end_of_input;
 
         token_type result = token_type::uninitialized;
@@ -248,11 +255,11 @@ public:
         return result;
     }
 
-    char_int_type read_next()
+    typename std::char_traits<char_type>::int_type read_next()
     {
-        if (src_decoder_(is_, current_))
+        if (this->source_decoder_(this->is_, current_))
         {
-            if (!is_.good())
+            if (!this->is_.good())
             {
                 fail("decoding failed with codepoint", current_);
             }
@@ -292,7 +299,7 @@ public:
                     break;
                 }
 
-                if (is_.eof())
+                if (this->is_.eof())
                 {
                     break;
                 }
@@ -313,7 +320,7 @@ public:
                     }
                 }
 
-                if (is_.eof())
+                if (this->is_.eof())
                 {
                     fail("unexpected eof while reading comment");
                 }
@@ -330,7 +337,7 @@ public:
     {
         for (const auto ch : text)
         {
-            if (ch != char_traits::to_char_type(current_))
+            if (ch != std::char_traits<char_type>::to_char_type(current_))
             {
                 detail::fast_ostringstream ss;
                 ss << "unexpected character '" << static_cast<char>(current_) << "'";
@@ -354,7 +361,7 @@ public:
         while (true)
         {
             read_next();
-            if (is_.eof())
+            if (this->is_.eof())
             {
                 fail("unexpected end of string");
             }
@@ -455,7 +462,7 @@ public:
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
 
-                    target_encoder_(oss, codepoint);
+                    this->target_encoder_(oss, codepoint);
                     if (!oss.good())
                     {
                         fail("encoding failed with codepoint", codepoint);
@@ -473,7 +480,7 @@ public:
 
             default:
             {
-                target_encoder_(oss, current_);
+                this->target_encoder_(oss, current_);
                 if (!oss.good())
                 {
                     fail("encoding failed with codepoint", current_);
@@ -644,13 +651,7 @@ private:
     bool         is_negative_;
     integer_type number_integer_;
     float_type   number_float_;
-
-    uint32_t                      current_;
-    std::basic_istream<char_type> is_;
-
-    error_handler*               err_handler_;
-    encoding::decoder<char_type> src_decoder_;
-    encoding::encoder<char_type> target_encoder_;
+    uint32_t     current_;
 };
 
 // json_serializer
@@ -659,13 +660,11 @@ template <typename _ValTy>
 class json_serializer : public basic_serializer<_ValTy>
 {
 public:
-    using char_type     = typename _ValTy::char_type;
-    using char_traits   = std::char_traits<char_type>;
-    using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _ValTy::string_type;
-    using integer_type  = typename _ValTy::integer_type;
-    using float_type    = typename _ValTy::float_type;
-    using encoder_type  = encoding::encoder<char_type>;
+    using value_type   = _ValTy;
+    using char_type    = typename _ValTy::char_type;
+    using string_type  = typename _ValTy::string_type;
+    using integer_type = typename _ValTy::integer_type;
+    using float_type   = typename _ValTy::float_type;
 
     using option = std::function<void(json_serializer&)>;
 
