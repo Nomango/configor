@@ -40,7 +40,7 @@ template <typename _ConfTy, template <typename> class _SourceEncoding, template 
 class basic_parser
 {
 public:
-    using config_type     = _ConfTy;
+    using value_type     = _ConfTy;
     using integer_type    = typename _ConfTy::integer_type;
     using float_type      = typename _ConfTy::float_type;
     using char_type       = typename _ConfTy::char_type;
@@ -60,7 +60,7 @@ public:
 
     virtual error_handler* get_error_handler() = 0;
 
-    void parse(config_type& c, istream_type& is)
+    void parse(value_type& c, istream_type& is)
     {
         try
         {
@@ -81,7 +81,7 @@ public:
     }
 
 protected:
-    virtual void do_parse(config_type& c, token_type last_token, bool read_next = true)
+    virtual void do_parse(value_type& c, token_type last_token, bool read_next = true)
     {
         using string_type = typename _ConfTy::string_type;
 
@@ -212,23 +212,23 @@ template <typename _Args>
 class parsable
 {
 public:
-    using config_type = typename _Args::config_type;
-    using char_type   = typename config_type::char_type;
-    using string_type = typename config_type::string_type;
+    using value_type = typename _Args::value_type;
+    using char_type   = typename value_type::char_type;
+    using string_type = typename value_type::string_type;
 
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding>
-    using parser = typename _Args::template parser_type<config_type, _SourceEncoding, _TargetEncoding>;
+    using parser = typename _Args::template parser_type<value_type, _SourceEncoding, _TargetEncoding>;
 
     // parse from stream
     template <template <typename> class _SourceEncoding = default_encoding,
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
               typename                                  = typename std::enable_if<
                   std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static void parse(config_type& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
+    static void parse(value_type& c, std::basic_istream<char_type>& is, _ParserArgs&&... args)
     {
         parser<_SourceEncoding, _TargetEncoding> p{ std::forward<_ParserArgs>(args)... };
         p.parse(c, is);
@@ -238,9 +238,9 @@ public:
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
               typename                                  = typename std::enable_if<
                   std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static config_type parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
+    static value_type parse(std::basic_istream<char_type>& is, _ParserArgs&&... args)
     {
-        config_type c;
+        value_type c;
         parse<_SourceEncoding, _TargetEncoding>(c, is, std::forward<_ParserArgs>(args)...);
         return c;
     }
@@ -250,7 +250,7 @@ public:
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
               typename                                  = typename std::enable_if<
                   std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static config_type parse(const string_type& str, _ParserArgs&&... args)
+    static value_type parse(const string_type& str, _ParserArgs&&... args)
     {
         detail::fast_string_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
@@ -262,7 +262,7 @@ public:
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
               typename                                  = typename std::enable_if<
                   std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static config_type parse(const char_type* str, _ParserArgs&&... args)
+    static value_type parse(const char_type* str, _ParserArgs&&... args)
     {
         detail::fast_buffer_istreambuf<char_type> buf{ str };
         std::basic_istream<char_type>             is{ &buf };
@@ -274,7 +274,7 @@ public:
               template <typename> class _TargetEncoding = _SourceEncoding, typename... _ParserArgs,
               typename                                  = typename std::enable_if<
                   std::is_constructible<parser<_SourceEncoding, _TargetEncoding>, _ParserArgs...>::value>::type>
-    static config_type parse(std::FILE* file, _ParserArgs&&... args)
+    static value_type parse(std::FILE* file, _ParserArgs&&... args)
     {
         detail::fast_cfile_istreambuf<char_type> buf{ file };
         std::basic_istream<char_type>            is{ &buf };

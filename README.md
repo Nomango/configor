@@ -346,9 +346,9 @@ struct u32json_args : json_args
 };
 
 // char16_t
-using u16json = configor::basic_config<u16json_args>;
+using u16json = configor::basic_value<u16json_args>;
 // char32_t
-using u32json = configor::basic_config<u32json_args>;
+using u32json = configor::basic_value<u32json_args>;
 ```
 
 > 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。  
@@ -538,7 +538,7 @@ struct my_json_args : configor::json_args
     using default_encoding = configor::encoding::ignore<_CharTy>;
 };
 
-using json = configor::basic_config<my_json_args>;
+using json = configor::basic_value<my_json_args>;
 ```
 
 #### Q:  
@@ -557,7 +557,7 @@ struct fifo_json_args : json_args
 };
 
 // fifo_json 是按插入序排列的
-using fifo_json = configor::basic_config<fifo_json_args>;
+using fifo_json = configor::basic_value<fifo_json_args>;
 ```
 
 ### 更多

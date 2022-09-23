@@ -33,10 +33,10 @@ namespace configor
 {
 
 template <typename _Args>
-class basic_config
+class basic_value
 {
-    friend struct detail::iterator<basic_config>;
-    friend struct detail::iterator<const basic_config>;
+    friend struct detail::iterator<basic_value>;
+    friend struct detail::iterator<const basic_value>;
 
 public:
     template <typename _Ty>
@@ -47,18 +47,17 @@ public:
     using char_type      = typename _Args::char_type;
     using string_type =
         typename _Args::template string_type<char_type, std::char_traits<char_type>, allocator_type<char_type>>;
-    using array_type = typename _Args::template array_type<basic_config, allocator_type<basic_config>>;
-    using object_type =
-        typename _Args::template object_type<string_type, basic_config, std::less<string_type>,
-                                             allocator_type<std::pair<const string_type, basic_config>>>;
+    using array_type  = typename _Args::template array_type<basic_value, allocator_type<basic_value>>;
+    using object_type = typename _Args::template object_type<string_type, basic_value, std::less<string_type>,
+                                                             allocator_type<std::pair<const string_type, basic_value>>>;
 
-    using value_type = detail::config_value<basic_config>;
+    using value_type = detail::config_value<basic_value>;
 
     using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-    using iterator               = detail::iterator<basic_config>;
-    using const_iterator         = detail::iterator<const basic_config>;
+    using iterator               = detail::iterator<basic_value>;
+    using const_iterator         = detail::iterator<const basic_value>;
     using reverse_iterator       = detail::reverse_iterator<iterator>;
     using const_reverse_iterator = detail::reverse_iterator<const_iterator>;
 
@@ -66,19 +65,19 @@ public:
     using binder_type = typename _Args::template binder_type<_Ty>;
 
 public:
-    basic_config(std::nullptr_t = nullptr) {}
+    basic_value(std::nullptr_t = nullptr) {}
 
-    basic_config(const config_value_type type)
+    basic_value(const config_value_type type)
         : value_(type)
     {
     }
 
-    basic_config(const basic_config& other)
+    basic_value(const basic_value& other)
         : value_(other.value_)
     {
     }
 
-    basic_config(basic_config&& other) noexcept
+    basic_value(basic_value&& other) noexcept
         : value_(std::move(other.value_))
     {
         // invalidate payload
@@ -86,11 +85,11 @@ public:
         other.value_.data.object = nullptr;
     }
 
-    basic_config(const std::initializer_list<basic_config>& init_list,
-                 config_value_type                          exact_type = config_value_type::null)
+    basic_value(const std::initializer_list<basic_value>& init_list,
+                config_value_type                         exact_type = config_value_type::null)
     {
         bool is_an_object = std::all_of(init_list.begin(), init_list.end(),
-                                        [](const basic_config& config)
+                                        [](const basic_value& config)
                                         { return (config.is_array() && config.size() == 2 && config[0].is_string()); });
 
         if (exact_type != config_value_type::object && exact_type != config_value_type::array)
@@ -105,7 +104,7 @@ public:
 
             value_ = config_value_type::object;
             std::for_each(init_list.begin(), init_list.end(),
-                          [this](const basic_config& config)
+                          [this](const basic_value& config)
                           {
                               value_.data.object->emplace(*((*config.value_.data.vector)[0].value_.data.string),
                                                           (*config.value_.data.vector)[1]);
@@ -120,21 +119,21 @@ public:
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
-              typename std::enable_if<!is_config<_UTy>::value && detail::has_to_config<basic_config, _UTy>::value,
+              typename std::enable_if<!is_config<_UTy>::value && detail::has_to_config<basic_value, _UTy>::value,
                                       int>::type = 0>
-    basic_config(_CompatibleTy&& value)
+    basic_value(_CompatibleTy&& value)
     {
         binder_type<_UTy>::to_config(*this, std::forward<_CompatibleTy>(value));
     }
 
-    static inline basic_config object(const std::initializer_list<basic_config>& init_list)
+    static inline basic_value object(const std::initializer_list<basic_value>& init_list)
     {
-        return basic_config(init_list, config_value_type::object);
+        return basic_value(init_list, config_value_type::object);
     }
 
-    static inline basic_config array(const std::initializer_list<basic_config>& init_list)
+    static inline basic_value array(const std::initializer_list<basic_value>& init_list)
     {
-        return basic_config(init_list, config_value_type::array);
+        return basic_value(init_list, config_value_type::array);
     }
 
     inline bool is_object() const
@@ -187,7 +186,7 @@ public:
         return to_string(type());
     }
 
-    inline void swap(basic_config& rhs)
+    inline void swap(basic_value& rhs)
     {
         value_.swap(rhs.value_);
     }
@@ -377,7 +376,7 @@ public:
         return result;
     }
 
-    inline void push_back(basic_config&& config)
+    inline void push_back(basic_value&& config)
     {
         if (!is_null() && !is_array())
         {
@@ -392,7 +391,7 @@ public:
         value_.data.vector->push_back(std::move(config));
     }
 
-    inline basic_config& operator+=(basic_config&& config)
+    inline basic_value& operator+=(basic_value&& config)
     {
         push_back(std::move(config));
         return (*this);
@@ -510,13 +509,13 @@ public:
     // get_ptr
 
     template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
-    auto get_ptr() const -> decltype(std::declval<const basic_config&>().do_get_ptr(std::declval<_Ty>()))
+    auto get_ptr() const -> decltype(std::declval<const basic_value&>().do_get_ptr(std::declval<_Ty>()))
     {
         return do_get_ptr(static_cast<_Ty>(nullptr));
     }
 
     template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
-    auto get_ptr() -> decltype(std::declval<basic_config&>().do_get_ptr(std::declval<_Ty>()))
+    auto get_ptr() -> decltype(std::declval<basic_value&>().do_get_ptr(std::declval<_Ty>()))
     {
         return do_get_ptr(static_cast<_Ty>(nullptr));
     }
@@ -536,7 +535,7 @@ private:
 
     // get value
 
-    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_config, _Ty>::value>::type>
+    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_value, _Ty>::value>::type>
     _Ty do_get(detail::priority<3>) const
     {
         return *this;
@@ -544,13 +543,13 @@ private:
 
     template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
     auto do_get(detail::priority<2>) const noexcept
-        -> decltype(std::declval<const basic_config&>().do_get_ptr(std::declval<_Ty>()))
+        -> decltype(std::declval<const basic_value&>().do_get_ptr(std::declval<_Ty>()))
     {
         return do_get_ptr(static_cast<_Ty>(nullptr));
     }
 
     template <typename _Ty,
-              typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
+              typename = typename std::enable_if<detail::has_non_default_from_config<basic_value, _Ty>::value>::type>
     _Ty do_get(detail::priority<1>) const
     {
         return binder_type<_Ty>::from_config(*this);
@@ -558,7 +557,7 @@ private:
 
     template <typename _Ty,
               typename = typename std::enable_if<std::is_default_constructible<_Ty>::value
-                                                 && detail::has_from_config<basic_config, _Ty>::value>::type>
+                                                 && detail::has_from_config<basic_value, _Ty>::value>::type>
     _Ty do_get(detail::priority<0>) const
     {
         _Ty value{};
@@ -568,7 +567,7 @@ private:
 
     // get value by reference
 
-    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_config, _Ty>::value>::type>
+    template <typename _Ty, typename = typename std::enable_if<std::is_same<basic_value, _Ty>::value>::type>
     _Ty& do_get(_Ty& value, detail::priority<3>) const
     {
         return (value = *this);
@@ -576,12 +575,12 @@ private:
 
     template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
     auto do_get(_Ty& value, detail::priority<2>) const noexcept
-        -> decltype(std::declval<const basic_config&>().do_get_ptr(std::declval<_Ty>()))
+        -> decltype(std::declval<const basic_value&>().do_get_ptr(std::declval<_Ty>()))
     {
         return (value = do_get_ptr(static_cast<_Ty>(nullptr)));
     }
 
-    template <typename _Ty, typename = typename std::enable_if<detail::has_from_config<basic_config, _Ty>::value>::type>
+    template <typename _Ty, typename = typename std::enable_if<detail::has_from_config<basic_value, _Ty>::value>::type>
     _Ty& do_get(_Ty& value, detail::priority<1>) const
     {
         binder_type<_Ty>::from_config(*this, value);
@@ -589,7 +588,7 @@ private:
     }
 
     template <typename _Ty,
-              typename = typename std::enable_if<detail::has_non_default_from_config<basic_config, _Ty>::value>::type>
+              typename = typename std::enable_if<detail::has_non_default_from_config<basic_value, _Ty>::value>::type>
     _Ty& do_get(_Ty& value, detail::priority<0>) const
     {
         value = binder_type<_Ty>::from_config(*this);
@@ -601,19 +600,19 @@ public:
 
     template <typename _Ty, typename _UTy = typename detail::remove_cvref<_Ty>::type,
               typename = typename std::enable_if<!std::is_reference<_Ty>::value>::type>
-    auto get() const -> decltype(std::declval<const basic_config&>().template do_get<_UTy>(detail::priority<3>{}))
+    auto get() const -> decltype(std::declval<const basic_value&>().template do_get<_UTy>(detail::priority<3>{}))
     {
         return do_get<_UTy>(detail::priority<3>{});
     }
 
     template <typename _Ty, typename = typename std::enable_if<std::is_pointer<_Ty>::value>::type>
-    auto get() -> decltype(std::declval<basic_config&>().template get_ptr<_Ty>())
+    auto get() -> decltype(std::declval<basic_value&>().template get_ptr<_Ty>())
     {
         return get_ptr<_Ty>();
     }
 
     template <typename _Ty, typename std::enable_if<std::is_reference<_Ty>::value, int>::type = 0>
-    auto get() -> decltype(basic_config::template do_get_ref<_Ty>(std::declval<basic_config&>()))
+    auto get() -> decltype(basic_value::template do_get_ref<_Ty>(std::declval<basic_value&>()))
     {
         return do_get_ref<_Ty>(*this);
     }
@@ -622,15 +621,15 @@ public:
               typename std::enable_if<std::is_reference<_Ty>::value
                                           && std::is_const<typename std::remove_reference<_Ty>::type>::value,
                                       int>::type = 0>
-    auto get() const -> decltype(basic_config::template do_get_ref<_Ty>(std::declval<const basic_config&>()))
+    auto get() const -> decltype(basic_value::template do_get_ref<_Ty>(std::declval<const basic_value&>()))
     {
         return do_get_ref<_Ty>(*this);
     }
 
     template <typename _Ty>
     auto get(_Ty& value) const
-        -> decltype(std::declval<const basic_config&>().template do_get<_Ty>(std::declval<_Ty&>(),
-                                                                             detail::priority<3>{}),
+        -> decltype(std::declval<const basic_value&>().template do_get<_Ty>(std::declval<_Ty&>(),
+                                                                            detail::priority<3>{}),
                     bool{})
     {
         try
@@ -644,7 +643,7 @@ public:
         return false;
     }
 
-    template <typename _Ty, typename = typename std::enable_if<detail::is_configor_getable<basic_config, _Ty>::value
+    template <typename _Ty, typename = typename std::enable_if<detail::is_configor_getable<basic_value, _Ty>::value
                                                                && !std::is_pointer<_Ty>::value
                                                                && !std::is_reference<_Ty>::value>::type>
     inline operator _Ty() const
@@ -742,7 +741,7 @@ public:
 public:
     // operator= functions
 
-    inline basic_config& operator=(basic_config rhs)
+    inline basic_value& operator=(basic_value rhs)
     {
         swap(rhs);
         return (*this);
@@ -751,7 +750,7 @@ public:
 public:
     // operator[] functions
 
-    inline basic_config& operator[](const size_type index)
+    inline basic_value& operator[](const size_type index)
     {
         if (is_null())
         {
@@ -766,17 +765,17 @@ public:
         if (index >= value_.data.vector->size())
         {
             value_.data.vector->insert(value_.data.vector->end(), index - value_.data.vector->size() + 1,
-                                       basic_config());
+                                       basic_value());
         }
         return (*value_.data.vector)[index];
     }
 
-    inline basic_config& operator[](const size_type index) const
+    inline basic_value& operator[](const size_type index) const
     {
         return at(index);
     }
 
-    inline basic_config& operator[](const typename object_type::key_type& key)
+    inline basic_value& operator[](const typename object_type::key_type& key)
     {
         if (is_null())
         {
@@ -790,12 +789,12 @@ public:
         return (*value_.data.object)[key];
     }
 
-    inline basic_config& operator[](const typename object_type::key_type& key) const
+    inline basic_value& operator[](const typename object_type::key_type& key) const
     {
         return at(key);
     }
 
-    inline basic_config& at(const size_type index) const
+    inline basic_value& at(const size_type index) const
     {
         if (!is_array())
         {
@@ -810,7 +809,7 @@ public:
     }
 
     template <typename _CharTy>
-    inline basic_config& operator[](_CharTy* key)
+    inline basic_value& operator[](_CharTy* key)
     {
         if (is_null())
         {
@@ -825,12 +824,12 @@ public:
     }
 
     template <typename _CharTy>
-    inline basic_config& operator[](_CharTy* key) const
+    inline basic_value& operator[](_CharTy* key) const
     {
         return at(key);
     }
 
-    inline basic_config& at(const typename object_type::key_type& key) const
+    inline basic_value& at(const typename object_type::key_type& key) const
     {
         if (!is_object())
         {
@@ -846,7 +845,7 @@ public:
     }
 
     template <typename _CharTy>
-    inline basic_config& at(_CharTy* key) const
+    inline basic_value& at(_CharTy* key) const
     {
         if (!is_object())
         {
@@ -865,63 +864,62 @@ public:
     // wrap
 
     template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
-                                                               && detail::is_configor_getable<basic_config, _Ty>::value
+                                                               && detail::is_configor_getable<basic_value, _Ty>::value
                                                                && !std::is_pointer<_Ty>::value>::type>
-    static inline detail::write_configor_wrapper<basic_config, _Ty> wrap(_Ty& v)
+    static inline detail::write_configor_wrapper<basic_value, _Ty> wrap(_Ty& v)
     {
-        return detail::write_configor_wrapper<basic_config, _Ty>(v);
+        return detail::write_configor_wrapper<basic_value, _Ty>(v);
     }
 
-    template <typename _Ty,
-              typename = typename std::enable_if<!std::is_same<basic_config, _Ty>::value
-                                                 && detail::has_to_config<basic_config, _Ty>::value>::type>
-    static inline detail::read_configor_wrapper<basic_config, _Ty> wrap(const _Ty& v)
+    template <typename _Ty, typename = typename std::enable_if<!std::is_same<basic_value, _Ty>::value
+                                                               && detail::has_to_config<basic_value, _Ty>::value>::type>
+    static inline detail::read_configor_wrapper<basic_value, _Ty> wrap(const _Ty& v)
     {
-        return detail::read_configor_wrapper<basic_config, _Ty>(v);
+        return detail::read_configor_wrapper<basic_value, _Ty>(v);
     }
 
 public:
     // eq functions
 
-    friend inline bool operator==(const basic_config& lhs, const basic_config& rhs)
+    friend inline bool operator==(const basic_value& lhs, const basic_value& rhs)
     {
         return lhs.value_ == rhs.value_;
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator==(const basic_config& lhs, _ScalarTy rhs)
+    friend inline bool operator==(const basic_value& lhs, _ScalarTy rhs)
     {
-        return lhs == basic_config(rhs);
+        return lhs == basic_value(rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator==(_ScalarTy lhs, const basic_config& rhs)
+    friend inline bool operator==(_ScalarTy lhs, const basic_value& rhs)
     {
-        return basic_config(lhs) == rhs;
+        return basic_value(lhs) == rhs;
     }
 
     // ne functions
 
-    friend inline bool operator!=(const basic_config& lhs, const basic_config& rhs)
+    friend inline bool operator!=(const basic_value& lhs, const basic_value& rhs)
     {
         return !(lhs == rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator!=(const basic_config& lhs, _ScalarTy rhs)
+    friend inline bool operator!=(const basic_value& lhs, _ScalarTy rhs)
     {
-        return lhs != basic_config(rhs);
+        return lhs != basic_value(rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator!=(_ScalarTy lhs, const basic_config& rhs)
+    friend inline bool operator!=(_ScalarTy lhs, const basic_value& rhs)
     {
-        return basic_config(lhs) != rhs;
+        return basic_value(lhs) != rhs;
     }
 
     // lt functions
 
-    friend bool operator<(const basic_config& lhs, const basic_config& rhs)
+    friend bool operator<(const basic_value& lhs, const basic_value& rhs)
     {
         const auto lhs_type = lhs.type();
         const auto rhs_type = rhs.type();
@@ -968,72 +966,72 @@ public:
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator<(const basic_config& lhs, _ScalarTy rhs)
+    friend inline bool operator<(const basic_value& lhs, _ScalarTy rhs)
     {
-        return lhs < basic_config(rhs);
+        return lhs < basic_value(rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator<(_ScalarTy lhs, const basic_config& rhs)
+    friend inline bool operator<(_ScalarTy lhs, const basic_value& rhs)
     {
-        return basic_config(lhs) < rhs;
+        return basic_value(lhs) < rhs;
     }
 
     // lte functions
 
-    friend inline bool operator<=(const basic_config& lhs, const basic_config& rhs)
+    friend inline bool operator<=(const basic_value& lhs, const basic_value& rhs)
     {
         return !(rhs < lhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator<=(const basic_config& lhs, _ScalarTy rhs)
+    friend inline bool operator<=(const basic_value& lhs, _ScalarTy rhs)
     {
-        return lhs <= basic_config(rhs);
+        return lhs <= basic_value(rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator<=(_ScalarTy lhs, const basic_config& rhs)
+    friend inline bool operator<=(_ScalarTy lhs, const basic_value& rhs)
     {
-        return basic_config(lhs) <= rhs;
+        return basic_value(lhs) <= rhs;
     }
 
     // gt functions
 
-    friend inline bool operator>(const basic_config& lhs, const basic_config& rhs)
+    friend inline bool operator>(const basic_value& lhs, const basic_value& rhs)
     {
         return rhs < lhs;
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator>(const basic_config& lhs, _ScalarTy rhs)
+    friend inline bool operator>(const basic_value& lhs, _ScalarTy rhs)
     {
-        return lhs > basic_config(rhs);
+        return lhs > basic_value(rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator>(_ScalarTy lhs, const basic_config& rhs)
+    friend inline bool operator>(_ScalarTy lhs, const basic_value& rhs)
     {
-        return basic_config(lhs) > rhs;
+        return basic_value(lhs) > rhs;
     }
 
     // gte functions
 
-    friend inline bool operator>=(const basic_config& lhs, const basic_config& rhs)
+    friend inline bool operator>=(const basic_value& lhs, const basic_value& rhs)
     {
         return !(lhs < rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator>=(const basic_config& lhs, _ScalarTy rhs)
+    friend inline bool operator>=(const basic_value& lhs, _ScalarTy rhs)
     {
-        return lhs >= basic_config(rhs);
+        return lhs >= basic_value(rhs);
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
-    friend inline bool operator>=(_ScalarTy lhs, const basic_config& rhs)
+    friend inline bool operator>=(_ScalarTy lhs, const basic_value& rhs)
     {
-        return basic_config(lhs) >= rhs;
+        return basic_value(lhs) >= rhs;
     }
 
 public:

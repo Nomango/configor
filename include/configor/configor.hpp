@@ -24,8 +24,8 @@
 namespace configor
 {
 
-using config  = basic_config<>;
-using wconfig = basic_config<wconfig_args>;
+using config  = basic_value<>;
+using wconfig = basic_value<wconfig_args>;
 
 template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
 inline void swap(_ConfTy& lhs, _ConfTy& rhs)
@@ -38,9 +38,9 @@ inline void swap(_ConfTy& lhs, _ConfTy& rhs)
 namespace std
 {
 template <typename _Args>
-struct hash<::configor::basic_config<_Args>>
+struct hash<::configor::basic_value<_Args>>
 {
-    using argument_type = ::configor::basic_config<_Args>;
+    using argument_type = ::configor::basic_value<_Args>;
     using result_type   = size_t;
 
     result_type operator()(argument_type const& config) const

@@ -47,12 +47,12 @@ class serializer;
 
 struct nonesuch
 {
-    nonesuch()                 = delete;
-    ~nonesuch()                = delete;
-    nonesuch(nonesuch const&)  = delete;
-    nonesuch(nonesuch const&&) = delete;
+    nonesuch()                      = delete;
+    ~nonesuch()                     = delete;
+    nonesuch(nonesuch const&)       = delete;
+    nonesuch(nonesuch const&&)      = delete;
     void operator=(nonesuch const&) = delete;
-    void operator=(nonesuch&&) = delete;
+    void operator=(nonesuch&&)      = delete;
 };
 }  // namespace detail
 
@@ -88,7 +88,7 @@ struct wconfig_args : config_args
 };
 
 template <typename _Args = config_args>
-class basic_config;
+class basic_value;
 
 //
 // is_config
@@ -100,7 +100,7 @@ struct is_config : std::false_type
 };
 
 template <typename _Args>
-struct is_config<basic_config<_Args>> : std::true_type
+struct is_config<basic_value<_Args>> : std::true_type
 {
 };
 

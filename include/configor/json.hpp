@@ -37,10 +37,9 @@ template <typename _ConfTy, template <typename> class _SourceEncoding, template 
 class json_serializer;
 }  // namespace detail
 
-struct json_args
-    : config_args
+struct json_args : config_args
 {
-    using config_type = basic_config<json_args>;
+    using value_type = basic_value<json_args>;
 
     template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
     using parser_type = detail::json_parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
@@ -63,7 +62,7 @@ class basic_json final
     , public detail::parsable<_JsonArgs>
 {
 public:
-    using value = basic_config<_JsonArgs>;
+    using value = basic_value<_JsonArgs>;
 };
 
 using json  = basic_json<json_args>;
