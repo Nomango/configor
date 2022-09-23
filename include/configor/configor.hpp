@@ -27,8 +27,8 @@ namespace configor
 using config  = basic_value<>;
 using wconfig = basic_value<wconfig_args>;
 
-template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
-inline void swap(_ConfTy& lhs, _ConfTy& rhs)
+template <typename _ValTy, typename = typename std::enable_if<is_config<_ValTy>::value>::type>
+inline void swap(_ValTy& lhs, _ValTy& rhs)
 {
     lhs.swap(rhs);
 }

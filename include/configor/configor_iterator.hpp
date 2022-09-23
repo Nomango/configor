@@ -129,14 +129,14 @@ private:
     difference_type it_;
 };
 
-template <typename _ConfTy>
+template <typename _ValTy>
 struct iterator
 {
-    friend _ConfTy;
-    friend iterator<typename std::conditional<std::is_const<_ConfTy>::value, typename std::remove_const<_ConfTy>::type,
-                                              const _ConfTy>::type>;
+    friend _ValTy;
+    friend iterator<typename std::conditional<std::is_const<_ValTy>::value, typename std::remove_const<_ValTy>::type,
+                                              const _ValTy>::type>;
 
-    using value_type        = _ConfTy;
+    using value_type        = _ValTy;
     using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
     using pointer           = value_type*;
@@ -147,7 +147,7 @@ struct iterator
     {
     }
 
-    inline iterator(const iterator<const _ConfTy>& rhs)
+    inline iterator(const iterator<const _ValTy>& rhs)
         : data_(rhs.data_)
         , array_it_(rhs.array_it_)
         , object_it_(rhs.object_it_)
@@ -155,7 +155,7 @@ struct iterator
     {
     }
 
-    iterator& operator=(const iterator<const _ConfTy>& rhs)
+    iterator& operator=(const iterator<const _ValTy>& rhs)
     {
         this->data_         = rhs.data_;
         this->array_it_     = rhs.array_it_;
@@ -164,7 +164,7 @@ struct iterator
         return *this;
     }
 
-    inline iterator(const iterator<typename std::remove_const<_ConfTy>::type>& rhs)
+    inline iterator(const iterator<typename std::remove_const<_ValTy>::type>& rhs)
         : data_(rhs.data_)
         , array_it_(rhs.array_it_)
         , object_it_(rhs.object_it_)
@@ -172,7 +172,7 @@ struct iterator
     {
     }
 
-    iterator& operator=(const iterator<typename std::remove_const<_ConfTy>::type>& rhs)
+    iterator& operator=(const iterator<typename std::remove_const<_ValTy>::type>& rhs)
     {
         this->data_         = rhs.data_;
         this->array_it_     = rhs.array_it_;
@@ -509,9 +509,9 @@ private:
 private:
     value_type* data_;
 
-    typename _ConfTy::array_type::iterator  array_it_;
-    typename _ConfTy::object_type::iterator object_it_;
-    primitive_iterator                      primitive_it_ = 0;  // for other types
+    typename _ValTy::array_type::iterator  array_it_;
+    typename _ValTy::object_type::iterator object_it_;
+    primitive_iterator                     primitive_it_ = 0;  // for other types
 };
 
 template <typename _IterTy>

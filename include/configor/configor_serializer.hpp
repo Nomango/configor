@@ -24,6 +24,7 @@
 #include "configor_token.hpp"
 #include "configor_value.hpp"
 
+#include <functional>   // std::function
 #include <ios>          // std::streamsize
 #include <ostream>      // std::basic_ostream
 #include <type_traits>  // std::char_traits
@@ -34,52 +35,67 @@ namespace configor
 namespace detail
 {
 
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename _ValTy>
 class basic_serializer
 {
 public:
-    using value_type     = _ConfTy;
-    using integer_type    = typename _ConfTy::integer_type;
-    using float_type      = typename _ConfTy::float_type;
-    using char_type       = typename _ConfTy::char_type;
-    using string_type     = typename _ConfTy::string_type;
-    using ostream_type    = std::basic_ostream<char_type>;
-    using source_encoding = _SourceEncoding<char_type>;
-    using target_encoding = _TargetEncoding<char_type>;
+    using value_type   = _ValTy;
+    using integer_type = typename _ValTy::integer_type;
+    using float_type   = typename _ValTy::float_type;
+    using char_type    = typename _ValTy::char_type;
+    using string_type  = typename _ValTy::string_type;
+    using ostream_type = std::basic_ostream<char_type>;
 
-    basic_serializer() = default;
+    basic_serializer(ostream_type& os)
+        : os_(nullptr)
+        , err_handler_(nullptr)
+        , source_decoder_(nullptr)
+        , target_encoder_(nullptr)
+    {
+        os_.rdbuf(os.rdbuf());
+        os_.copyfmt(os);
+    }
 
-    virtual void target(std::basic_ostream<char_type>& os, encoding::decoder<char_type> src_decoder,
-                        encoding::encoder<char_type> target_encoder) = 0;
+    void dump(const value_type& c)
+    {
+        try
+        {
+            do_dump(c);
+            next(token_type::end_of_input);
+        }
+        catch (...)
+        {
+            if (err_handler_)
+                err_handler_->handle(std::current_exception());
+            else
+                throw;
+        }
+    }
 
+    inline void set_error_handler(configor::error_handler* eh)
+    {
+        err_handler_ = eh;
+    }
+
+    template <template <class> class _Encoding>
+    inline void set_source_encoding()
+    {
+        source_decoder_ = _Encoding<char_type>::decode;
+    }
+
+    template <template <class> class _Encoding>
+    inline void set_target_encoding()
+    {
+        target_encoder_ = _Encoding<char_type>::encode;
+    }
+
+protected:
     virtual void next(token_type t) = 0;
 
     virtual void put_integer(integer_type i)           = 0;
     virtual void put_float(float_type f)               = 0;
     virtual void put_string(const string_type& scalbn) = 0;
 
-    virtual error_handler* get_error_handler() = 0;
-
-    void dump(const value_type& c, ostream_type& os)
-    {
-        try
-        {
-            target(os, source_encoding::decode, target_encoding::encode);
-
-            do_dump(c);
-            next(token_type::end_of_input);
-        }
-        catch (...)
-        {
-            auto eh = get_error_handler();
-            if (eh)
-                eh->handle(std::current_exception());
-            else
-                throw;
-        }
-    }
-
-protected:
     virtual void do_dump(const value_type& c)
     {
         switch (c.type())
@@ -181,6 +197,12 @@ protected:
         }
         }
     }
+
+protected:
+    ostream_type                 os_;
+    error_handler*               err_handler_;
+    encoding::decoder<char_type> source_decoder_;
+    encoding::encoder<char_type> target_encoder_;
 };
 
 //
@@ -191,48 +213,42 @@ template <typename _Args>
 class serializable
 {
 public:
-    using value_type = typename _Args::value_type;
+    using value_type  = typename _Args::value_type;
     using char_type   = typename value_type::char_type;
     using string_type = typename value_type::string_type;
 
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding>
-    using serializer = typename _Args::template serializer_type<value_type, _SourceEncoding, _TargetEncoding>;
+    using serializer        = typename _Args::template serializer_type<value_type>;
+    using serializer_option = std::function<void(serializer&)>;
 
     // dump to stream
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<serializer<_SourceEncoding, _TargetEncoding>, _DumpArgs...>::value>::type>
-    static void dump(std::basic_ostream<char_type>& os, const value_type& v, _DumpArgs&&... args)
+    static void dump(std::basic_ostream<char_type>& os, const value_type& v,
+                     std::initializer_list<serializer_option> options = {})
     {
-        serializer<_SourceEncoding, _TargetEncoding> s{ std::forward<_DumpArgs>(args)... };
-        s.dump(v, os);
+        serializer s{ os };
+        s.template set_source_encoding<default_encoding>();
+        s.template set_target_encoding<default_encoding>();
+        for (const auto& option : options)
+        {
+            option(s);
+        }
+        s.dump(v);
     }
 
     // dump to string
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<serializer<_SourceEncoding, _TargetEncoding>, _DumpArgs...>::value>::type>
-    static void dump(string_type& str, const value_type& v, _DumpArgs&&... args)
+    static void dump(string_type& str, const value_type& v, std::initializer_list<serializer_option> options = {})
     {
         detail::fast_string_ostreambuf<char_type> buf{ str };
         std::basic_ostream<char_type>             os{ &buf };
-        return dump<_SourceEncoding, _TargetEncoding>(os, v, std::forward<_DumpArgs>(args)...);
+        return dump(os, v, options);
     }
 
-    template <template <typename> class _SourceEncoding = default_encoding,
-              template <typename> class _TargetEncoding = _SourceEncoding, typename... _DumpArgs,
-              typename                                  = typename std::enable_if<
-                  std::is_constructible<serializer<_SourceEncoding, _TargetEncoding>, _DumpArgs...>::value>::type>
-    static string_type dump(const value_type& v, _DumpArgs&&... args)
+    static string_type dump(const value_type& v, std::initializer_list<serializer_option> options = {})
     {
         string_type result;
-        dump<_SourceEncoding, _TargetEncoding>(result, v, std::forward<_DumpArgs>(args)...);
+        dump(result, v, options);
         return result;
     }
 };
