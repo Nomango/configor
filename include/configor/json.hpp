@@ -34,7 +34,7 @@ namespace detail
 template <typename _ValTy>
 class json_parser;
 
-template <typename _ValTy>
+template <typename _ValTy, typename _TargetCharTy>
 class json_serializer;
 }  // namespace detail
 
@@ -45,8 +45,8 @@ struct json_args : config_args
     template <typename _ValTy>
     using parser_type = detail::json_parser<_ValTy>;
 
-    template <typename _ValTy>
-    using serializer_type = detail::json_serializer<_ValTy>;
+    template <typename _ValTy, typename _TargetCharTy>
+    using serializer_type = detail::json_serializer<_ValTy, _TargetCharTy>;
 
     template <typename _CharTy>
     using default_encoding = encoding::auto_utf<_CharTy>;
@@ -86,7 +86,7 @@ using wjson = basic_json<wjson_args>;
 
 // type traits
 
-template <typename _JsonTy>
+template <typename _Ty>
 struct is_json : std::false_type
 {
 };
@@ -656,23 +656,21 @@ private:
 
 // json_serializer
 
-template <typename _ValTy>
-class json_serializer : public basic_serializer<_ValTy>
+template <typename _ValTy, typename _TargetCharTy>
+class json_serializer : public basic_serializer<_ValTy, _TargetCharTy>
 {
 public:
-    using value_type   = _ValTy;
-    using char_type    = typename _ValTy::char_type;
-    using string_type  = typename _ValTy::string_type;
-    using integer_type = typename _ValTy::integer_type;
-    using float_type   = typename _ValTy::float_type;
+    using value_type       = _ValTy;
+    using source_char_type = typename value_type::char_type;
+    using target_char_type = _TargetCharTy;
 
     using option = std::function<void(json_serializer&)>;
 
-    static option with_indent(int indent_step, char_type indent_char = ' ')
+    static option with_indent(int indent_step, target_char_type indent_char = ' ')
     {
         return [=](json_serializer& s)
         {
-            s.indent_       = indent<char_type>{ indent_step, indent_char };
+            s.indent_       = indent<target_char_type>{ indent_step, indent_char };
             s.pretty_print_ = indent_step > 0;
         };
     }
@@ -699,8 +697,8 @@ public:
         return [=](json_serializer& s) { s.template set_target_encoding<_Encoding>(); };
     }
 
-    explicit json_serializer(std::basic_ostream<char_type>& os)
-        : basic_serializer<_ValTy>(os)
+    explicit json_serializer(std::basic_ostream<target_char_type>& os)
+        : basic_serializer<value_type, target_char_type>(os)
         , pretty_print_(false)
         , object_or_array_began_(false)
         , escaping_unicode_(false)
@@ -830,22 +828,22 @@ public:
         last_token_ = token;
     }
 
-    virtual void put_integer(integer_type i) override
+    virtual void put_integer(typename value_type::integer_type i) override
     {
         this->os_ << serialize_integer(i);
     }
 
-    virtual void put_float(float_type f) override
+    virtual void put_float(typename value_type::float_type f) override
     {
         this->os_ << serialize_float(f);
     }
 
-    virtual void put_string(const string_type& s) override
+    virtual void put_string(const typename value_type::string_type& s) override
     {
         output('\"');
 
-        fast_string_istreambuf<char_type> buf{ s };
-        std::basic_istream<char_type>     iss{ &buf };
+        fast_string_istreambuf<source_char_type> buf{ s };
+        std::basic_istream<source_char_type>     iss{ &buf };
 
         uint32_t codepoint = 0;
         while (this->source_decoder_(iss, codepoint))
@@ -929,12 +927,12 @@ public:
         output('\"');
     }
 
-    void output(char_type ch)
+    void output(target_char_type ch)
     {
         this->os_.put(ch);
     }
 
-    void output(std::initializer_list<char_type> list)
+    void output(std::initializer_list<target_char_type> list)
     {
         this->os_.write(list.begin(), static_cast<std::streamsize>(list.size()));
     }
@@ -965,11 +963,11 @@ public:
     }
 
 private:
-    bool              pretty_print_;
-    bool              object_or_array_began_;
-    bool              escaping_unicode_;
-    token_type        last_token_;
-    indent<char_type> indent_;
+    bool                     pretty_print_;
+    bool                     object_or_array_began_;
+    bool                     escaping_unicode_;
+    token_type               last_token_;
+    indent<target_char_type> indent_;
 };
 
 }  // namespace detail

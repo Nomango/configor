@@ -64,8 +64,8 @@ class basic_oadapterstream : public std::basic_ostream<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using char_traits = std::char_traits<char_type>;
-    using int_type    = typename char_traits::int_type;
+    using traits_type = typename std::basic_ostream<char_type>::traits_type;
+    using int_type    = typename std::basic_ostream<char_type>::int_type;
 
     explicit basic_oadapterstream(basic_oadapter<char_type>& adapter)
         : std::basic_ostream<char_type>(nullptr)
@@ -88,7 +88,7 @@ private:
         {
             if (c != EOF)
             {
-                adapter_.write(char_traits::to_char_type(c));
+                adapter_.write(traits_type::to_char_type(c));
             }
             return c;
         }
@@ -139,8 +139,8 @@ class basic_iadapterstream : public std::basic_istream<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using char_traits = std::char_traits<char_type>;
-    using int_type    = typename char_traits::int_type;
+    using traits_type = typename std::basic_istream<char_type>::traits_type;
+    using int_type    = typename std::basic_istream<char_type>::int_type;
 
     explicit basic_iadapterstream(basic_iadapter<char_type>& adapter)
         : std::basic_istream<_CharTy>(nullptr)
@@ -150,7 +150,7 @@ public:
     }
 
 private:
-    class streambuf : public std::basic_streambuf<_CharTy>
+    class streambuf : public std::basic_streambuf<char_type>
     {
     public:
         explicit streambuf(basic_iadapter<char_type>& adapter)
@@ -164,7 +164,7 @@ private:
         {
             if (last_char_ != 0)
                 return last_char_;
-            last_char_ = char_traits::to_char_type(adapter_.read());
+            last_char_ = traits_type::to_char_type(adapter_.read());
             return last_char_;
         }
 
@@ -180,7 +180,7 @@ private:
             if (last_char_ != 0)
             {
                 // read last char
-                s[0]       = char_traits::to_char_type(last_char_);
+                s[0]       = traits_type::to_char_type(last_char_);
                 last_char_ = 0;
                 ++s;
                 --num;
@@ -212,8 +212,8 @@ class fast_string_ostreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_string_ostreambuf(string_type& str)
@@ -224,9 +224,9 @@ public:
 protected:
     virtual int_type overflow(int_type c) override
     {
-        if (c != char_traits::eof())
+        if (c != traits_type::eof())
         {
-            str_.push_back(char_traits::to_char_type(c));
+            str_.push_back(traits_type::to_char_type(c));
         }
         return c;
     }
@@ -250,8 +250,8 @@ class fast_string_istreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_string_istreambuf(const string_type& str)
@@ -264,8 +264,8 @@ protected:
     virtual int_type underflow() override
     {
         if (index_ >= str_.size())
-            return char_traits::eof();
-        return char_traits::to_int_type(str_[index_]);
+            return traits_type::eof();
+        return traits_type::to_int_type(str_[index_]);
     }
 
     virtual int_type uflow() override
@@ -291,14 +291,14 @@ class fast_buffer_istreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_buffer_istreambuf(const char_type* buffer)
         : buffer_(buffer)
         , index_(0)
-        , size_(char_traits::length(buffer))
+        , size_(traits_type::length(buffer))
     {
     }
 
@@ -306,8 +306,8 @@ protected:
     virtual int_type underflow() override
     {
         if (index_ >= size_)
-            return char_traits::eof();
-        return char_traits::to_int_type(buffer_[index_]);
+            return traits_type::eof();
+        return traits_type::to_int_type(buffer_[index_]);
     }
 
     virtual int_type uflow() override
@@ -323,7 +323,7 @@ protected:
             num = static_cast<std::streamsize>(size_ - index_);
         if (num == 0)
             return 0;
-        char_traits::copy(s, buffer_, static_cast<size_t>(num));
+        traits_type::copy(s, buffer_, static_cast<size_t>(num));
         return num;
     }
 
@@ -341,8 +341,8 @@ class fast_cfile_istreambuf<char> : public std::basic_streambuf<char>
 {
 public:
     using char_type   = char;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
     using int_type    = typename std::basic_streambuf<char_type>::int_type;
-    using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_cfile_istreambuf(std::FILE* file)
@@ -384,8 +384,8 @@ class fast_cfile_istreambuf<wchar_t> : public std::basic_streambuf<wchar_t>
 {
 public:
     using char_type   = wchar_t;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
     using int_type    = typename std::basic_streambuf<char_type>::int_type;
-    using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_cfile_istreambuf(std::FILE* file)
