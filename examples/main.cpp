@@ -20,6 +20,7 @@
 #include <configor/json.hpp>
 #include <iostream>
 #include <locale>
+#include <sstream>
 #include <string>
 
 using namespace configor;
@@ -38,18 +39,18 @@ int main(int argc, char** argv)
 
     json::value v = {
         { "test", 1 },
-        { "array中文", { 1, 2 } },
+        { "array", { 1, 2 } },
     };
 
-    User u = { 1001, "John" };
+    User u = { 1001, "中文" };
 
-    const auto str = json::dump(v, {
-                                       json::serializer<>::with_indent(2),
-                                       json::serializer<>::with_escaping_unicode(false),
-                                       json::serializer<>::with_source_encoding<encoding::auto_utf>(),
-                                       json::serializer<>::with_target_encoding<encoding::auto_utf>(),
-                                   });
-    std::cout << str << std::endl;
+    const auto str = json::dump<wchar_t>(u, {
+                                                json::serializer<wchar_t>::with_indent(2),
+                                                json::serializer<wchar_t>::with_escaping_unicode(false),
+                                                json::serializer<wchar_t>::with_source_encoding<encoding::auto_utf>(),
+                                                json::serializer<wchar_t>::with_target_encoding<encoding::auto_utf>(),
+                                            });
+    std::wcout << str << std::endl;
 
     u = json::parse("{\"id\": 1002,\"name\":\"Jack\"}", {
                                                             json::parser::with_error_handler(nullptr),
