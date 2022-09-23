@@ -223,14 +223,14 @@ public:
     {
         if (codepoint <= 0xFFFF)
         {
-            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint)));
+            os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(codepoint)));
         }
         else if (codepoint <= 0x10FFFF)
         {
             uint32_t lead_surrogate = 0, trail_surrogate = 0;
             unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(lead_surrogate)));
-            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(trail_surrogate)));
+            os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(lead_surrogate)));
+            os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(trail_surrogate)));
         }
         else
         {
@@ -285,7 +285,7 @@ public:
         {
             os.setstate(std::ios_base::failbit);
         }
-        os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint)));
+        os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(codepoint)));
     }
 
     static bool decode(istream_type& is, uint32_t& codepoint)

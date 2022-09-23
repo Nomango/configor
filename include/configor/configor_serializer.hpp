@@ -35,18 +35,15 @@ namespace configor
 namespace detail
 {
 
-template <typename _ValTy>
+template <typename _ValTy, typename _TargetCharTy>
 class basic_serializer
 {
 public:
-    using value_type   = _ValTy;
-    using integer_type = typename _ValTy::integer_type;
-    using float_type   = typename _ValTy::float_type;
-    using char_type    = typename _ValTy::char_type;
-    using string_type  = typename _ValTy::string_type;
-    using ostream_type = std::basic_ostream<char_type>;
+    using value_type       = _ValTy;
+    using source_char_type = typename value_type::char_type;
+    using target_char_type = _TargetCharTy;
 
-    basic_serializer(ostream_type& os)
+    basic_serializer(std::basic_ostream<target_char_type>& os)
         : os_(nullptr)
         , err_handler_(nullptr)
         , source_decoder_(nullptr)
@@ -80,21 +77,21 @@ public:
     template <template <class> class _Encoding>
     inline void set_source_encoding()
     {
-        source_decoder_ = _Encoding<char_type>::decode;
+        source_decoder_ = _Encoding<source_char_type>::decode;
     }
 
     template <template <class> class _Encoding>
     inline void set_target_encoding()
     {
-        target_encoder_ = _Encoding<char_type>::encode;
+        target_encoder_ = _Encoding<target_char_type>::encode;
     }
 
 protected:
     virtual void next(token_type t) = 0;
 
-    virtual void put_integer(integer_type i)           = 0;
-    virtual void put_float(float_type f)               = 0;
-    virtual void put_string(const string_type& scalbn) = 0;
+    virtual void put_integer(typename value_type::integer_type i)      = 0;
+    virtual void put_float(typename value_type::float_type f)          = 0;
+    virtual void put_string(const typename value_type::string_type& s) = 0;
 
     virtual void do_dump(const value_type& c)
     {
@@ -199,10 +196,10 @@ protected:
     }
 
 protected:
-    ostream_type                 os_;
-    error_handler*               err_handler_;
-    encoding::decoder<char_type> source_decoder_;
-    encoding::encoder<char_type> target_encoder_;
+    std::basic_ostream<target_char_type> os_;
+    error_handler*                       err_handler_;
+    encoding::decoder<source_char_type>  source_decoder_;
+    encoding::encoder<target_char_type>  target_encoder_;
 };
 
 //
@@ -213,21 +210,23 @@ template <typename _Args>
 class serializable
 {
 public:
-    using value_type  = typename _Args::value_type;
-    using char_type   = typename value_type::char_type;
-    using string_type = typename value_type::string_type;
+    using value_type = typename _Args::value_type;
 
     template <typename _CharTy>
     using default_encoding = typename _Args::template default_encoding<_CharTy>;
 
-    using serializer        = typename _Args::template serializer_type<value_type>;
-    using serializer_option = std::function<void(serializer&)>;
+    template <typename _TargetCharTy = typename value_type::char_type>
+    using serializer = typename _Args::template serializer_type<value_type, _TargetCharTy>;
+
+    template <typename _TargetCharTy>
+    using serializer_option = std::function<void(serializer<_TargetCharTy>&)>;
 
     // dump to stream
-    static void dump(std::basic_ostream<char_type>& os, const value_type& v,
-                     std::initializer_list<serializer_option> options = {})
+    template <typename _TargetCharTy>
+    static void dump(std::basic_ostream<_TargetCharTy>& os, const value_type& v,
+                     std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
-        serializer s{ os };
+        serializer<_TargetCharTy> s{ os };
         s.template set_source_encoding<default_encoding>();
         s.template set_target_encoding<default_encoding>();
         for (const auto& option : options)
@@ -238,17 +237,21 @@ public:
     }
 
     // dump to string
-    static void dump(string_type& str, const value_type& v, std::initializer_list<serializer_option> options = {})
+    template <typename _TargetCharTy = typename value_type::char_type>
+    static void dump(typename _Args::template string_type<_TargetCharTy>& str, const value_type& v,
+                     std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
-        detail::fast_string_ostreambuf<char_type> buf{ str };
-        std::basic_ostream<char_type>             os{ &buf };
-        return dump(os, v, options);
+        detail::fast_string_ostreambuf<_TargetCharTy> buf{ str };
+        std::basic_ostream<_TargetCharTy>             os{ &buf };
+        return dump<_TargetCharTy>(os, v, options);
     }
 
-    static string_type dump(const value_type& v, std::initializer_list<serializer_option> options = {})
+    template <typename _TargetCharTy = typename value_type::char_type>
+    static typename _Args::template string_type<_TargetCharTy>
+    dump(const value_type& v, std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
-        string_type result;
-        dump(result, v, options);
+        typename _Args::template string_type<_TargetCharTy> result;
+        dump<_TargetCharTy>(result, v, options);
         return result;
     }
 };
