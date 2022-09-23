@@ -83,7 +83,7 @@ class ignore
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
@@ -104,7 +104,7 @@ class utf8
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
@@ -213,7 +213,7 @@ class utf16
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
@@ -273,7 +273,7 @@ class utf32
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
@@ -308,7 +308,7 @@ class auto_utf
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
