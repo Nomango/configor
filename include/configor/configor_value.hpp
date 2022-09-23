@@ -78,16 +78,16 @@ namespace detail
 // config_value
 //
 
-template <typename _ConfTy>
+template <typename _ValTy>
 struct config_value
 {
-    using string_type  = typename _ConfTy::string_type;
-    using char_type    = typename _ConfTy::char_type;
-    using integer_type = typename _ConfTy::integer_type;
-    using float_type   = typename _ConfTy::float_type;
-    using boolean_type = typename _ConfTy::boolean_type;
-    using array_type   = typename _ConfTy::array_type;
-    using object_type  = typename _ConfTy::object_type;
+    using string_type  = typename _ValTy::string_type;
+    using char_type    = typename _ValTy::char_type;
+    using integer_type = typename _ValTy::integer_type;
+    using float_type   = typename _ValTy::float_type;
+    using boolean_type = typename _ValTy::boolean_type;
+    using array_type   = typename _ValTy::array_type;
+    using object_type  = typename _ValTy::object_type;
 
     config_value_type type;
     union
@@ -205,7 +205,7 @@ struct config_value
     template <typename _Ty, typename... _Args>
     inline _Ty* create(_Args&&... args)
     {
-        using allocator_type   = typename _ConfTy::template allocator_type<_Ty>;
+        using allocator_type   = typename _ValTy::template allocator_type<_Ty>;
         using allocator_traits = std::allocator_traits<allocator_type>;
 
         allocator_type allocator;
@@ -218,7 +218,7 @@ struct config_value
     template <typename _Ty>
     inline void destroy(_Ty* ptr)
     {
-        using allocator_type   = typename _ConfTy::template allocator_type<_Ty>;
+        using allocator_type   = typename _ValTy::template allocator_type<_Ty>;
         using allocator_traits = std::allocator_traits<allocator_type>;
 
         allocator_type allocator;

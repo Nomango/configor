@@ -36,15 +36,15 @@ namespace configor
 namespace detail
 {
 
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class basic_parser
 {
 public:
-    using value_type     = _ConfTy;
-    using integer_type    = typename _ConfTy::integer_type;
-    using float_type      = typename _ConfTy::float_type;
-    using char_type       = typename _ConfTy::char_type;
-    using string_type     = typename _ConfTy::string_type;
+    using value_type      = _ValTy;
+    using integer_type    = typename _ValTy::integer_type;
+    using float_type      = typename _ValTy::float_type;
+    using char_type       = typename _ValTy::char_type;
+    using string_type     = typename _ValTy::string_type;
     using istream_type    = std::basic_istream<char_type>;
     using source_encoding = _SourceEncoding<char_type>;
     using target_encoding = _TargetEncoding<char_type>;
@@ -83,7 +83,7 @@ public:
 protected:
     virtual void do_parse(value_type& c, token_type last_token, bool read_next = true)
     {
-        using string_type = typename _ConfTy::string_type;
+        using string_type = typename _ValTy::string_type;
 
         token_type token = last_token;
         if (read_next)
@@ -145,7 +145,7 @@ protected:
                 if (is_end)
                     break;
 
-                c.raw_value().data.vector->push_back(_ConfTy());
+                c.raw_value().data.vector->push_back(_ValTy());
                 do_parse(c.raw_value().data.vector->back(), token, false);
 
                 // read ','
@@ -172,7 +172,7 @@ protected:
                 if (token != token_type::name_separator)
                     break;
 
-                _ConfTy object;
+                _ValTy object;
                 do_parse(object, token);
                 c.raw_value().data.object->emplace(key, object);
 
@@ -212,7 +212,7 @@ template <typename _Args>
 class parsable
 {
 public:
-    using value_type = typename _Args::value_type;
+    using value_type  = typename _Args::value_type;
     using char_type   = typename value_type::char_type;
     using string_type = typename value_type::string_type;
 

@@ -522,8 +522,8 @@ public:
 
 private:
     // get reference value
-    template <typename _RefTy, typename _ConfTy, typename _PtrTy = typename std::add_pointer<_RefTy>::type>
-    static auto do_get_ref(_ConfTy& c) -> decltype(c.template get_ptr<_PtrTy>(), std::declval<_RefTy>())
+    template <typename _RefTy, typename _ValTy, typename _PtrTy = typename std::add_pointer<_RefTy>::type>
+    static auto do_get_ref(_ValTy& c) -> decltype(c.template get_ptr<_PtrTy>(), std::declval<_RefTy>())
     {
         auto* ptr = c.template get_ptr<_PtrTy>();
         if (ptr != nullptr)
@@ -858,24 +858,6 @@ public:
             throw std::out_of_range("operator[] key out of range");
         }
         return iter->second;
-    }
-
-public:
-    // wrap
-
-    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
-                                                               && detail::is_configor_getable<basic_value, _Ty>::value
-                                                               && !std::is_pointer<_Ty>::value>::type>
-    static inline detail::write_configor_wrapper<basic_value, _Ty> wrap(_Ty& v)
-    {
-        return detail::write_configor_wrapper<basic_value, _Ty>(v);
-    }
-
-    template <typename _Ty, typename = typename std::enable_if<!std::is_same<basic_value, _Ty>::value
-                                                               && detail::has_to_config<basic_value, _Ty>::value>::type>
-    static inline detail::read_configor_wrapper<basic_value, _Ty> wrap(const _Ty& v)
-    {
-        return detail::read_configor_wrapper<basic_value, _Ty>(v);
     }
 
 public:

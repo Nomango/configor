@@ -39,10 +39,10 @@ class config_binder;
 
 namespace detail
 {
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class parser;
 
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
+template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
 class serializer;
 
 struct nonesuch
