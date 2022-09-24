@@ -24,9 +24,9 @@
 #include "configor_token.hpp"
 #include "configor_value.hpp"
 
-#include <functional>        // std::function
 #include <initializer_list>  // std::initializer_list
 #include <istream>           // std::basic_istream
+#include <locale>            // std::locale
 
 namespace configor
 {
@@ -43,13 +43,12 @@ public:
     using target_char_type = typename value_type::char_type;
 
     basic_parser(std::basic_istream<source_char_type>& is)
-        : is_(nullptr)
+        : is_(is.rdbuf())
         , err_handler_(nullptr)
         , source_decoder_(nullptr)
         , target_encoder_(nullptr)
     {
-        is_.rdbuf(is.rdbuf());
-        is_.copyfmt(is);
+        is_.imbue(std::locale(std::locale::classic(), is.getloc(), std::locale::collate | std::locale::ctype));
     }
 
     virtual void parse(value_type& c)
@@ -238,7 +237,7 @@ public:
     using parser = parser_type<>;
 
     template <typename _SourceCharTy>
-    using parser_option = std::function<void(parser_type<_SourceCharTy>&)>;
+    using parser_option = typename parser_type<_SourceCharTy>::option;
 
     // parse from stream
     template <typename _SourceCharTy>
@@ -248,7 +247,7 @@ public:
         parser_type<_SourceCharTy> p{ is };
         p.template set_source_encoding<typename _Args::default_encoding>();
         p.template set_target_encoding<typename _Args::default_encoding>();
-        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(p); });
+        p.apply(options);
         p.parse(c);
     }
 
