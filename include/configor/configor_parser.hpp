@@ -233,17 +233,19 @@ public:
     using value_type = typename _Args::value_type;
 
     template <typename _SourceCharTy = typename value_type::char_type>
-    using parser = typename _Args::template parser_type<value_type, _SourceCharTy>;
+    using parser_type = typename _Args::template parser_type<value_type, _SourceCharTy>;
+
+    using parser = parser_type<>;
 
     template <typename _SourceCharTy>
-    using parser_option = std::function<void(parser<_SourceCharTy>&)>;
+    using parser_option = std::function<void(parser_type<_SourceCharTy>&)>;
 
     // parse from stream
     template <typename _SourceCharTy>
     static void parse(value_type& c, std::basic_istream<_SourceCharTy>& is,
                       std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        parser<_SourceCharTy> p{ is };
+        parser_type<_SourceCharTy> p{ is };
         p.template set_source_encoding<typename _Args::default_encoding>();
         p.template set_target_encoding<typename _Args::default_encoding>();
         for (const auto& option : options)
