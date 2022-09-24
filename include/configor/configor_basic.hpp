@@ -80,42 +80,8 @@ public:
     basic_value(basic_value&& other) noexcept
         : value_(std::move(other.value_))
     {
-        // invalidate payload
         other.value_.type        = config_value_type::null;
         other.value_.data.object = nullptr;
-    }
-
-    basic_value(const std::initializer_list<basic_value>& init_list,
-                config_value_type                         exact_type = config_value_type::null)
-    {
-        bool is_an_object = std::all_of(init_list.begin(), init_list.end(),
-                                        [](const basic_value& config)
-                                        { return (config.is_array() && config.size() == 2 && config[0].is_string()); });
-
-        if (exact_type != config_value_type::object && exact_type != config_value_type::array)
-        {
-            exact_type = is_an_object ? config_value_type::object : config_value_type::array;
-        }
-
-        if (exact_type == config_value_type::object)
-        {
-            if (!is_an_object)
-                throw configor_type_error("initializer_list is not object type");
-
-            value_ = config_value_type::object;
-            std::for_each(init_list.begin(), init_list.end(),
-                          [this](const basic_value& config)
-                          {
-                              value_.data.object->emplace(*((*config.value_.data.vector)[0].value_.data.string),
-                                                          (*config.value_.data.vector)[1]);
-                          });
-        }
-        else
-        {
-            value_ = config_value_type::array;
-            value_.data.vector->reserve(init_list.size());
-            value_.data.vector->assign(init_list.begin(), init_list.end());
-        }
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
@@ -126,14 +92,20 @@ public:
         binder_type<_UTy>::to_config(*this, std::forward<_CompatibleTy>(value));
     }
 
-    static inline basic_value object(const std::initializer_list<basic_value>& init_list)
+    static basic_value object(std::initializer_list<std::pair<string_type, basic_value>> list)
     {
-        return basic_value(init_list, config_value_type::object);
+        basic_value v{ config_value_type::object };
+        std::for_each(list.begin(), list.end(),
+                      [&](const auto& pair) { v.value_.data.object->emplace(pair.first, pair.second); });
+        return v;
     }
 
-    static inline basic_value array(const std::initializer_list<basic_value>& init_list)
+    static basic_value array(std::initializer_list<basic_value> list)
     {
-        return basic_value(init_list, config_value_type::array);
+        basic_value v{ config_value_type::array };
+        v.value_.data.vector->reserve(list.size());
+        v.value_.data.vector->assign(list.begin(), list.end());
+        return v;
     }
 
     inline bool is_object() const
@@ -942,5 +914,49 @@ public:
 private:
     value_type value_;
 };
+
+namespace detail
+{
+template <typename _ValTy>
+class value_maker
+{
+public:
+    using value_type = _ValTy;
+
+    struct object
+    {
+        using pair_type = std::pair<typename value_type::string_type, value_type>;
+
+        object(std::initializer_list<pair_type> list)
+            : list_(list)
+        {
+        }
+
+        inline operator value_type() const
+        {
+            return value_type::object(list_);
+        }
+
+    private:
+        std::initializer_list<pair_type> list_;
+    };
+
+    struct array
+    {
+        array(std::initializer_list<value_type> list)
+            : list_(list)
+        {
+        }
+
+        inline operator value_type() const
+        {
+            return value_type::array(list_);
+        }
+
+    private:
+        std::initializer_list<value_type> list_;
+    };
+};
+}  // namespace detail
 
 }  // namespace configor

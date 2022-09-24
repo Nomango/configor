@@ -24,6 +24,7 @@
 #include "configor_token.hpp"
 #include "configor_value.hpp"
 
+#include <algorithm>   // std::for_each
 #include <functional>  // std::function
 #include <ios>         // std::streamsize
 #include <ostream>     // std::basic_ostream
@@ -227,10 +228,7 @@ public:
         serializer_type<_TargetCharTy> s{ os };
         s.template set_source_encoding<typename _Args::default_encoding>();
         s.template set_target_encoding<typename _Args::default_encoding>();
-        for (const auto& option : options)
-        {
-            option(s);
-        }
+        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(s); });
         s.dump(v);
     }
 
