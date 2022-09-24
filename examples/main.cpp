@@ -52,10 +52,10 @@ int main(int argc, char** argv)
                                             });
     std::wcout << str << std::endl;
 
-    u = json::parse("{\"id\": 1002,\"name\":\"Jack\"}", {
-                                                            json::parser::with_error_handler(nullptr),
-                                                            json::parser::with_source_encoding<encoding::auto_utf>(),
-                                                            json::parser::with_target_encoding<encoding::auto_utf>(),
+    u = json::parse(L"{\"id\": 1002,\"name\":\"Jack中文\"}", {
+                                                            json::parser<wchar_t>::with_error_handler(nullptr),
+                                                            json::parser<wchar_t>::with_source_encoding<encoding::auto_utf>(),
+                                                            json::parser<wchar_t>::with_target_encoding<encoding::auto_utf>(),
                                                         });
 
     json::dump(std::wcout, u);

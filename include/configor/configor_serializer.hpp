@@ -27,7 +27,6 @@
 #include <functional>   // std::function
 #include <ios>          // std::streamsize
 #include <ostream>      // std::basic_ostream
-#include <type_traits>  // std::char_traits
 
 namespace configor
 {
@@ -212,9 +211,6 @@ class serializable
 public:
     using value_type = typename _Args::value_type;
 
-    template <typename _CharTy>
-    using default_encoding = typename _Args::template default_encoding<_CharTy>;
-
     template <typename _TargetCharTy = typename value_type::char_type>
     using serializer = typename _Args::template serializer_type<value_type, _TargetCharTy>;
 
@@ -227,8 +223,8 @@ public:
                      std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
         serializer<_TargetCharTy> s{ os };
-        s.template set_source_encoding<default_encoding>();
-        s.template set_target_encoding<default_encoding>();
+        s.template set_source_encoding<typename _Args::default_encoding>();
+        s.template set_target_encoding<typename _Args::default_encoding>();
         for (const auto& option : options)
         {
             option(s);

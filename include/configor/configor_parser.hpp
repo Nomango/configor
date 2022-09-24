@@ -26,10 +26,7 @@
 
 #include <functional>        // std::function
 #include <initializer_list>  // std::initializer_list
-#include <ios>               // std::noskipws
 #include <istream>           // std::basic_istream
-#include <streambuf>         // std::basic_streambuf
-#include <type_traits>       // std::char_traits
 
 namespace configor
 {
@@ -37,18 +34,15 @@ namespace configor
 namespace detail
 {
 
-template <typename _ValTy>
+template <typename _ValTy, typename _SourceCharTy>
 class basic_parser
 {
 public:
-    using value_type   = _ValTy;
-    using integer_type = typename _ValTy::integer_type;
-    using float_type   = typename _ValTy::float_type;
-    using char_type    = typename _ValTy::char_type;
-    using string_type  = typename _ValTy::string_type;
-    using istream_type = std::basic_istream<char_type>;
+    using value_type       = _ValTy;
+    using source_char_type = _SourceCharTy;
+    using target_char_type = typename value_type::char_type;
 
-    basic_parser(istream_type& is)
+    basic_parser(std::basic_istream<source_char_type>& is)
         : is_(nullptr)
         , err_handler_(nullptr)
         , source_decoder_(nullptr)
@@ -83,21 +77,21 @@ public:
     template <template <class> class _Encoding>
     inline void set_source_encoding()
     {
-        source_decoder_ = _Encoding<char_type>::decode;
+        source_decoder_ = _Encoding<source_char_type>::decode;
     }
 
     template <template <class> class _Encoding>
     inline void set_target_encoding()
     {
-        target_encoder_ = _Encoding<char_type>::encode;
+        target_encoder_ = _Encoding<target_char_type>::encode;
     }
 
 protected:
     virtual token_type scan() = 0;
 
-    virtual void get_integer(integer_type& out) = 0;
-    virtual void get_float(float_type& out)     = 0;
-    virtual void get_string(string_type& out)   = 0;
+    virtual void get_integer(typename value_type::integer_type& out) = 0;
+    virtual void get_float(typename value_type::float_type& out)     = 0;
+    virtual void get_string(typename value_type::string_type& out)   = 0;
 
     virtual void do_parse(value_type& c, token_type last_token, bool read_next = true)
     {
@@ -222,10 +216,10 @@ protected:
     }
 
 protected:
-    std::basic_istream<char_type> is_;
-    error_handler*                err_handler_;
-    encoding::decoder<char_type>  source_decoder_;
-    encoding::encoder<char_type>  target_encoder_;
+    std::basic_istream<source_char_type> is_;
+    error_handler*                       err_handler_;
+    encoding::decoder<source_char_type>  source_decoder_;
+    encoding::encoder<target_char_type>  target_encoder_;
 };
 
 //
@@ -236,23 +230,22 @@ template <typename _Args>
 class parsable
 {
 public:
-    using value_type  = typename _Args::value_type;
-    using char_type   = typename value_type::char_type;
-    using string_type = typename value_type::string_type;
+    using value_type = typename _Args::value_type;
 
-    template <typename _CharTy>
-    using default_encoding = typename _Args::template default_encoding<_CharTy>;
+    template <typename _SourceCharTy = typename value_type::char_type>
+    using parser = typename _Args::template parser_type<value_type, _SourceCharTy>;
 
-    using parser        = typename _Args::template parser_type<value_type>;
-    using parser_option = std::function<void(parser&)>;
+    template <typename _SourceCharTy>
+    using parser_option = std::function<void(parser<_SourceCharTy>&)>;
 
     // parse from stream
-    static void parse(value_type& c, std::basic_istream<char_type>& is,
-                      std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy>
+    static void parse(value_type& c, std::basic_istream<_SourceCharTy>& is,
+                      std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        parser p{ is };
-        p.template set_source_encoding<default_encoding>();
-        p.template set_target_encoding<default_encoding>();
+        parser<_SourceCharTy> p{ is };
+        p.template set_source_encoding<typename _Args::default_encoding>();
+        p.template set_target_encoding<typename _Args::default_encoding>();
         for (const auto& option : options)
         {
             option(p);
@@ -260,7 +253,9 @@ public:
         p.parse(c);
     }
 
-    static value_type parse(std::basic_istream<char_type>& is, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy>
+    static value_type parse(std::basic_istream<_SourceCharTy>&                  is,
+                            std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
         value_type c;
         parse(c, is, options);
@@ -268,47 +263,56 @@ public:
     }
 
     // parse from string
-    static void parse(value_type& c, const string_type& str, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy>
+    static void parse(value_type& c, const typename _Args::template string_type<_SourceCharTy>& str,
+                      std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        detail::fast_string_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type>             is{ &buf };
+        detail::fast_string_istreambuf<_SourceCharTy> buf{ str };
+        std::basic_istream<_SourceCharTy>             is{ &buf };
         parse(c, is, options);
     }
 
-    static value_type parse(const string_type& str, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy>
+    static value_type parse(const typename _Args::template string_type<_SourceCharTy>& str,
+                            std::initializer_list<parser_option<_SourceCharTy>>        options = {})
     {
-        detail::fast_string_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type>             is{ &buf };
+        detail::fast_string_istreambuf<_SourceCharTy> buf{ str };
+        std::basic_istream<_SourceCharTy>             is{ &buf };
         return parse(is, options);
     }
 
     // parse from c-style string
-    static void parse(value_type& c, const char_type* str, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy>
+    static void parse(value_type& c, const _SourceCharTy* str,
+                      std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        detail::fast_buffer_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type>             is{ &buf };
+        detail::fast_buffer_istreambuf<_SourceCharTy> buf{ str };
+        std::basic_istream<_SourceCharTy>             is{ &buf };
         parse(c, is, options);
     }
 
-    static value_type parse(const char_type* str, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy>
+    static value_type parse(const _SourceCharTy* str, std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        detail::fast_buffer_istreambuf<char_type> buf{ str };
-        std::basic_istream<char_type>             is{ &buf };
+        detail::fast_buffer_istreambuf<_SourceCharTy> buf{ str };
+        std::basic_istream<_SourceCharTy>             is{ &buf };
         return parse(is, options);
     }
 
     // parse from c-style file
-    static void parse(value_type& c, std::FILE* file, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy = typename value_type::char_type>
+    static void parse(value_type& c, std::FILE* file, std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        detail::fast_cfile_istreambuf<char_type> buf{ file };
-        std::basic_istream<char_type>            is{ &buf };
+        detail::fast_cfile_istreambuf<_SourceCharTy> buf{ file };
+        std::basic_istream<_SourceCharTy>            is{ &buf };
         parse(c, is, options);
     }
 
-    static value_type parse(std::FILE* file, std::initializer_list<parser_option> options = {})
+    template <typename _SourceCharTy = typename value_type::char_type>
+    static value_type parse(std::FILE* file, std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
-        detail::fast_cfile_istreambuf<char_type> buf{ file };
-        std::basic_istream<char_type>            is{ &buf };
+        detail::fast_cfile_istreambuf<_SourceCharTy> buf{ file };
+        std::basic_istream<_SourceCharTy>            is{ &buf };
         return parse(is, options);
     }
 };
