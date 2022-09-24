@@ -35,7 +35,8 @@ struct User
 
 int main(int argc, char** argv)
 {
-    std::wcout.imbue(std::locale(""));
+    std::locale::global(std::locale(""));
+    std::wcout.imbue(std::locale());
 
     json::value v = json::object{
         { "test", 1 },
@@ -43,6 +44,9 @@ int main(int argc, char** argv)
     };
 
     User u = { 1001, "中文" };
+
+    json::serializer::with_error_handler(nullptr);
+    json::parser::with_error_handler(nullptr);
 
     const auto str =
         json::dump<wchar_t>(u, {
@@ -60,7 +64,10 @@ int main(int argc, char** argv)
                         json::parser_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
                     });
 
-    json::dump(std::wcout, u);
-    std::wcout << std::endl;
+    std::cout << u.id << " " << u.name << std::endl;
+
+    std::wstringstream ss(L"{\"id\": 3001,\"name\":\"Jack中文22\"}");
+    ss >> json::wrap(u);
+    std::wcout << std::setw(4) << json::wrap(u) << std::endl;
     return 0;
 }

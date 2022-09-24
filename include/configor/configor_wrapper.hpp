@@ -28,25 +28,26 @@ namespace configor
 namespace detail
 {
 template <typename _ConfigTy, typename _Ty>
-class read_wrapper
+class ostream_wrapper
 {
 public:
-    using value_type = typename _ConfigTy::value;
-    using char_type  = typename value_type::char_type;
+    using config_type = typename _ConfigTy;
+    using value_type  = typename _ConfigTy::value;
 
-    template <template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer = typename _ConfigTy::template serializer<_SourceEncoding, _TargetEncoding>;
-
-    explicit read_wrapper(const _Ty& v)
+    explicit ostream_wrapper(const _Ty& v)
         : v_(v)
     {
     }
 
-    template <typename _TargetCharTy>
-    friend std::basic_ostream<_TargetCharTy>& operator<<(std::basic_ostream<_TargetCharTy>& out,
-                                                         const read_wrapper&                wrapper)
+    template <typename _TargetCharTy, typename _Traits>
+    friend std::basic_ostream<_TargetCharTy, _Traits>& operator<<(std::basic_ostream<_TargetCharTy, _Traits>& out,
+                                                                  const ostream_wrapper&                      wrapper)
     {
-        out << _ValTy(wrapper.v_);
+        typename std::basic_ostream<_TargetCharTy, _Traits>::sentry s(out);
+        if (s)
+        {
+            config_type::dump(out, static_cast<value_type>(wrapper.v_));
+        }
         return out;
     }
 
@@ -54,28 +55,57 @@ private:
     const _Ty& v_;
 };
 
-template <typename _ValTy, typename _Ty>
-class write_wrapper : public read_wrapper<_ValTy, _Ty>
+template <typename _ConfigTy, typename _Ty>
+class iostream_wrapper : public ostream_wrapper<_ConfigTy, _Ty>
 {
 public:
-    using char_type = typename _ValTy::char_type;
+    using config_type = typename _ConfigTy;
+    using value_type  = typename _ConfigTy::value;
 
-    explicit write_wrapper(_Ty& v)
-        : read_wrapper<_ValTy, _Ty>(v)
+    explicit iostream_wrapper(_Ty& v)
+        : ostream_wrapper<_ConfigTy, _Ty>(v)
         , v_(v)
     {
     }
 
-    friend std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& in, const write_wrapper& wrapper)
+    template <typename _SourceCharTy, typename _Traits>
+    friend std::basic_istream<_SourceCharTy, _Traits>& operator>>(std::basic_istream<_SourceCharTy, _Traits>& in,
+                                                                  iostream_wrapper&                           wrapper)
     {
-        _ValTy c{};
-        in >> c;
-        const_cast<_Ty&>(wrapper.v_) = c.template get<_Ty>();
+        typename std::basic_istream<_SourceCharTy, _Traits>::sentry s(in);
+        if (s)
+        {
+            value_type c{};
+            config_type::parse(c, in);
+            wrapper.v_ = c.template get<_Ty>();
+        }
         return in;
     }
 
 private:
     _Ty& v_;
+};
+
+template <typename _ConfigTy, typename _ValTy>
+class wrapper_maker
+{
+public:
+    using value_type = _ValTy;
+
+    template <typename _Ty, typename = typename std::enable_if<!std::is_same<value_type, _Ty>::value
+                                                               && has_to_config<value_type, _Ty>::value>::type>
+    static inline ostream_wrapper<_ConfigTy, _Ty> wrap(const _Ty& v)
+    {
+        return ostream_wrapper<_ConfigTy, _Ty>(v);
+    }
+
+    template <typename _Ty,
+              typename = typename std::enable_if<!is_config<_Ty>::value && is_configor_getable<value_type, _Ty>::value
+                                                 && !std::is_pointer<_Ty>::value>::type>
+    static inline iostream_wrapper<_ConfigTy, _Ty> wrap(_Ty& v)
+    {
+        return iostream_wrapper<_ConfigTy, _Ty>(v);
+    }
 };
 }  // namespace detail
 

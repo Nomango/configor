@@ -24,8 +24,9 @@
 #include "configor_serializer.hpp"
 #include "configor_wrapper.hpp"
 
-#include <iomanip>  // std::setprecision, std::right, std::noshowbase
-#include <ios>      // std::noskipws
+#include <algorithm>  // std::for_each
+#include <iomanip>    // std::setprecision, std::right, std::noshowbase
+#include <ios>        // std::noskipws
 
 namespace configor
 {
@@ -58,29 +59,17 @@ struct wjson_args : json_args
     using char_type = wchar_t;
 };
 
-template <typename _JsonArgs>
+template <typename _Args>
 class basic_json final
-    : public detail::serializable<_JsonArgs>
-    , public detail::parsable<_JsonArgs>
-    , public detail::value_maker<basic_value<_JsonArgs>>
+    : public detail::serializable<_Args>
+    , public detail::parsable<_Args>
+    , public detail::value_maker<basic_value<_Args>>
+    , public detail::wrapper_maker<basic_json<_Args>, basic_value<_Args>>
 {
 public:
-    using value = basic_value<_JsonArgs>;
-
-    // template <typename _Ty, typename = typename std::enable_if<!std::is_same<value, _Ty>::value
-    //                                                            && detail::has_to_config<value, _Ty>::value>::type>
-    // static inline detail::read_wrapper<basic_json, _Ty> wrap(const _Ty& v)
-    // {
-    //     return detail::read_wrapper<basic_json, _Ty>(v);
-    // }
-
-    // template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
-    //                                                            && detail::is_configor_getable<value, _Ty>::value
-    //                                                            && !std::is_pointer<_Ty>::value>::type>
-    // static inline detail::write_wrapper<basic_json, _Ty> wrap(_Ty& v)
-    // {
-    //     return detail::write_wrapper<basic_json, _Ty>(v);
-    // }
+    using value      = basic_value<_Args>;
+    using serializer = typename detail::serializable<_Args>::serializer_type<typename value::char_type>;
+    using parser     = typename detail::parsable<_Args>::parser_type<typename value::char_type>;
 };
 
 using json  = basic_json<json_args>;
@@ -97,31 +86,6 @@ template <typename _Args>
 struct is_json<basic_json<_Args>> : std::true_type
 {
 };
-
-template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os,
-                                                            const _JsonTy&                                   j)
-{
-    using writer_type = typename _JsonTy::writer;
-    using writer_args = typename writer_type::args;
-
-    writer_args args;
-    args.indent      = static_cast<unsigned int>(os.width());
-    args.indent_char = os.fill();
-    args.precision   = static_cast<int>(os.precision());
-
-    os.width(0);
-    j.dump(os, args);
-    return os;
-}
-
-template <typename _JsonTy, typename char_type = typename _JsonTy::char_type,
-          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, _JsonTy& j)
-{
-    _JsonTy::parse(j, is);
-    return is;
-}
 
 namespace detail
 {
@@ -163,6 +127,11 @@ public:
         , current_(0)
     {
         this->is_ >> std::noskipws;
+    }
+
+    inline void apply(std::initializer_list<option> options)
+    {
+        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
     }
 
     virtual void parse(value_type& c) override
@@ -672,7 +641,7 @@ public:
 
     using option = std::function<void(json_serializer&)>;
 
-    static option with_indent(int indent_step, target_char_type indent_char = ' ')
+    static option with_indent(uint8_t indent_step, target_char_type indent_char = ' ')
     {
         return [=](json_serializer& s)
         {
@@ -705,13 +674,19 @@ public:
 
     explicit json_serializer(std::basic_ostream<target_char_type>& os)
         : basic_serializer<value_type, target_char_type>(os)
-        , pretty_print_(false)
+        , pretty_print_(os.width() > 0)
         , object_or_array_began_(false)
         , unicode_escaping_(false)
         , last_token_(token_type::uninitialized)
-        , indent_(0, ' ')
+        , indent_(static_cast<uint8_t>(os.width()), os.fill())
     {
-        this->os_ << std::right << std::noshowbase;
+        this->os_ << std::right << std::noshowbase << std::setprecision(os.precision());
+        os.width(0);  // clear width
+    }
+
+    inline void apply(std::initializer_list<option> options)
+    {
+        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
     }
 
     virtual void next(token_type token) override

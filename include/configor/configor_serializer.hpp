@@ -24,10 +24,11 @@
 #include "configor_token.hpp"
 #include "configor_value.hpp"
 
-#include <algorithm>   // std::for_each
-#include <functional>  // std::function
-#include <ios>         // std::streamsize
-#include <ostream>     // std::basic_ostream
+#include <functional>        // std::function
+#include <initializer_list>  // std::initializer_list
+#include <ios>               // std::streamsize
+#include <locale>            // std::locale
+#include <ostream>           // std::basic_ostream
 
 namespace configor
 {
@@ -44,13 +45,12 @@ public:
     using target_char_type = _TargetCharTy;
 
     basic_serializer(std::basic_ostream<target_char_type>& os)
-        : os_(nullptr)
+        : os_(os.rdbuf())
         , err_handler_(nullptr)
         , source_decoder_(nullptr)
         , target_encoder_(nullptr)
     {
-        os_.rdbuf(os.rdbuf());
-        os_.copyfmt(os);
+        os_.imbue(std::locale(std::locale::classic(), os.getloc(), std::locale::collate | std::locale::ctype));
     }
 
     virtual void dump(const value_type& c)
@@ -212,13 +212,11 @@ class serializable
 public:
     using value_type = typename _Args::value_type;
 
-    template <typename _TargetCharTy = typename value_type::char_type>
+    template <typename _TargetCharTy>
     using serializer_type = typename _Args::template serializer_type<value_type, _TargetCharTy>;
 
-    using serializer = serializer_type<>;
-
     template <typename _TargetCharTy>
-    using serializer_option = std::function<void(serializer_type<_TargetCharTy>&)>;
+    using serializer_option = typename serializer_type<_TargetCharTy>::option;
 
     // dump to stream
     template <typename _TargetCharTy>
@@ -228,7 +226,7 @@ public:
         serializer_type<_TargetCharTy> s{ os };
         s.template set_source_encoding<typename _Args::default_encoding>();
         s.template set_target_encoding<typename _Args::default_encoding>();
-        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(s); });
+        s.apply(options);
         s.dump(v);
     }
 
@@ -263,9 +261,9 @@ public:
     using char_type   = _CharTy;
     using string_type = std::basic_string<char_type>;
 
-    indent(int step, char_type ch)
-        : depth_(0)
-        , step_(step > 0 ? step : 0)
+    indent(uint8_t step, char_type ch)
+        : step_(step)
+        , depth_(0)
         , indent_char_(ch)
         , indent_string_()
     {
@@ -316,8 +314,8 @@ private:
     }
 
 private:
-    int         depth_;
-    int         step_;
+    uint8_t     step_;
+    uint16_t    depth_;
     char_type   indent_char_;
     string_type indent_string_;
 };
