@@ -680,9 +680,9 @@ public:
         };
     }
 
-    static option with_escaping_unicode(bool enabled)
+    static option with_unicode_escaping(bool enabled)
     {
-        return [=](json_serializer& s) { s.escaping_unicode_ = enabled; };
+        return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
     }
 
     static option with_error_handler(error_handler* eh)
@@ -706,7 +706,7 @@ public:
         : basic_serializer<value_type, target_char_type>(os)
         , pretty_print_(false)
         , object_or_array_began_(false)
-        , escaping_unicode_(false)
+        , unicode_escaping_(false)
         , last_token_(token_type::uninitialized)
         , indent_(0, ' ')
     {
@@ -899,7 +899,7 @@ public:
             {
                 // escape control characters
                 // and non-ASCII characters (if `escape_unicode` is true)
-                const bool need_escape = (codepoint <= 0x1F || (escaping_unicode_ && codepoint >= 0x7F));
+                const bool need_escape = (codepoint <= 0x1F || (unicode_escaping_ && codepoint >= 0x7F));
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
@@ -970,7 +970,7 @@ public:
 private:
     bool                     pretty_print_;
     bool                     object_or_array_began_;
-    bool                     escaping_unicode_;
+    bool                     unicode_escaping_;
     token_type               last_token_;
     indent<target_char_type> indent_;
 };

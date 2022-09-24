@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 
     const auto str = json::dump<wchar_t>(u, {
                                                 json::serializer_type<wchar_t>::with_indent(2),
-                                                json::serializer_type<wchar_t>::with_escaping_unicode(false),
+                                                json::serializer_type<wchar_t>::with_unicode_escaping(false),
                                                 json::serializer_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
                                                 json::serializer_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
                                             });
