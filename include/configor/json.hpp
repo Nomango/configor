@@ -62,6 +62,7 @@ template <typename _JsonArgs>
 class basic_json final
     : public detail::serializable<_JsonArgs>
     , public detail::parsable<_JsonArgs>
+    , public detail::value_maker<basic_value<_JsonArgs>>
 {
 public:
     using value = basic_value<_JsonArgs>;

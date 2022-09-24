@@ -37,26 +37,28 @@ int main(int argc, char** argv)
 {
     std::wcout.imbue(std::locale(""));
 
-    json::value v = {
+    json::value v = json::object{
         { "test", 1 },
-        { "array", { 1, 2 } },
+        { "array", json::array{ 1, 2 } },
     };
 
     User u = { 1001, "中文" };
 
-    const auto str = json::dump<wchar_t>(u, {
-                                                json::serializer_type<wchar_t>::with_indent(2),
-                                                json::serializer_type<wchar_t>::with_unicode_escaping(false),
-                                                json::serializer_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
-                                                json::serializer_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
-                                            });
+    const auto str =
+        json::dump<wchar_t>(u, {
+                                   json::serializer_type<wchar_t>::with_indent(2),
+                                   json::serializer_type<wchar_t>::with_unicode_escaping(false),
+                                   json::serializer_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
+                                   json::serializer_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
+                               });
     std::wcout << str << std::endl;
 
-    u = json::parse(L"{\"id\": 1002,\"name\":\"Jack中文\"}", {
-                                                            json::parser_type<wchar_t>::with_error_handler(nullptr),
-                                                            json::parser_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
-                                                            json::parser_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
-                                                        });
+    u = json::parse(L"{\"id\": 1002,\"name\":\"Jack中文\"}",
+                    {
+                        json::parser_type<wchar_t>::with_error_handler(nullptr),
+                        json::parser_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
+                        json::parser_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
+                    });
 
     json::dump(std::wcout, u);
     std::wcout << std::endl;
