@@ -651,93 +651,6 @@ public:
         return get<_Ty>();
     }
 
-    boolean_type as_bool() const
-    {
-        switch (type())
-        {
-        case config_value_type::number_integer:
-            return value_.data.number_integer != 0;
-        case config_value_type::number_float:
-            return value_.data.number_float != 0;
-        case config_value_type::string:
-            return !(*value_.data.string).empty();
-        case config_value_type::array:
-        case config_value_type::object:
-            return !empty();
-        case config_value_type::boolean:
-            return value_.data.boolean;
-        case config_value_type::null:
-            break;
-        }
-        return false;
-    }
-
-    integer_type as_integer() const
-    {
-        switch (type())
-        {
-        case config_value_type::number_integer:
-            return value_.data.number_integer;
-        case config_value_type::number_float:
-            return static_cast<integer_type>(value_.data.number_float);
-        case config_value_type::boolean:
-            return value_.data.boolean ? integer_type(1) : integer_type(0);
-        case config_value_type::string:
-        case config_value_type::array:
-        case config_value_type::object:
-        case config_value_type::null:
-            throw detail::make_conversion_error(type(), config_value_type::number_integer);
-        }
-        return 0;
-    }
-
-    float_type as_float() const
-    {
-        switch (type())
-        {
-        case config_value_type::number_integer:
-            return static_cast<float_type>(value_.data.number_integer);
-        case config_value_type::number_float:
-            return value_.data.number_float;
-        case config_value_type::boolean:
-            return value_.data.boolean ? float_type(1) : float_type(0);
-        case config_value_type::string:
-        case config_value_type::array:
-        case config_value_type::object:
-        case config_value_type::null:
-            throw detail::make_conversion_error(type(), config_value_type::number_float);
-        }
-        return 0;
-    }
-
-    string_type as_string() const
-    {
-        switch (type())
-        {
-        case config_value_type::string:
-            return *value_.data.string;
-        case config_value_type::number_integer:
-        {
-            std::basic_stringstream<char_type> ss;
-            ss << detail::serialize_integer(value_.data.number_integer);
-            return ss.str();
-        }
-        case config_value_type::number_float:
-        {
-            std::basic_stringstream<char_type> ss;
-            ss << std::defaultfloat << detail::serialize_float(value_.data.number_float);
-            return ss.str();
-        }
-        case config_value_type::boolean:
-        case config_value_type::array:
-        case config_value_type::object:
-            throw detail::make_conversion_error(type(), config_value_type::string);
-        case config_value_type::null:
-            break;
-        }
-        return string_type{};
-    }
-
 public:
     // operator= functions
 
@@ -747,7 +660,6 @@ public:
         return (*this);
     }
 
-public:
     // operator[] functions
 
     inline basic_value& operator[](const size_type index)
