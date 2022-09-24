@@ -248,10 +248,7 @@ public:
         parser_type<_SourceCharTy> p{ is };
         p.template set_source_encoding<typename _Args::default_encoding>();
         p.template set_target_encoding<typename _Args::default_encoding>();
-        for (const auto& option : options)
-        {
-            option(p);
-        }
+        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(p); });
         p.parse(c);
     }
 
