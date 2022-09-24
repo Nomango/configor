@@ -24,10 +24,9 @@
 #include "configor_token.hpp"
 #include "configor_value.hpp"
 
-#include <functional>   // std::function
-#include <ios>          // std::streamsize
-#include <ostream>      // std::basic_ostream
-#include <type_traits>  // std::char_traits
+#include <functional>  // std::function
+#include <ios>         // std::streamsize
+#include <ostream>     // std::basic_ostream
 
 namespace configor
 {
@@ -212,23 +211,22 @@ class serializable
 public:
     using value_type = typename _Args::value_type;
 
-    template <typename _CharTy>
-    using default_encoding = typename _Args::template default_encoding<_CharTy>;
-
     template <typename _TargetCharTy = typename value_type::char_type>
-    using serializer = typename _Args::template serializer_type<value_type, _TargetCharTy>;
+    using serializer_type = typename _Args::template serializer_type<value_type, _TargetCharTy>;
+
+    using serializer = serializer_type<>;
 
     template <typename _TargetCharTy>
-    using serializer_option = std::function<void(serializer<_TargetCharTy>&)>;
+    using serializer_option = std::function<void(serializer_type<_TargetCharTy>&)>;
 
     // dump to stream
     template <typename _TargetCharTy>
     static void dump(std::basic_ostream<_TargetCharTy>& os, const value_type& v,
                      std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
-        serializer<_TargetCharTy> s{ os };
-        s.template set_source_encoding<default_encoding>();
-        s.template set_target_encoding<default_encoding>();
+        serializer_type<_TargetCharTy> s{ os };
+        s.template set_source_encoding<typename _Args::default_encoding>();
+        s.template set_target_encoding<typename _Args::default_encoding>();
         for (const auto& option : options)
         {
             option(s);

@@ -45,17 +45,17 @@ int main(int argc, char** argv)
     User u = { 1001, "中文" };
 
     const auto str = json::dump<wchar_t>(u, {
-                                                json::serializer<wchar_t>::with_indent(2),
-                                                json::serializer<wchar_t>::with_escaping_unicode(false),
-                                                json::serializer<wchar_t>::with_source_encoding<encoding::auto_utf>(),
-                                                json::serializer<wchar_t>::with_target_encoding<encoding::auto_utf>(),
+                                                json::serializer_type<wchar_t>::with_indent(2),
+                                                json::serializer_type<wchar_t>::with_unicode_escaping(false),
+                                                json::serializer_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
+                                                json::serializer_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
                                             });
     std::wcout << str << std::endl;
 
-    u = json::parse("{\"id\": 1002,\"name\":\"Jack\"}", {
-                                                            json::parser::with_error_handler(nullptr),
-                                                            json::parser::with_source_encoding<encoding::auto_utf>(),
-                                                            json::parser::with_target_encoding<encoding::auto_utf>(),
+    u = json::parse(L"{\"id\": 1002,\"name\":\"Jack中文\"}", {
+                                                            json::parser_type<wchar_t>::with_error_handler(nullptr),
+                                                            json::parser_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
+                                                            json::parser_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
                                                         });
 
     json::dump(std::wcout, u);

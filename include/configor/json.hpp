@@ -25,13 +25,14 @@
 #include "configor_wrapper.hpp"
 
 #include <iomanip>  // std::setprecision, std::right, std::noshowbase
+#include <ios>      // std::noskipws
 
 namespace configor
 {
 
 namespace detail
 {
-template <typename _ValTy>
+template <typename _ValTy, typename _SourceCharTy>
 class json_parser;
 
 template <typename _ValTy, typename _TargetCharTy>
@@ -42,8 +43,8 @@ struct json_args : config_args
 {
     using value_type = basic_value<json_args>;
 
-    template <typename _ValTy>
-    using parser_type = detail::json_parser<_ValTy>;
+    template <typename _ValTy, typename _SourceCharTy>
+    using parser_type = detail::json_parser<_ValTy, _SourceCharTy>;
 
     template <typename _ValTy, typename _TargetCharTy>
     using serializer_type = detail::json_serializer<_ValTy, _TargetCharTy>;
@@ -126,15 +127,13 @@ namespace detail
 
 // json_parser
 
-template <typename _ValTy>
-class json_parser : public basic_parser<_ValTy>
+template <typename _ValTy, typename _SourceCharTy>
+class json_parser : public basic_parser<_ValTy, _SourceCharTy>
 {
 public:
-    using value_type   = _ValTy;
-    using char_type    = typename _ValTy::char_type;
-    using string_type  = typename _ValTy::string_type;
-    using integer_type = typename _ValTy::integer_type;
-    using float_type   = typename _ValTy::float_type;
+    using value_type       = _ValTy;
+    using source_char_type = _SourceCharTy;
+    using target_char_type = typename value_type::char_type;
 
     using option = std::function<void(json_parser&)>;
 
@@ -155,8 +154,8 @@ public:
         return [=](json_parser& p) { p.template set_target_encoding<_Encoding>(); };
     }
 
-    explicit json_parser(std::basic_istream<char_type>& is)
-        : basic_parser<_ValTy>(is)
+    explicit json_parser(std::basic_istream<source_char_type>& is)
+        : basic_parser<value_type, source_char_type>(is)
         , is_negative_(false)
         , number_integer_(0)
         , number_float_(0)
@@ -169,20 +168,20 @@ public:
     {
         // read first char
         read_next();
-        basic_parser<_ValTy>::parse(c);
+        basic_parser<value_type, source_char_type>::parse(c);
     }
 
-    virtual void get_integer(integer_type& out) override
+    virtual void get_integer(typename value_type::integer_type& out) override
     {
         out = is_negative_ ? -number_integer_ : number_integer_;
     }
 
-    virtual void get_float(float_type& out) override
+    virtual void get_float(typename value_type::float_type& out) override
     {
         out = is_negative_ ? -number_float_ : number_float_;
     }
 
-    virtual void get_string(string_type& out) override
+    virtual void get_string(typename value_type::string_type& out) override
     {
         scan_string(out);
     }
@@ -255,7 +254,7 @@ public:
         return result;
     }
 
-    typename std::char_traits<char_type>::int_type read_next()
+    uint32_t read_next()
     {
         if (this->source_decoder_(this->is_, current_))
         {
@@ -333,11 +332,11 @@ public:
         }
     }
 
-    token_type scan_literal(std::initializer_list<char_type> text, token_type result)
+    token_type scan_literal(std::initializer_list<source_char_type> text, token_type result)
     {
         for (const auto ch : text)
         {
-            if (ch != std::char_traits<char_type>::to_char_type(current_))
+            if (ch != std::char_traits<source_char_type>::to_char_type(current_))
             {
                 detail::fast_ostringstream ss;
                 ss << "unexpected character '" << static_cast<char>(current_) << "'";
@@ -352,12 +351,12 @@ public:
         return result;
     }
 
-    void scan_string(string_type& out)
+    void scan_string(typename value_type::string_type& out)
     {
         CONFIGOR_ASSERT(current_ == '\"');
 
-        detail::fast_string_ostreambuf<char_type> buf{ out };
-        std::basic_ostream<char_type>             oss{ &buf };
+        detail::fast_string_ostreambuf<target_char_type> buf{ out };
+        std::basic_ostream<target_char_type>             oss{ &buf };
         while (true)
         {
             read_next();
@@ -518,6 +517,8 @@ public:
 
     token_type scan_integer()
     {
+        using integer_type = typename value_type::integer_type;
+
         CONFIGOR_ASSERT(is_digit(current_));
 
         number_integer_ = static_cast<integer_type>(current_ - '0');
@@ -537,6 +538,8 @@ public:
 
     token_type scan_float()
     {
+        using float_type = typename value_type::float_type;
+
         number_float_ = static_cast<float_type>(number_integer_);
 
         if (current_ == 'e' || current_ == 'E')
@@ -569,6 +572,8 @@ public:
 
     token_type scan_exponent()
     {
+        using float_type = typename value_type::float_type;
+
         CONFIGOR_ASSERT(current_ == 'e' || current_ == 'E');
 
         read_next();
@@ -629,9 +634,9 @@ public:
         return code;
     }
 
-    inline bool is_digit(char_type ch) const
+    inline bool is_digit(source_char_type ch) const
     {
-        return char_type('0') <= ch && ch <= char_type('9');
+        return source_char_type('0') <= ch && ch <= source_char_type('9');
     }
 
     inline void fail(const std::string& msg)
@@ -648,10 +653,10 @@ public:
     }
 
 private:
-    bool         is_negative_;
-    integer_type number_integer_;
-    float_type   number_float_;
-    uint32_t     current_;
+    bool                              is_negative_;
+    uint32_t                          current_;
+    typename value_type::integer_type number_integer_;
+    typename value_type::float_type   number_float_;
 };
 
 // json_serializer
@@ -675,9 +680,9 @@ public:
         };
     }
 
-    static option with_escaping_unicode(bool enabled)
+    static option with_unicode_escaping(bool enabled)
     {
-        return [=](json_serializer& s) { s.escaping_unicode_ = enabled; };
+        return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
     }
 
     static option with_error_handler(error_handler* eh)
@@ -701,7 +706,7 @@ public:
         : basic_serializer<value_type, target_char_type>(os)
         , pretty_print_(false)
         , object_or_array_began_(false)
-        , escaping_unicode_(false)
+        , unicode_escaping_(false)
         , last_token_(token_type::uninitialized)
         , indent_(0, ' ')
     {
@@ -894,7 +899,7 @@ public:
             {
                 // escape control characters
                 // and non-ASCII characters (if `escape_unicode` is true)
-                const bool need_escape = (codepoint <= 0x1F || (escaping_unicode_ && codepoint >= 0x7F));
+                const bool need_escape = (codepoint <= 0x1F || (unicode_escaping_ && codepoint >= 0x7F));
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
@@ -965,7 +970,7 @@ public:
 private:
     bool                     pretty_print_;
     bool                     object_or_array_began_;
-    bool                     escaping_unicode_;
+    bool                     unicode_escaping_;
     token_type               last_token_;
     indent<target_char_type> indent_;
 };
