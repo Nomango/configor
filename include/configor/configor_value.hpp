@@ -34,34 +34,62 @@
 namespace configor
 {
 
-enum class config_value_type
+//
+// value_base
+//
+
+class value_base
 {
-    number_integer,
-    number_float,
-    string,
-    array,
-    object,
-    boolean,
-    null,
+public:
+    enum value_type
+    {
+        null,
+        integer,
+        floating,
+        string,
+        array,
+        object,
+        boolean,
+    };
+
+    inline value_type type() const
+    {
+        return type_;
+    }
+
+protected:
+    value_base(value_type t = value_type::null)
+        : type_{ t }
+    {
+    }
+
+    ~value_base() {}
+
+    inline void set_type(value_type t)
+    {
+        type_ = t;
+    }
+
+    value_type type_;
 };
 
-inline const char* to_string(config_value_type t) noexcept
+inline const char* to_string(value_base::value_type t) noexcept
 {
     switch (t)
     {
-    case config_value_type::object:
+    case value_base::value_type::object:
         return "object";
-    case config_value_type::array:
+    case value_base::value_type::array:
         return "array";
-    case config_value_type::string:
+    case value_base::value_type::string:
         return "string";
-    case config_value_type::number_integer:
+    case value_base::value_type::integer:
         return "integer";
-    case config_value_type::number_float:
+    case value_base::value_type::floating:
         return "float";
-    case config_value_type::boolean:
+    case value_base::value_type::boolean:
         return "boolean";
-    case config_value_type::null:
+    case value_base::value_type::null:
         return "null";
     }
     return "unknown";
@@ -69,30 +97,40 @@ inline const char* to_string(config_value_type t) noexcept
 
 namespace detail
 {
-template <typename _Args>
-struct config_value;
+template <typename _Ty>
+bool nearly_equal(_Ty a, _Ty b)
+{
+    // TODO
+    return std::fabs(a - b) < std::numeric_limits<_Ty>::epsilon();
 }
 
+template <typename _ValTy>
+class value_accessor;
+}  // namespace detail
+
 template <typename _Args>
-class basic_value
+class basic_value final : public value_base
 {
-    friend struct detail::iterator<basic_value>;
-    friend struct detail::iterator<const basic_value>;
+    friend detail::iterator<basic_value>;
+    friend detail::iterator<const basic_value>;
+    friend detail::value_accessor<basic_value>;
 
 public:
     template <typename _Ty>
     using allocator_type = typename _Args::template allocator_type<_Ty>;
-    using boolean_type   = typename _Args::boolean_type;
-    using integer_type   = typename _Args::integer_type;
-    using float_type     = typename _Args::float_type;
-    using char_type      = typename _Args::char_type;
+
+    using boolean_type = typename _Args::boolean_type;
+    using integer_type = typename _Args::integer_type;
+    using float_type   = typename _Args::float_type;
+    using char_type    = typename _Args::char_type;
     using string_type =
         typename _Args::template string_type<char_type, std::char_traits<char_type>, allocator_type<char_type>>;
     using array_type  = typename _Args::template array_type<basic_value, allocator_type<basic_value>>;
     using object_type = typename _Args::template object_type<string_type, basic_value, std::less<string_type>,
                                                              allocator_type<std::pair<const string_type, basic_value>>>;
 
-    using value_type = detail::config_value<basic_value>;
+    template <typename _Ty>
+    using binder_type = typename _Args::template binder_type<_Ty>;
 
     using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
@@ -102,27 +140,77 @@ public:
     using reverse_iterator       = detail::reverse_iterator<iterator>;
     using const_reverse_iterator = detail::reverse_iterator<const_iterator>;
 
-    template <typename _Ty>
-    using binder_type = typename _Args::template binder_type<_Ty>;
-
 public:
-    basic_value(std::nullptr_t = nullptr) {}
-
-    basic_value(const config_value_type type)
-        : value_(type)
+    basic_value(std::nullptr_t = nullptr)
+        : value_base{ value_base::null }
+        , data_{}
     {
+    }
+
+    basic_value(const value_base::value_type t)
+        : value_base{ t }
+        , data_{}
+    {
+        switch (t)
+        {
+        case value_base::object:
+            data_.object = create_data<object_type>();
+            break;
+        case value_base::array:
+            data_.vector = create_data<array_type>();
+            break;
+        case value_base::string:
+            data_.string = create_data<string_type>();
+            break;
+        case value_base::integer:
+            data_.integer = integer_type(0);
+            break;
+        case value_base::floating:
+            data_.floating = float_type(0.0);
+            break;
+        case value_base::boolean:
+            data_.boolean = boolean_type(false);
+            break;
+        default:
+            break;
+        }
     }
 
     basic_value(const basic_value& other)
-        : value_(other.value_)
+        : value_base{ other.type() }
+        , data_{}
     {
+        switch (other.type())
+        {
+        case value_base::object:
+            data_.object = create_data<object_type>(*other.data_.object);
+            break;
+        case value_base::array:
+            data_.vector = create_data<array_type>(*other.data_.vector);
+            break;
+        case value_base::string:
+            data_.string = create_data<string_type>(*other.data_.string);
+            break;
+        case value_base::integer:
+            data_.integer = other.data_.integer;
+            break;
+        case value_base::floating:
+            data_.floating = other.data_.floating;
+            break;
+        case value_base::boolean:
+            data_.boolean = other.data_.boolean;
+            break;
+        default:
+            break;
+        }
     }
 
     basic_value(basic_value&& other) noexcept
-        : value_(std::move(other.value_))
+        : value_base{ other.type() }
+        , data_{ other.data_ }
     {
-        other.value_.type        = config_value_type::null;
-        other.value_.data.object = nullptr;
+        other.set_type(value_base::null);
+        other.data_.object = nullptr;
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
@@ -133,50 +221,55 @@ public:
         binder_type<_UTy>::to_value(*this, std::forward<_CompatibleTy>(value));
     }
 
+    ~basic_value()
+    {
+        destroy_data();
+    }
+
     static basic_value object(std::initializer_list<std::pair<string_type, basic_value>> list)
     {
-        basic_value v{ config_value_type::object };
+        basic_value v{ value_base::object };
         std::for_each(list.begin(), list.end(),
-                      [&](const auto& pair) { v.value_.data.object->emplace(pair.first, pair.second); });
+                      [&](const auto& pair) { v.data_.object->emplace(pair.first, pair.second); });
         return v;
     }
 
     static basic_value array(std::initializer_list<basic_value> list)
     {
-        basic_value v{ config_value_type::array };
-        v.value_.data.vector->reserve(list.size());
-        v.value_.data.vector->assign(list.begin(), list.end());
+        basic_value v{ value_base::array };
+        v.data_.vector->reserve(list.size());
+        v.data_.vector->assign(list.begin(), list.end());
         return v;
     }
 
     inline bool is_object() const
     {
-        return value_.type == config_value_type::object;
+        return type() == value_base::object;
     }
 
     inline bool is_array() const
     {
-        return value_.type == config_value_type::array;
+        return type() == value_base::array;
     }
 
     inline bool is_string() const
     {
-        return value_.type == config_value_type::string;
+        return type() == value_base::string;
     }
 
     inline bool is_bool() const
     {
-        return value_.type == config_value_type::boolean;
+        return type() == value_base::boolean;
     }
 
     inline bool is_integer() const
     {
-        return value_.type == config_value_type::number_integer;
+        return type() == value_base::integer;
     }
 
     inline bool is_float() const
     {
-        return value_.type == config_value_type::number_float;
+        return type() == value_base::floating;
     }
 
     inline bool is_number() const
@@ -186,22 +279,7 @@ public:
 
     inline bool is_null() const
     {
-        return value_.type == config_value_type::null;
-    }
-
-    inline config_value_type type() const
-    {
-        return value_.type;
-    }
-
-    inline const char* type_name() const
-    {
-        return to_string(type());
-    }
-
-    inline void swap(basic_value& rhs)
-    {
-        value_.swap(rhs.value_);
+        return type() == value_base::null;
     }
 
 public:
@@ -267,48 +345,48 @@ public:
     {
         switch (type())
         {
-        case config_value_type::null:
+        case value_base::null:
             return 0;
-        case config_value_type::array:
-            return value_.data.vector->size();
-        case config_value_type::object:
-            return value_.data.object->size();
+        case value_base::array:
+            return data_.vector->size();
+        case value_base::object:
+            return data_.object->size();
         default:
             return 1;
         }
     }
 
-    inline bool empty() const
+    bool empty() const
     {
         if (is_null())
             return true;
 
         if (is_object())
-            return value_.data.object->empty();
+            return data_.object->empty();
 
         if (is_array())
-            return value_.data.vector->empty();
+            return data_.vector->empty();
 
         return false;
     }
 
-    inline iterator find(const typename object_type::key_type& key)
+    iterator find(const typename object_type::key_type& key)
     {
         if (is_object())
         {
             iterator iter(this);
-            iter.object_it_ = value_.data.object->find(key);
+            iter.object_it_ = data_.object->find(key);
             return iter;
         }
         return end();
     }
 
-    inline const_iterator find(const typename object_type::key_type& key) const
+    const_iterator find(const typename object_type::key_type& key) const
     {
         if (is_object())
         {
             const_iterator iter(this);
-            iter.object_it_ = value_.data.object->find(key);
+            iter.object_it_ = data_.object->find(key);
             return iter;
         }
         return cend();
@@ -316,25 +394,25 @@ public:
 
     inline size_type count(const typename object_type::key_type& key) const
     {
-        return is_object() ? value_.data.object->count(key) : 0;
+        return is_object() ? data_.object->count(key) : 0;
     }
 
-    inline size_type erase(const typename object_type::key_type& key)
+    size_type erase(const typename object_type::key_type& key)
     {
         if (!is_object())
         {
             throw configor_invalid_key("cannot use erase() with non-object value");
         }
-        return value_.data.object->erase(key);
+        return data_.object->erase(key);
     }
 
-    inline void erase(const size_type index)
+    void erase(const size_type index)
     {
         if (!is_array())
         {
             throw configor_invalid_key("cannot use erase() with non-array value");
         }
-        value_.data.vector->erase(value_.data.vector->begin() + static_cast<difference_type>(index));
+        data_.vector->erase(data_.vector->begin() + static_cast<difference_type>(index));
     }
 
     template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value
@@ -345,15 +423,15 @@ public:
 
         switch (type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
-            result.object_it_ = value_.data.object->erase(pos.object_it_);
+            result.object_it_ = data_.object->erase(pos.object_it_);
             break;
         }
 
-        case config_value_type::array:
+        case value_base::array:
         {
-            result.array_it_ = value_.data.vector->erase(pos.array_it_);
+            result.array_it_ = data_.vector->erase(pos.array_it_);
             break;
         }
 
@@ -365,21 +443,21 @@ public:
 
     template <class _IterTy, typename = typename std::enable_if<std::is_same<_IterTy, iterator>::value
                                                                 || std::is_same<_IterTy, const_iterator>::value>::type>
-    inline _IterTy erase(_IterTy first, _IterTy last)
+    _IterTy erase(_IterTy first, _IterTy last)
     {
         _IterTy result = end();
 
         switch (type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
-            result.object_it_ = value_.data.object->erase(first.object_it_, last.object_it_);
+            result.object_it_ = data_.object->erase(first.object_it_, last.object_it_);
             break;
         }
 
-        case config_value_type::array:
+        case value_base::array:
         {
-            result.array_it_ = value_.data.vector->erase(first.array_it_, last.array_it_);
+            result.array_it_ = data_.vector->erase(first.array_it_, last.array_it_);
             break;
         }
 
@@ -389,67 +467,52 @@ public:
         return result;
     }
 
-    inline void push_back(basic_value&& config)
+    void push_back(const basic_value& v)
+    {
+        emplace_back(v);
+    }
+
+    void push_back(basic_value&& v)
+    {
+        emplace_back(std::move(v));
+    }
+
+    template <typename... _Ty>
+    void emplace_back(_Ty&&... v)
     {
         if (!is_null() && !is_array())
         {
-            throw configor_type_error("cannot use push_back() with non-array value");
+            throw configor_type_error("use push_back() or emplace_back() with non-array value");
         }
-
         if (is_null())
         {
-            value_ = config_value_type::array;
+            *this = value_base::array;
         }
-
-        value_.data.vector->push_back(std::move(config));
+        data_.vector->emplace_back(std::forward<_Ty>(v)...);
     }
 
-    inline basic_value& operator+=(basic_value&& config)
-    {
-        push_back(std::move(config));
-        return (*this);
-    }
-
-    inline void clear()
+    void clear()
     {
         switch (type())
         {
-        case config_value_type::number_integer:
-        {
-            value_.data.number_integer = 0;
+        case value_base::integer:
+            data_.integer = 0;
             break;
-        }
-
-        case config_value_type::number_float:
-        {
-            value_.data.number_float = static_cast<float_type>(0.0);
+        case value_base::floating:
+            data_.floating = static_cast<float_type>(0.0);
             break;
-        }
-
-        case config_value_type::boolean:
-        {
-            value_.data.boolean = false;
+        case value_base::boolean:
+            data_.boolean = false;
             break;
-        }
-
-        case config_value_type::string:
-        {
-            value_.data.string->clear();
+        case value_base::string:
+            data_.string->clear();
             break;
-        }
-
-        case config_value_type::array:
-        {
-            value_.data.vector->clear();
+        case value_base::array:
+            data_.vector->clear();
             break;
-        }
-
-        case config_value_type::object:
-        {
-            value_.data.object->clear();
+        case value_base::object:
+            data_.object->clear();
             break;
-        }
-
         default:
             break;
         }
@@ -460,62 +523,62 @@ private:
 
     inline boolean_type* do_get_ptr(boolean_type*) noexcept
     {
-        return is_bool() ? &value_.data.boolean : nullptr;
+        return is_bool() ? &data_.boolean : nullptr;
     }
 
     inline const boolean_type* do_get_ptr(const boolean_type*) const noexcept
     {
-        return is_bool() ? &value_.data.boolean : nullptr;
+        return is_bool() ? &data_.boolean : nullptr;
     }
 
     inline integer_type* do_get_ptr(integer_type*) noexcept
     {
-        return is_integer() ? &value_.data.number_integer : nullptr;
+        return is_integer() ? &data_.integer : nullptr;
     }
 
     inline const integer_type* do_get_ptr(const integer_type*) const noexcept
     {
-        return is_integer() ? &value_.data.number_integer : nullptr;
+        return is_integer() ? &data_.integer : nullptr;
     }
 
     inline float_type* do_get_ptr(float_type*) noexcept
     {
-        return is_float() ? &value_.data.number_float : nullptr;
+        return is_float() ? &data_.floating : nullptr;
     }
 
     inline const float_type* do_get_ptr(const float_type*) const noexcept
     {
-        return is_float() ? &value_.data.number_float : nullptr;
+        return is_float() ? &data_.floating : nullptr;
     }
 
     inline string_type* do_get_ptr(string_type*) noexcept
     {
-        return is_string() ? value_.data.string : nullptr;
+        return is_string() ? data_.string : nullptr;
     }
 
     inline const string_type* do_get_ptr(const string_type*) const noexcept
     {
-        return is_string() ? value_.data.string : nullptr;
+        return is_string() ? data_.string : nullptr;
     }
 
     inline array_type* do_get_ptr(array_type*) noexcept
     {
-        return is_array() ? value_.data.vector : nullptr;
+        return is_array() ? data_.vector : nullptr;
     }
 
     inline const array_type* do_get_ptr(const array_type*) const noexcept
     {
-        return is_array() ? value_.data.vector : nullptr;
+        return is_array() ? data_.vector : nullptr;
     }
 
     inline object_type* do_get_ptr(object_type*) noexcept
     {
-        return is_object() ? value_.data.object : nullptr;
+        return is_object() ? data_.object : nullptr;
     }
 
     inline const object_type* do_get_ptr(const object_type*) const noexcept
     {
-        return is_object() ? value_.data.object : nullptr;
+        return is_object() ? data_.object : nullptr;
     }
 
 public:
@@ -543,7 +606,8 @@ private:
         {
             return *ptr;
         }
-        throw configor_type_error("incompatible reference type for get, actual type is " + std::string(c.type_name()));
+        throw configor_type_error(std::string("incompatible reference type for get, actual type is ")
+                                  + to_string(c.type()));
     }
 
     // get value
@@ -665,21 +729,41 @@ public:
     }
 
 public:
+    // swap function
+    inline void swap(basic_value& rhs)
+    {
+        std::swap(type_, rhs.type_);
+        std::swap(data_, rhs.data_);
+    }
+
     // operator= functions
 
-    inline basic_value& operator=(basic_value rhs)
+    basic_value& operator=(const basic_value& rhs)
     {
-        swap(rhs);
-        return (*this);
+        if (this != &rhs)
+        {
+            this->swap(basic_value{ rhs });
+        }
+        return *this;
+    }
+
+    basic_value& operator=(basic_value&& rhs)
+    {
+        if (this != &rhs)
+        {
+            basic_value old{ std::move(*this) };
+            this->swap(rhs);
+        }
+        return *this;
     }
 
     // operator[] functions
 
-    inline basic_value& operator[](const size_type index)
+    basic_value& operator[](const size_type index)
     {
         if (is_null())
         {
-            value_ = config_value_type::array;
+            *this = value_base::array;
         }
 
         if (!is_array())
@@ -687,12 +771,11 @@ public:
             throw configor_invalid_key("operator[] called on a non-array object");
         }
 
-        if (index >= value_.data.vector->size())
+        if (index >= data_.vector->size())
         {
-            value_.data.vector->insert(value_.data.vector->end(), index - value_.data.vector->size() + 1,
-                                       basic_value());
+            data_.vector->insert(data_.vector->end(), index - data_.vector->size() + 1, basic_value());
         }
-        return (*value_.data.vector)[index];
+        return (*data_.vector)[index];
     }
 
     inline basic_value& operator[](const size_type index) const
@@ -700,18 +783,17 @@ public:
         return at(index);
     }
 
-    inline basic_value& operator[](const typename object_type::key_type& key)
+    basic_value& operator[](const typename object_type::key_type& key)
     {
         if (is_null())
         {
-            value_ = config_value_type::object;
+            *this = value_base::object;
         }
-
         if (!is_object())
         {
             throw configor_invalid_key("operator[] called on a non-object type");
         }
-        return (*value_.data.object)[key];
+        return (*data_.object)[key];
     }
 
     inline basic_value& operator[](const typename object_type::key_type& key) const
@@ -719,33 +801,32 @@ public:
         return at(key);
     }
 
-    inline basic_value& at(const size_type index) const
+    basic_value& at(const size_type index) const
     {
         if (!is_array())
         {
             throw configor_invalid_key("operator[] called on a non-array type");
         }
-
-        if (index >= value_.data.vector->size())
+        if (index >= data_.vector->size())
         {
             throw std::out_of_range("operator[] index out of range");
         }
-        return (*value_.data.vector)[index];
+        return (*data_.vector)[index];
     }
 
     template <typename _CharTy>
-    inline basic_value& operator[](_CharTy* key)
+    basic_value& operator[](_CharTy* key)
     {
         if (is_null())
         {
-            value_ = config_value_type::object;
+            *this = value_base::object;
         }
 
         if (!is_object())
         {
             throw configor_invalid_key("operator[] called on a non-object object");
         }
-        return (*value_.data.object)[key];
+        return (*data_.object)[key];
     }
 
     template <typename _CharTy>
@@ -754,15 +835,15 @@ public:
         return at(key);
     }
 
-    inline basic_value& at(const typename object_type::key_type& key) const
+    basic_value& at(const typename object_type::key_type& key) const
     {
         if (!is_object())
         {
             throw configor_invalid_key("operator[] called on a non-object object");
         }
 
-        auto iter = value_.data.object->find(key);
-        if (iter == value_.data.object->end())
+        auto iter = data_.object->find(key);
+        if (iter == data_.object->end())
         {
             throw std::out_of_range("operator[] key out of range");
         }
@@ -770,15 +851,15 @@ public:
     }
 
     template <typename _CharTy>
-    inline basic_value& at(_CharTy* key) const
+    basic_value& at(_CharTy* key) const
     {
         if (!is_object())
         {
             throw configor_invalid_key("operator[] called on a non-object object");
         }
 
-        auto iter = value_.data.object->find(key);
-        if (iter == value_.data.object->end())
+        auto iter = data_.object->find(key);
+        if (iter == data_.object->end())
         {
             throw std::out_of_range("operator[] key out of range");
         }
@@ -788,9 +869,39 @@ public:
 public:
     // eq functions
 
-    friend inline bool operator==(const basic_value& lhs, const basic_value& rhs)
+    friend bool operator==(const basic_value& lhs, const basic_value& rhs)
     {
-        return lhs.value_ == rhs.value_;
+        if (lhs.type() == rhs.type())
+        {
+            switch (lhs.type())
+            {
+            case value_base::array:
+                return (*lhs.data_.vector == *rhs.data_.vector);
+            case value_base::object:
+                return (*lhs.data_.object == *rhs.data_.object);
+            case value_base::null:
+                return true;
+            case value_base::string:
+                return (*lhs.data_.string == *rhs.data_.string);
+            case value_base::boolean:
+                return (lhs.data_.boolean == rhs.data_.boolean);
+            case value_base::integer:
+                return (lhs.data_.integer == rhs.data_.integer);
+            case value_base::floating:
+                return detail::nearly_equal(lhs.data_.floating, rhs.data_.floating);
+            default:
+                return false;
+            }
+        }
+        else if (lhs.type() == value_base::integer && rhs.type() == value_base::floating)
+        {
+            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data_.integer), rhs.data_.floating);
+        }
+        else if (lhs.type() == value_base::floating && rhs.type() == value_base::integer)
+        {
+            return detail::nearly_equal<float_type>(lhs.data_.floating, static_cast<float_type>(rhs.data_.integer));
+        }
+        return false;
     }
 
     template <typename _ScalarTy, typename = typename std::enable_if<std::is_scalar<_ScalarTy>::value>::type>
@@ -835,38 +946,38 @@ public:
         {
             switch (lhs_type)
             {
-            case config_value_type::array:
-                return (*lhs.value_.data.vector) < (*rhs.value_.data.vector);
+            case value_base::array:
+                return (*lhs.data_.vector) < (*rhs.data_.vector);
 
-            case config_value_type::object:
-                return (*lhs.value_.data.object) < (*rhs.value_.data.object);
+            case value_base::object:
+                return (*lhs.data_.object) < (*rhs.data_.object);
 
-            case config_value_type::null:
+            case value_base::null:
                 return false;
 
-            case config_value_type::string:
-                return (*lhs.value_.data.string) < (*rhs.value_.data.string);
+            case value_base::string:
+                return (*lhs.data_.string) < (*rhs.data_.string);
 
-            case config_value_type::boolean:
-                return (lhs.value_.data.boolean < rhs.value_.data.boolean);
+            case value_base::boolean:
+                return (lhs.data_.boolean < rhs.data_.boolean);
 
-            case config_value_type::number_integer:
-                return (lhs.value_.data.number_integer < rhs.value_.data.number_integer);
+            case value_base::integer:
+                return (lhs.data_.integer < rhs.data_.integer);
 
-            case config_value_type::number_float:
-                return (lhs.value_.data.number_float < rhs.value_.data.number_float);
+            case value_base::floating:
+                return (lhs.data_.floating < rhs.data_.floating);
 
             default:
                 return false;
             }
         }
-        else if (lhs_type == config_value_type::number_integer && rhs_type == config_value_type::number_float)
+        else if (lhs_type == value_base::integer && rhs_type == value_base::floating)
         {
-            return (static_cast<float_type>(lhs.value_.data.number_integer) < rhs.value_.data.number_float);
+            return (static_cast<float_type>(lhs.data_.integer) < rhs.data_.floating);
         }
-        else if (lhs_type == config_value_type::number_float && rhs_type == config_value_type::number_integer)
+        else if (lhs_type == value_base::floating && rhs_type == value_base::integer)
         {
-            return (lhs.value_.data.number_float < static_cast<float_type>(rhs.value_.data.number_integer));
+            return (lhs.data_.floating < static_cast<float_type>(rhs.data_.integer));
         }
 
         return false;
@@ -941,152 +1052,19 @@ public:
         return basic_value(lhs) >= rhs;
     }
 
-public:
-    const value_type& raw_value() const
-    {
-        return value_;
-    }
-
-    value_type& raw_value()
-    {
-        return value_;
-    }
-
 private:
-    value_type value_;
-};
-
-namespace detail
-{
-template <typename _Ty>
-bool nearly_equal(_Ty a, _Ty b)
-{
-    // TODO
-    return std::fabs(a - b) < std::numeric_limits<_Ty>::epsilon();
-}
-
-//
-// config_value
-//
-
-template <typename _ValTy>
-struct config_value
-{
-    using string_type  = typename _ValTy::string_type;
-    using char_type    = typename _ValTy::char_type;
-    using integer_type = typename _ValTy::integer_type;
-    using float_type   = typename _ValTy::float_type;
-    using boolean_type = typename _ValTy::boolean_type;
-    using array_type   = typename _ValTy::array_type;
-    using object_type  = typename _ValTy::object_type;
-
-    config_value_type type;
-    union
+    void destroy_data()
     {
-        boolean_type boolean;
-        integer_type number_integer;
-        float_type   number_float;
-        string_type* string;
-        object_type* object;
-        array_type*  vector;
-    } data;
-
-    config_value()
-        : type(config_value_type::null)
-        , data{}
-    {
-    }
-
-    config_value(const config_value_type t)
-        : type(t)
-        , data{}
-    {
-        switch (type)
+        switch (type())
         {
-        case config_value_type::object:
-            data.object = create<object_type>();
+        case value_base::object:
+            destroy_data<object_type>(data_.object);
             break;
-        case config_value_type::array:
-            data.vector = create<array_type>();
+        case value_base::array:
+            destroy_data<array_type>(data_.vector);
             break;
-        case config_value_type::string:
-            data.string = create<string_type>();
-            break;
-        case config_value_type::number_integer:
-            data.number_integer = integer_type(0);
-            break;
-        case config_value_type::number_float:
-            data.number_float = float_type(0.0);
-            break;
-        case config_value_type::boolean:
-            data.boolean = boolean_type(false);
-            break;
-        default:
-            break;
-        }
-    }
-
-    config_value(config_value const& other)
-        : type(other.type)
-        , data{}
-    {
-        switch (other.type)
-        {
-        case config_value_type::object:
-            data.object = create<object_type>(*other.data.object);
-            break;
-        case config_value_type::array:
-            data.vector = create<array_type>(*other.data.vector);
-            break;
-        case config_value_type::string:
-            data.string = create<string_type>(*other.data.string);
-            break;
-        case config_value_type::number_integer:
-            data.number_integer = other.data.number_integer;
-            break;
-        case config_value_type::number_float:
-            data.number_float = other.data.number_float;
-            break;
-        case config_value_type::boolean:
-            data.boolean = other.data.boolean;
-            break;
-        default:
-            data.object = nullptr;
-            break;
-        }
-    }
-
-    config_value(config_value&& other) noexcept
-    {
-        type              = other.type;
-        data              = other.data;
-        other.type        = config_value_type::null;
-        other.data.object = nullptr;
-    }
-
-    ~config_value()
-    {
-        clear();
-    }
-
-    void swap(config_value& other)
-    {
-        std::swap(type, other.type);
-        std::swap(data, other.data);
-    }
-
-    void clear()
-    {
-        switch (type)
-        {
-        case config_value_type::object:
-            destroy<object_type>(data.object);
-            break;
-        case config_value_type::array:
-            destroy<array_type>(data.vector);
-            break;
-        case config_value_type::string:
-            destroy<string_type>(data.string);
+        case value_base::string:
+            destroy_data<string_type>(data_.string);
             break;
         default:
             break;
@@ -1094,88 +1072,108 @@ struct config_value
     }
 
     template <typename _Ty, typename... _Args>
-    inline _Ty* create(_Args&&... args)
+    _Ty* create_data(_Args&&... args) const
     {
-        using allocator_type   = typename _ValTy::template allocator_type<_Ty>;
-        using allocator_traits = std::allocator_traits<allocator_type>;
+        using allocator_traits = std::allocator_traits<allocator_type<_Ty>>;
 
-        allocator_type allocator;
+        static allocator_type<_Ty> allocator;
 
-        _Ty* ptr = allocator_traits::allocate(allocator, 1);
+        auto ptr = allocator_traits::allocate(allocator, 1);
         allocator_traits::construct(allocator, ptr, std::forward<_Args>(args)...);
         return ptr;
     }
 
     template <typename _Ty>
-    inline void destroy(_Ty* ptr)
+    void destroy_data(_Ty* ptr) const
     {
-        using allocator_type   = typename _ValTy::template allocator_type<_Ty>;
-        using allocator_traits = std::allocator_traits<allocator_type>;
+        using allocator_traits = std::allocator_traits<allocator_type<_Ty>>;
 
-        allocator_type allocator;
+        static allocator_type<_Ty> allocator;
         allocator_traits::destroy(allocator, ptr);
         allocator_traits::deallocate(allocator, ptr, 1);
     }
 
-    inline config_value& operator=(config_value const& other)
+private:
+    union data_type
     {
-        config_value{ other }.swap(*this);
-        return (*this);
+        boolean_type boolean;
+        integer_type integer;
+        float_type   floating;
+        string_type* string;
+        object_type* object;
+        array_type*  vector;
+    } data_;
+};
+
+namespace detail
+{
+template <typename _ValTy>
+class value_accessor
+{
+public:
+    using value_type = _ValTy;
+
+    static inline typename value_type::data_type& get_data(value_type& v)
+    {
+        return v.data_;
     }
 
-    inline config_value& operator=(config_value&& other) noexcept
+    static inline const typename value_type::data_type& get_data(const value_type& v)
     {
-        clear();
-        type = other.type;
-        data = std::move(other.data);
-        // invalidate payload
-        other.type        = config_value_type::null;
-        other.data.object = nullptr;
-        return (*this);
+        return v.data_;
     }
 
-    friend bool operator==(const config_value& lhs, const config_value& rhs)
+    template <value_base::value_type _Ty>
+    using type_constant = std::integral_constant<value_base::value_type, _Ty>;
+
+    template <value_base::value_type _Ty, typename... _Args>
+    static inline void construct_data(value_type& v, _Args&&... args)
     {
-        if (lhs.type == rhs.type)
-        {
-            switch (lhs.type)
-            {
-            case config_value_type::array:
-                return (*lhs.data.vector == *rhs.data.vector);
+        v = _Ty;
+        construct_data(type_constant<_Ty>{}, v, std::forward<_Args>(args)...);
+    }
 
-            case config_value_type::object:
-                return (*lhs.data.object == *rhs.data.object);
+private:
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::object>, value_type& v, _Args&&... args)
+    {
+        v.data_.object = v.create_data<typename value_type::object_type>(std::forward<_Args>(args)...);
+    }
 
-            case config_value_type::null:
-                return true;
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::array>, value_type& v, _Args&&... args)
+    {
+        v.data_.vector = v.create_data<typename value_type::array_type>(std::forward<_Args>(args)...);
+    }
 
-            case config_value_type::string:
-                return (*lhs.data.string == *rhs.data.string);
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::string>, value_type& v, _Args&&... args)
+    {
+        v.data_.string = v.create_data<typename value_type::string_type>(std::forward<_Args>(args)...);
+    }
 
-            case config_value_type::boolean:
-                return (lhs.data.boolean == rhs.data.boolean);
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::integer>, value_type& v, _Args&&... args)
+    {
+        v.data_.integer = typename value_type::integer_type{ std::forward<_Args>(args)... };
+    }
 
-            case config_value_type::number_integer:
-                return (lhs.data.number_integer == rhs.data.number_integer);
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::floating>, value_type& v, _Args&&... args)
+    {
+        v.data_.floating = typename value_type::float_type{ std::forward<_Args>(args)... };
+    }
 
-            case config_value_type::number_float:
-                return detail::nearly_equal(lhs.data.number_float, rhs.data.number_float);
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::boolean>, value_type& v, _Args&&... args)
+    {
+        v.data_.boolean = typename value_type::boolean_type{ std::forward<_Args>(args)... };
+    }
 
-            default:
-                return false;
-            }
-        }
-        else if (lhs.type == config_value_type::number_integer && rhs.type == config_value_type::number_float)
-        {
-            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer),
-                                                    rhs.data.number_float);
-        }
-        else if (lhs.type == config_value_type::number_float && rhs.type == config_value_type::number_integer)
-        {
-            return detail::nearly_equal<float_type>(lhs.data.number_float,
-                                                    static_cast<float_type>(rhs.data.number_integer));
-        }
-        return false;
+    template <typename... _Args>
+    static inline void construct_data(type_constant<value_base::null>, value_type& v, _Args&&... args)
+    {
+        v = value_base::null;
     }
 };
 
@@ -1220,12 +1218,6 @@ public:
     };
 };
 }  // namespace detail
-
-template <typename _ValTy, typename = typename std::enable_if<is_value<_ValTy>::value>::type>
-inline void swap(_ValTy& lhs, _ValTy& rhs)
-{
-    lhs.swap(rhs);
-}
 
 }  // namespace configor
 

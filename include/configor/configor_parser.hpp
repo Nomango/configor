@@ -113,26 +113,26 @@ protected:
             break;
 
         case token_type::literal_null:
-            c = config_value_type::null;
+            c = value_base::null;
             break;
 
         case token_type::value_string:
-            c = config_value_type::string;
-            get_string(*c.raw_value().data.string);
+            c = value_base::string;
+            get_string(*value_accessor<value_type>::get_data(c).string);
             break;
 
         case token_type::value_integer:
-            c = config_value_type::number_integer;
-            get_integer(c.raw_value().data.number_integer);
+            c = value_base::integer;
+            get_integer(value_accessor<value_type>::get_data(c).integer);
             break;
 
         case token_type::value_float:
-            c = config_value_type::number_float;
-            get_float(c.raw_value().data.number_float);
+            c = value_base::floating;
+            get_float(value_accessor<value_type>::get_data(c).floating);
             break;
 
         case token_type::begin_array:
-            c = config_value_type::array;
+            c = value_base::array;
             while (true)
             {
                 token = scan();
@@ -156,8 +156,8 @@ protected:
                 if (is_end)
                     break;
 
-                c.raw_value().data.vector->push_back(_ValTy());
-                do_parse(c.raw_value().data.vector->back(), token, false);
+                value_accessor<value_type>::get_data(c).vector->push_back(_ValTy());
+                do_parse(value_accessor<value_type>::get_data(c).vector->back(), token, false);
 
                 // read ','
                 token = scan();
@@ -169,7 +169,7 @@ protected:
             break;
 
         case token_type::begin_object:
-            c = config_value_type::object;
+            c = value_base::object;
             while (true)
             {
                 token = scan();
@@ -185,7 +185,7 @@ protected:
 
                 _ValTy object;
                 do_parse(object, token);
-                c.raw_value().data.object->emplace(key, object);
+                value_accessor<value_type>::get_data(c).object->emplace(key, object);
 
                 // read ','
                 token = scan();

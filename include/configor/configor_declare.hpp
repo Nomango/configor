@@ -19,8 +19,6 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_encoding.hpp"
-
 #include <cstdint>      // std::int64_t
 #include <map>          // std::map
 #include <string>       // std::string

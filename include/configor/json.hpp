@@ -22,8 +22,8 @@
 #include "configor.hpp"
 
 #include <algorithm>  // std::for_each
-#include <iomanip>    // std::setprecision, std::right, std::noshowbase
-#include <ios>        // std::noskipws
+#include <iomanip>    // std::setprecision
+#include <ios>        // std::noskipws, std::noshowbase, std::right
 
 namespace configor
 {

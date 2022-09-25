@@ -527,7 +527,7 @@ struct snprintf_t
     }
 
     template <typename _FloatTy>
-    static inline void one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
+    static void one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
     {
         std::array<char, 32> buffer = {};
 
@@ -549,8 +549,8 @@ private:
     }
 
     template <typename... _Args>
-    static inline int internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
-                                        const char* format, _Args&&... args)
+    static int internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size, const char* format,
+                                 _Args&&... args)
     {
         const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
         if (len > 0)
@@ -566,7 +566,7 @@ private:
     }
 
     template <typename _UCharTy>
-    static inline void copy_simple_string(std::basic_ostream<_UCharTy>& os, const char* str, size_t len)
+    static void copy_simple_string(std::basic_ostream<_UCharTy>& os, const char* str, size_t len)
     {
         for (size_t i = 0; i < len; i++)
             os.put(static_cast<_UCharTy>(str[i]));

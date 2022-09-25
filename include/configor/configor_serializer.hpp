@@ -97,9 +97,9 @@ protected:
     {
         switch (c.type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
-            const auto& object = *c.raw_value().data.object;
+            const auto& object = *value_accessor<value_type>::get_data(c).object;
 
             next(token_type::begin_object);
             if (object.empty())
@@ -128,11 +128,11 @@ protected:
             return;
         }
 
-        case config_value_type::array:
+        case value_base::array:
         {
             next(token_type::begin_array);
 
-            auto& v = *c.raw_value().data.vector;
+            auto& v = *value_accessor<value_type>::get_data(c).vector;
             if (v.empty())
             {
                 next(token_type::end_array);
@@ -153,16 +153,16 @@ protected:
             return;
         }
 
-        case config_value_type::string:
+        case value_base::string:
         {
             next(token_type::value_string);
-            put_string(*c.raw_value().data.string);
+            put_string(*value_accessor<value_type>::get_data(c).string);
             return;
         }
 
-        case config_value_type::boolean:
+        case value_base::boolean:
         {
-            if (c.raw_value().data.boolean)
+            if (value_accessor<value_type>::get_data(c).boolean)
             {
                 next(token_type::literal_true);
             }
@@ -173,21 +173,21 @@ protected:
             return;
         }
 
-        case config_value_type::number_integer:
+        case value_base::integer:
         {
             next(token_type::value_integer);
-            put_integer(c.raw_value().data.number_integer);
+            put_integer(value_accessor<value_type>::get_data(c).integer);
             return;
         }
 
-        case config_value_type::number_float:
+        case value_base::floating:
         {
             next(token_type::value_float);
-            put_float(c.raw_value().data.number_float);
+            put_float(value_accessor<value_type>::get_data(c).floating);
             return;
         }
 
-        case config_value_type::null:
+        case value_base::null:
         {
             next(token_type::literal_null);
             return;
@@ -270,7 +270,7 @@ public:
         reverse(static_cast<size_t>(step_ * 2));
     }
 
-    void operator++()
+    inline void operator++()
     {
         ++depth_;
         reverse(static_cast<size_t>(depth_ * step_));
@@ -281,12 +281,12 @@ public:
         --depth_;
     }
 
-    void put(std::basic_ostream<char_type>& os) const
+    inline void put(std::basic_ostream<char_type>& os) const
     {
         os.write(indent_string_.c_str(), static_cast<std::streamsize>(depth_ * step_));
     }
 
-    void put(std::basic_ostream<char_type>& os, int length)
+    inline void put(std::basic_ostream<char_type>& os, int length)
     {
         reverse(static_cast<size_t>(length));
         os.write(indent_string_.c_str(), static_cast<std::streamsize>(length));

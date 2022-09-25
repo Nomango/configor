@@ -42,7 +42,7 @@ namespace detail
 {
 namespace
 {
-inline configor_type_error make_conversion_error(config_value_type t, config_value_type want)
+inline configor_type_error make_conversion_error(value_base::value_type t, value_base::value_type want)
 {
     fast_ostringstream ss;
     ss << "cannot convert type '" << to_string(t) << "' to type '" << to_string(want) << "' (implicitly)";
@@ -56,9 +56,7 @@ template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    auto& cv        = c.raw_value();
-    cv.type         = config_value_type::boolean;
-    cv.data.boolean = v;
+    value_accessor<_ValTy>::construct_data<value_base::boolean>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
@@ -66,33 +64,25 @@ template <typename _ValTy, typename _Ty,
               std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    auto& cv               = c.raw_value();
-    cv.type                = config_value_type::number_integer;
-    cv.data.number_integer = static_cast<typename _ValTy::integer_type>(v);
+    value_accessor<_ValTy>::construct_data<value_base::integer>(c, static_cast<typename _ValTy::integer_type>(v));
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    auto& cv             = c.raw_value();
-    cv.type              = config_value_type::number_float;
-    cv.data.number_float = static_cast<typename _ValTy::float_type>(v);
+    value_accessor<_ValTy>::construct_data<value_base::floating>(c, static_cast<typename _ValTy::float_type>(v));
 }
 
 template <typename _ValTy>
 void to_value(_ValTy& c, const typename _ValTy::string_type& v)
 {
-    auto& cv       = c.raw_value();
-    cv.type        = config_value_type::string;
-    cv.data.string = cv.template create<typename _ValTy::string_type>(v);
+    value_accessor<_ValTy>::construct_data<value_base::string>(c, v);
 }
 
 template <typename _ValTy>
 void to_value(_ValTy& c, typename _ValTy::string_type&& v)
 {
-    auto& cv       = c.raw_value();
-    cv.type        = config_value_type::string;
-    cv.data.string = cv.template create<typename _ValTy::string_type>(std::move(v));
+    value_accessor<_ValTy>::construct_data<value_base::string>(c, std::move(v));
 }
 
 template <typename _ValTy, typename _Ty,
@@ -101,27 +91,21 @@ template <typename _ValTy, typename _Ty,
                                   int>::type = 0>
 void to_value(_ValTy& c, const _Ty& v)
 {
-    auto& cv       = c.raw_value();
-    cv.type        = config_value_type::string;
-    cv.data.string = cv.template create<typename _ValTy::string_type>(v);
+    value_accessor<_ValTy>::construct_data<value_base::string>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::array_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty& v)
 {
-    auto& cv       = c.raw_value();
-    cv.type        = config_value_type::array;
-    cv.data.vector = cv.template create<typename _ValTy::array_type>(v);
+    value_accessor<_ValTy>::construct_data<value_base::array>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::object_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty& v)
 {
-    auto& cv       = c.raw_value();
-    cv.type        = config_value_type::object;
-    cv.data.object = cv.template create<typename _ValTy::object_type>(v);
+    value_accessor<_ValTy>::construct_data<value_base::object>(c, v);
 }
 
 // from_value functions
@@ -131,8 +115,8 @@ template <typename _ValTy, typename _Ty,
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_bool())
-        throw make_conversion_error(c.type(), config_value_type::boolean);
-    v = c.raw_value().data.boolean;
+        throw make_conversion_error(c.type(), value_base::boolean);
+    v = value_accessor<_ValTy>::get_data(c).boolean;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -141,24 +125,24 @@ template <typename _ValTy, typename _Ty,
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_integer())
-        throw make_conversion_error(c.type(), config_value_type::number_integer);
-    v = static_cast<_Ty>(c.raw_value().data.number_integer);
+        throw make_conversion_error(c.type(), value_base::integer);
+    v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).integer);
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_float())
-        throw make_conversion_error(c.type(), config_value_type::number_float);
-    v = static_cast<_Ty>(c.raw_value().data.number_float);
+        throw make_conversion_error(c.type(), value_base::floating);
+    v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).floating);
 }
 
 template <typename _ValTy>
 void from_value(const _ValTy& c, typename _ValTy::string_type& v)
 {
     if (!c.is_string())
-        throw make_conversion_error(c.type(), config_value_type::string);
-    v = *c.raw_value().data.string;
+        throw make_conversion_error(c.type(), value_base::string);
+    v = *value_accessor<_ValTy>::get_data(c).string;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -168,8 +152,8 @@ template <typename _ValTy, typename _Ty,
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_string())
-        throw make_conversion_error(c.type(), config_value_type::string);
-    v = *c.raw_value().data.string;
+        throw make_conversion_error(c.type(), value_base::string);
+    v = *value_accessor<_ValTy>::get_data(c).string;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -182,8 +166,9 @@ void from_value(const _ValTy& c, _Ty& v)
         return;
     }
     if (!c.is_array())
-        throw make_conversion_error(c.type(), config_value_type::array);
-    v.assign((*c.raw_value().data.vector).begin(), (*c.raw_value().data.vector).end());
+        throw make_conversion_error(c.type(), value_base::array);
+    v.assign((*value_accessor<_ValTy>::get_data(c).vector).begin(),
+             (*value_accessor<_ValTy>::get_data(c).vector).end());
 }
 
 template <typename _ValTy, typename _Ty,
@@ -196,8 +181,8 @@ void from_value(const _ValTy& c, _Ty& v)
         return;
     }
     if (!c.is_object())
-        throw make_conversion_error(c.type(), config_value_type::object);
-    v = *c.raw_value().data.object;
+        throw make_conversion_error(c.type(), value_base::object);
+    v = *value_accessor<_ValTy>::get_data(c).object;
 }
 
 // c-style array
@@ -838,11 +823,11 @@ public:
 // CONFIGOR_BIND(json, myclass, REQUIRED(field1), REQUIRED(field2, "field2 name"))
 // CONFIGOR_BIND(json, myclass, OPTIONAL(field1), OPTIONAL(field2, "field2 name"))
 #define CONFIGOR_BIND(value_type, custom_type, ...)                                                                   \
-    friend void to_value(value_type& c, const custom_type& v)                                                        \
+    friend void to_value(value_type& c, const custom_type& v)                                                         \
     {                                                                                                                 \
         __CONFIGOR_EXPAND(__CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_TO_CONF_CALL_OVERLOAD, __VA_ARGS__)) \
     }                                                                                                                 \
-    friend void from_value(const value_type& c, custom_type& v)                                                      \
+    friend void from_value(const value_type& c, custom_type& v)                                                       \
     {                                                                                                                 \
         __CONFIGOR_EXPAND(                                                                                            \
             __CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_FROM_CONF_CALL_OVERLOAD, __VA_ARGS__))             \
