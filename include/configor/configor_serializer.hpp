@@ -212,10 +212,8 @@ class serializable
 public:
     using value_type = typename _Args::value_type;
 
-    template <typename _TargetCharTy = typename value_type::char_type>
+    template <typename _TargetCharTy>
     using serializer_type = typename _Args::template serializer_type<value_type, _TargetCharTy>;
-
-    using serializer = serializer_type<>;
 
     template <typename _TargetCharTy>
     using serializer_option = typename serializer_type<_TargetCharTy>::option;

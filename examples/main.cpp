@@ -45,6 +45,9 @@ int main(int argc, char** argv)
 
     User u = { 1001, "中文" };
 
+    json::serializer::with_error_handler(nullptr);
+    json::parser::with_error_handler(nullptr);
+
     const auto str =
         json::dump<wchar_t>(u, {
                                    json::serializer_type<wchar_t>::with_indent(2),

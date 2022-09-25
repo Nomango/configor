@@ -59,29 +59,17 @@ struct wjson_args : json_args
     using char_type = wchar_t;
 };
 
-template <typename _JsonArgs>
+template <typename _Args>
 class basic_json final
-    : public detail::serializable<_JsonArgs>
-    , public detail::parsable<_JsonArgs>
-    , public detail::value_maker<basic_value<_JsonArgs>>
+    : public detail::serializable<_Args>
+    , public detail::parsable<_Args>
+    , public detail::value_maker<basic_value<_Args>>
+    , public detail::wrapper_maker<basic_json<_Args>, basic_value<_Args>>
 {
 public:
-    using value = basic_value<_JsonArgs>;
-
-    template <typename _Ty, typename = typename std::enable_if<!std::is_same<value, _Ty>::value
-                                                               && detail::has_to_config<value, _Ty>::value>::type>
-    static inline detail::read_wrapper<basic_json, _Ty> wrap(const _Ty& v)
-    {
-        return detail::read_wrapper<basic_json, _Ty>(v);
-    }
-
-    template <typename _Ty, typename = typename std::enable_if<!is_config<_Ty>::value
-                                                               && detail::is_configor_getable<value, _Ty>::value
-                                                               && !std::is_pointer<_Ty>::value>::type>
-    static inline detail::write_wrapper<basic_json, _Ty> wrap(_Ty& v)
-    {
-        return detail::write_wrapper<basic_json, _Ty>(v);
-    }
+    using value      = basic_value<_Args>;
+    using serializer = typename detail::serializable<_Args>::serializer_type<typename value::char_type>;
+    using parser     = typename detail::parsable<_Args>::parser_type<typename value::char_type>;
 };
 
 using json  = basic_json<json_args>;

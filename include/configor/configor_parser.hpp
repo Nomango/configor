@@ -231,10 +231,8 @@ class parsable
 public:
     using value_type = typename _Args::value_type;
 
-    template <typename _SourceCharTy = typename value_type::char_type>
+    template <typename _SourceCharTy>
     using parser_type = typename _Args::template parser_type<value_type, _SourceCharTy>;
-
-    using parser = parser_type<>;
 
     template <typename _SourceCharTy>
     using parser_option = typename parser_type<_SourceCharTy>::option;

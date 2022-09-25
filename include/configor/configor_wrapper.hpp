@@ -28,20 +28,20 @@ namespace configor
 namespace detail
 {
 template <typename _ConfigTy, typename _Ty>
-class read_wrapper
+class ostream_wrapper
 {
 public:
     using config_type = typename _ConfigTy;
     using value_type  = typename _ConfigTy::value;
 
-    explicit read_wrapper(const _Ty& v)
+    explicit ostream_wrapper(const _Ty& v)
         : v_(v)
     {
     }
 
     template <typename _TargetCharTy, typename _Traits>
     friend std::basic_ostream<_TargetCharTy, _Traits>& operator<<(std::basic_ostream<_TargetCharTy, _Traits>& out,
-                                                                  const read_wrapper&                         wrapper)
+                                                                  const ostream_wrapper&                      wrapper)
     {
         typename std::basic_ostream<_TargetCharTy, _Traits>::sentry s(out);
         if (s)
@@ -56,21 +56,21 @@ private:
 };
 
 template <typename _ConfigTy, typename _Ty>
-class write_wrapper : public read_wrapper<_ConfigTy, _Ty>
+class iostream_wrapper : public ostream_wrapper<_ConfigTy, _Ty>
 {
 public:
     using config_type = typename _ConfigTy;
     using value_type  = typename _ConfigTy::value;
 
-    explicit write_wrapper(_Ty& v)
-        : read_wrapper<_ConfigTy, _Ty>(v)
+    explicit iostream_wrapper(_Ty& v)
+        : ostream_wrapper<_ConfigTy, _Ty>(v)
         , v_(v)
     {
     }
 
     template <typename _SourceCharTy, typename _Traits>
     friend std::basic_istream<_SourceCharTy, _Traits>& operator>>(std::basic_istream<_SourceCharTy, _Traits>& in,
-                                                                  write_wrapper&                              wrapper)
+                                                                  iostream_wrapper&                           wrapper)
     {
         typename std::basic_istream<_SourceCharTy, _Traits>::sentry s(in);
         if (s)
@@ -84,6 +84,28 @@ public:
 
 private:
     _Ty& v_;
+};
+
+template <typename _ConfigTy, typename _ValTy>
+class wrapper_maker
+{
+public:
+    using value_type = _ValTy;
+
+    template <typename _Ty, typename = typename std::enable_if<!std::is_same<value_type, _Ty>::value
+                                                               && has_to_config<value_type, _Ty>::value>::type>
+    static inline ostream_wrapper<_ConfigTy, _Ty> wrap(const _Ty& v)
+    {
+        return ostream_wrapper<_ConfigTy, _Ty>(v);
+    }
+
+    template <typename _Ty,
+              typename = typename std::enable_if<!is_config<_Ty>::value && is_configor_getable<value_type, _Ty>::value
+                                                 && !std::is_pointer<_Ty>::value>::type>
+    static inline iostream_wrapper<_ConfigTy, _Ty> wrap(_Ty& v)
+    {
+        return iostream_wrapper<_ConfigTy, _Ty>(v);
+    }
 };
 }  // namespace detail
 
