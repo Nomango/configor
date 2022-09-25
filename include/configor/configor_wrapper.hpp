@@ -94,14 +94,14 @@ public:
     using value_type  = typename _ValTy;
 
     template <typename _Ty, typename = typename std::enable_if<!std::is_same<value_type, _Ty>::value
-                                                               && has_to_config<value_type, _Ty>::value>::type>
+                                                               && has_to_value<value_type, _Ty>::value>::type>
     static inline ostream_wrapper<config_type, _Ty> wrap(const _Ty& v)
     {
         return ostream_wrapper<config_type, _Ty>(v);
     }
 
     template <typename _Ty,
-              typename = typename std::enable_if<!is_value<_Ty>::value && is_configor_getable<value_type, _Ty>::value
+              typename = typename std::enable_if<!is_value<_Ty>::value && is_value_getable<value_type, _Ty>::value
                                                  && !std::is_pointer<_Ty>::value>::type>
     static inline iostream_wrapper<config_type, _Ty> wrap(_Ty& v)
     {

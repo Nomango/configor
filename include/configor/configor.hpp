@@ -19,33 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_basic.hpp"
-
-namespace configor
-{
-
-using config  = basic_value<>;
-using wconfig = basic_value<wvalue_tpl_args>;
-
-template <typename _ValTy, typename = typename std::enable_if<is_value<_ValTy>::value>::type>
-inline void swap(_ValTy& lhs, _ValTy& rhs)
-{
-    lhs.swap(rhs);
-}
-
-}  // namespace configor
-
-namespace std
-{
-template <typename _Args>
-struct hash<::configor::basic_value<_Args>>
-{
-    using argument_type = ::configor::basic_value<_Args>;
-    using result_type   = size_t;
-
-    result_type operator()(argument_type const& config) const
-    {
-        return hash<typename argument_type::string_type>{}(config.dump());
-    }
-};
-}  // namespace std
+#include "configor_conversion.hpp"
+#include "configor_parser.hpp"
+#include "configor_serializer.hpp"
+#include "configor_wrapper.hpp"

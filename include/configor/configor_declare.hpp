@@ -158,6 +158,82 @@ struct static_const
 template <typename _Ty>
 constexpr _Ty static_const<_Ty>::value;
 
+// to value
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_to_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_to_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using to_config_fn = decltype(_UTy::to_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ValTy&, _Ty>::value;
+};
+
+// from value
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_from_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ValTy, _Ty&>::value;
+};
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_non_default_from_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_non_default_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ValTy>::value;
+};
+
+// getable
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct is_value_getable : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct is_value_getable<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    template <typename _UTy, typename... _Args>
+    using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
+
+public:
+    static constexpr bool value = exact_detect<_Ty, get_fn, _ValTy, _Ty>::value;
+};
+
 }  // namespace detail
 
 }  // namespace configor

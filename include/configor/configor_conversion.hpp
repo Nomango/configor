@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_declare.hpp"
+#include "configor_stream.hpp"
 #include "configor_value.hpp"
 
 #include <array>          // std::array
@@ -38,89 +38,23 @@
 
 namespace configor
 {
-
-//
-// type_traits
-//
-
 namespace detail
 {
-
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct has_to_config : std::false_type
+namespace
 {
-};
-
-template <typename _ValTy, typename _Ty>
-struct has_to_config<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+inline configor_type_error make_conversion_error(config_value_type t, config_value_type want)
 {
-private:
-    using binder_type = typename _ValTy::template binder_type<_Ty>;
+    fast_ostringstream ss;
+    ss << "cannot convert type '" << to_string(t) << "' to type '" << to_string(want) << "' (implicitly)";
+    return configor_type_error(ss.str());
+}
+}  // namespace
 
-    template <typename _UTy, typename... _Args>
-    using to_config_fn = decltype(_UTy::to_config(std::declval<_Args>()...));
-
-public:
-    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ValTy&, _Ty>::value;
-};
-
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct has_from_config : std::false_type
-{
-};
-
-template <typename _ValTy, typename _Ty>
-struct has_from_config<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    using binder_type = typename _ValTy::template binder_type<_Ty>;
-
-    template <typename _UTy, typename... _Args>
-    using from_config_fn = decltype(_UTy::from_config(std::declval<_Args>()...));
-
-public:
-    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ValTy, _Ty&>::value;
-};
-
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct has_non_default_from_config : std::false_type
-{
-};
-
-template <typename _ValTy, typename _Ty>
-struct has_non_default_from_config<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    using binder_type = typename _ValTy::template binder_type<_Ty>;
-
-    template <typename _UTy, typename... _Args>
-    using from_config_fn = decltype(_UTy::from_config(std::declval<_Args>()...));
-
-public:
-    static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ValTy>::value;
-};
-
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct is_configor_getable : std::false_type
-{
-};
-
-template <typename _ValTy, typename _Ty>
-struct is_configor_getable<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    template <typename _UTy, typename... _Args>
-    using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
-
-public:
-    static constexpr bool value = exact_detect<_Ty, get_fn, _ValTy, _Ty>::value;
-};
-
-// to_config functions
+// to_value functions
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
-void to_config(_ValTy& c, _Ty v)
+void to_value(_ValTy& c, _Ty v)
 {
     auto& cv        = c.raw_value();
     cv.type         = config_value_type::boolean;
@@ -130,7 +64,7 @@ void to_config(_ValTy& c, _Ty v)
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<
               std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
-void to_config(_ValTy& c, _Ty v)
+void to_value(_ValTy& c, _Ty v)
 {
     auto& cv               = c.raw_value();
     cv.type                = config_value_type::number_integer;
@@ -138,7 +72,7 @@ void to_config(_ValTy& c, _Ty v)
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, _Ty v)
+void to_value(_ValTy& c, _Ty v)
 {
     auto& cv             = c.raw_value();
     cv.type              = config_value_type::number_float;
@@ -146,7 +80,7 @@ void to_config(_ValTy& c, _Ty v)
 }
 
 template <typename _ValTy>
-void to_config(_ValTy& c, const typename _ValTy::string_type& v)
+void to_value(_ValTy& c, const typename _ValTy::string_type& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::string;
@@ -154,7 +88,7 @@ void to_config(_ValTy& c, const typename _ValTy::string_type& v)
 }
 
 template <typename _ValTy>
-void to_config(_ValTy& c, typename _ValTy::string_type&& v)
+void to_value(_ValTy& c, typename _ValTy::string_type&& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::string;
@@ -165,7 +99,7 @@ template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<typename _ValTy::string_type, _Ty>::value
                                       && !std::is_same<_Ty, typename _ValTy::string_type>::value,
                                   int>::type = 0>
-void to_config(_ValTy& c, const _Ty& v)
+void to_value(_ValTy& c, const _Ty& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::string;
@@ -174,7 +108,7 @@ void to_config(_ValTy& c, const _Ty& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::array_type>::value, int>::type = 0>
-void to_config(_ValTy& c, _Ty& v)
+void to_value(_ValTy& c, _Ty& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::array;
@@ -183,18 +117,18 @@ void to_config(_ValTy& c, _Ty& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::object_type>::value, int>::type = 0>
-void to_config(_ValTy& c, _Ty& v)
+void to_value(_ValTy& c, _Ty& v)
 {
     auto& cv       = c.raw_value();
     cv.type        = config_value_type::object;
     cv.data.object = cv.template create<typename _ValTy::object_type>(v);
 }
 
-// from_config functions
+// from_value functions
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
-void from_config(const _ValTy& c, _Ty& v)
+void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_bool())
         throw make_conversion_error(c.type(), config_value_type::boolean);
@@ -204,7 +138,7 @@ void from_config(const _ValTy& c, _Ty& v)
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<
               std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
-void from_config(const _ValTy& c, _Ty& v)
+void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_integer())
         throw make_conversion_error(c.type(), config_value_type::number_integer);
@@ -212,7 +146,7 @@ void from_config(const _ValTy& c, _Ty& v)
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, _Ty& v)
+void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_float())
         throw make_conversion_error(c.type(), config_value_type::number_float);
@@ -220,7 +154,7 @@ void from_config(const _ValTy& c, _Ty& v)
 }
 
 template <typename _ValTy>
-void from_config(const _ValTy& c, typename _ValTy::string_type& v)
+void from_value(const _ValTy& c, typename _ValTy::string_type& v)
 {
     if (!c.is_string())
         throw make_conversion_error(c.type(), config_value_type::string);
@@ -231,7 +165,7 @@ template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_Ty, typename _ValTy::string_type>::value
                                       && !std::is_same<_Ty, typename _ValTy::string_type>::value,
                                   int>::type = 0>
-void from_config(const _ValTy& c, _Ty& v)
+void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_string())
         throw make_conversion_error(c.type(), config_value_type::string);
@@ -240,7 +174,7 @@ void from_config(const _ValTy& c, _Ty& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::array_type>::value, int>::type = 0>
-void from_config(const _ValTy& c, _Ty& v)
+void from_value(const _ValTy& c, _Ty& v)
 {
     if (c.is_null())
     {
@@ -254,7 +188,7 @@ void from_config(const _ValTy& c, _Ty& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::object_type>::value, int>::type = 0>
-void from_config(const _ValTy& c, _Ty& v)
+void from_value(const _ValTy& c, _Ty& v)
 {
     if (c.is_null())
     {
@@ -273,7 +207,7 @@ template <
     typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value
                                 && !std::is_constructible<typename _ValTy::string_type, const _Ty (&)[_Num]>::value,
                             int>::type = 0>
-void to_config(_ValTy& c, const _Ty (&v)[_Num])
+void to_value(_ValTy& c, const _Ty (&v)[_Num])
 {
     c = nullptr;
     for (size_t i = 0; i < _Num; i++)
@@ -284,10 +218,10 @@ void to_config(_ValTy& c, const _Ty (&v)[_Num])
 
 template <
     typename _ValTy, typename _Ty, size_t _Num,
-    typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value
+    typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value
                                 && !std::is_constructible<typename _ValTy::string_type, const _Ty (&)[_Num]>::value,
                             int>::type = 0>
-void from_config(const _ValTy& c, _Ty (&v)[_Num])
+void from_value(const _ValTy& c, _Ty (&v)[_Num])
 {
     for (size_t i = 0; i < c.size() && i < _Num; i++)
     {
@@ -299,7 +233,7 @@ void from_config(const _ValTy& c, _Ty (&v)[_Num])
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::unique_ptr<_Ty>& v)
+void to_value(_ValTy& c, const std::unique_ptr<_Ty>& v)
 {
     if (v != nullptr)
     {
@@ -312,8 +246,8 @@ void to_config(_ValTy& c, const std::unique_ptr<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::unique_ptr<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::unique_ptr<_Ty>& v)
 {
     if (c.is_null())
     {
@@ -327,7 +261,7 @@ void from_config(const _ValTy& c, std::unique_ptr<_Ty>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::shared_ptr<_Ty>& v)
+void to_value(_ValTy& c, const std::shared_ptr<_Ty>& v)
 {
     if (v != nullptr)
     {
@@ -340,8 +274,8 @@ void to_config(_ValTy& c, const std::shared_ptr<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::shared_ptr<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::shared_ptr<_Ty>& v)
 {
     if (c.is_null())
     {
@@ -355,7 +289,7 @@ void from_config(const _ValTy& c, std::shared_ptr<_Ty>& v)
 
 template <typename _ValTy, typename _Ty, size_t _Num,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::array<_Ty, _Num>& v)
+void to_value(_ValTy& c, const std::array<_Ty, _Num>& v)
 {
     c = nullptr;
     for (size_t i = 0; i < _Num; i++)
@@ -365,8 +299,8 @@ void to_config(_ValTy& c, const std::array<_Ty, _Num>& v)
 }
 
 template <typename _ValTy, typename _Ty, size_t _Num,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::array<_Ty, _Num>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::array<_Ty, _Num>& v)
 {
     for (size_t i = 0; i < c.size() && i < _Num; i++)
     {
@@ -376,7 +310,7 @@ void from_config(const _ValTy& c, std::array<_Ty, _Num>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::vector<_Ty>& v)
+void to_value(_ValTy& c, const std::vector<_Ty>& v)
 {
     c = nullptr;
     for (size_t i = 0; i < v.size(); ++i)
@@ -386,8 +320,8 @@ void to_config(_ValTy& c, const std::vector<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::vector<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::vector<_Ty>& v)
 {
     v.resize(c.size());
     for (size_t i = 0; i < c.size(); ++i)
@@ -398,7 +332,7 @@ void from_config(const _ValTy& c, std::vector<_Ty>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::deque<_Ty>& v)
+void to_value(_ValTy& c, const std::deque<_Ty>& v)
 {
     c = nullptr;
     for (size_t i = 0; i < v.size(); ++i)
@@ -408,8 +342,8 @@ void to_config(_ValTy& c, const std::deque<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::deque<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::deque<_Ty>& v)
 {
     v.resize(c.size());
     for (size_t i = 0; i < c.size(); ++i)
@@ -420,7 +354,7 @@ void from_config(const _ValTy& c, std::deque<_Ty>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::list<_Ty>& v)
+void to_value(_ValTy& c, const std::list<_Ty>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -431,8 +365,8 @@ void to_config(_ValTy& c, const std::list<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::list<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::list<_Ty>& v)
 {
     v.clear();
     for (size_t i = 0; i < c.size(); i++)
@@ -443,7 +377,7 @@ void from_config(const _ValTy& c, std::list<_Ty>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::forward_list<_Ty>& v)
+void to_value(_ValTy& c, const std::forward_list<_Ty>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -454,8 +388,8 @@ void to_config(_ValTy& c, const std::forward_list<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::forward_list<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::forward_list<_Ty>& v)
 {
     v.clear();
     size_t size = c.size();
@@ -467,7 +401,7 @@ void from_config(const _ValTy& c, std::forward_list<_Ty>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::set<_Ty>& v)
+void to_value(_ValTy& c, const std::set<_Ty>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -478,8 +412,8 @@ void to_config(_ValTy& c, const std::set<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::set<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::set<_Ty>& v)
 {
     v.clear();
     for (size_t i = 0; i < c.size(); i++)
@@ -490,7 +424,7 @@ void from_config(const _ValTy& c, std::set<_Ty>& v)
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value, int>::type = 0>
-void to_config(_ValTy& c, const std::unordered_set<_Ty>& v)
+void to_value(_ValTy& c, const std::unordered_set<_Ty>& v)
 {
     c         = nullptr;
     auto iter = v.begin();
@@ -501,8 +435,8 @@ void to_config(_ValTy& c, const std::unordered_set<_Ty>& v)
 }
 
 template <typename _ValTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value, int>::type = 0>
-void from_config(const _ValTy& c, std::unordered_set<_Ty>& v)
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value, int>::type = 0>
+void from_value(const _ValTy& c, std::unordered_set<_Ty>& v)
 {
     v.clear();
     for (size_t i = 0; i < c.size(); i++)
@@ -515,7 +449,7 @@ template <typename _ValTy, typename _KeyTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value
                                       && std::is_constructible<typename _ValTy::string_type, _KeyTy>::value,
                                   int>::type = 0>
-void to_config(_ValTy& c, const std::map<_KeyTy, _Ty>& v)
+void to_value(_ValTy& c, const std::map<_KeyTy, _Ty>& v)
 {
     c = nullptr;
     for (const auto& p : v)
@@ -525,10 +459,10 @@ void to_config(_ValTy& c, const std::map<_KeyTy, _Ty>& v)
 }
 
 template <typename _ValTy, typename _KeyTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value
                                       && std::is_constructible<_KeyTy, typename _ValTy::string_type>::value,
                                   int>::type = 0>
-void from_config(const _ValTy& c, std::map<_KeyTy, _Ty>& v)
+void from_value(const _ValTy& c, std::map<_KeyTy, _Ty>& v)
 {
     for (auto iter = c.cbegin(); iter != c.cend(); iter++)
     {
@@ -540,7 +474,7 @@ template <typename _ValTy, typename _KeyTy, typename _Ty,
           typename std::enable_if<std::is_constructible<_ValTy, _Ty>::value
                                       && std::is_constructible<typename _ValTy::string_type, _KeyTy>::value,
                                   int>::type = 0>
-void to_config(_ValTy& c, const std::unordered_map<_KeyTy, _Ty>& v)
+void to_value(_ValTy& c, const std::unordered_map<_KeyTy, _Ty>& v)
 {
     c = nullptr;
     for (const auto& p : v)
@@ -550,10 +484,10 @@ void to_config(_ValTy& c, const std::unordered_map<_KeyTy, _Ty>& v)
 }
 
 template <typename _ValTy, typename _KeyTy, typename _Ty,
-          typename std::enable_if<detail::is_configor_getable<_ValTy, _Ty>::value
+          typename std::enable_if<detail::is_value_getable<_ValTy, _Ty>::value
                                       && std::is_constructible<_KeyTy, typename _ValTy::string_type>::value,
                                   int>::type = 0>
-void from_config(const _ValTy& c, std::unordered_map<_KeyTy, _Ty>& v)
+void from_value(const _ValTy& c, std::unordered_map<_KeyTy, _Ty>& v)
 {
     for (auto iter = c.cbegin(); iter != c.cend(); iter++)
     {
@@ -562,26 +496,26 @@ void from_config(const _ValTy& c, std::unordered_map<_KeyTy, _Ty>& v)
 }
 
 //
-// to_config & from_config function object
+// to_value & from_value function object
 // Explanation: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4381.html
 //
 struct to_config_fn
 {
     template <typename _ValTy, typename _Ty>
-    auto operator()(_ValTy& c, _Ty&& v) const noexcept(noexcept(to_config(c, std::forward<_Ty>(v))))
-        -> decltype(to_config(c, std::forward<_Ty>(v)))
+    auto operator()(_ValTy& c, _Ty&& v) const noexcept(noexcept(to_value(c, std::forward<_Ty>(v))))
+        -> decltype(to_value(c, std::forward<_Ty>(v)))
     {
-        return to_config(c, std::forward<_Ty>(v));
+        return to_value(c, std::forward<_Ty>(v));
     }
 };
 
 struct from_config_fn
 {
     template <typename _ValTy, typename _Ty>
-    auto operator()(const _ValTy& c, _Ty&& v) const noexcept(noexcept(from_config(c, std::forward<_Ty>(v))))
-        -> decltype(from_config(c, std::forward<_Ty>(v)))
+    auto operator()(const _ValTy& c, _Ty&& v) const noexcept(noexcept(from_value(c, std::forward<_Ty>(v))))
+        -> decltype(from_value(c, std::forward<_Ty>(v)))
     {
-        return from_config(c, std::forward<_Ty>(v));
+        return from_value(c, std::forward<_Ty>(v));
     }
 };
 
@@ -589,8 +523,8 @@ struct from_config_fn
 
 namespace
 {
-constexpr auto const& to_config   = detail::static_const<detail::to_config_fn>::value;
-constexpr auto const& from_config = detail::static_const<detail::from_config_fn>::value;
+constexpr auto const& to_value   = detail::static_const<detail::to_config_fn>::value;
+constexpr auto const& from_value = detail::static_const<detail::from_config_fn>::value;
 }  // namespace
 
 //
@@ -602,17 +536,17 @@ class value_binder
 {
 public:
     template <typename _ValTy, typename _UTy = _Ty>
-    static auto to_config(_ValTy& c, _UTy&& v) noexcept(noexcept(::configor::to_config(c, std::forward<_UTy>(v))))
-        -> decltype(::configor::to_config(c, std::forward<_UTy>(v)))
+    static auto to_value(_ValTy& c, _UTy&& v) noexcept(noexcept(::configor::to_value(c, std::forward<_UTy>(v))))
+        -> decltype(::configor::to_value(c, std::forward<_UTy>(v)))
     {
-        return ::configor::to_config(c, std::forward<_UTy>(v));
+        return ::configor::to_value(c, std::forward<_UTy>(v));
     }
 
     template <typename _ValTy, typename _UTy = _Ty>
-    static auto from_config(_ValTy&& c, _UTy& v) noexcept(noexcept(::configor::from_config(std::forward<_ValTy>(c), v)))
-        -> decltype(::configor::from_config(std::forward<_ValTy>(c), v))
+    static auto from_value(_ValTy&& c, _UTy& v) noexcept(noexcept(::configor::from_value(std::forward<_ValTy>(c), v)))
+        -> decltype(::configor::from_value(std::forward<_ValTy>(c), v))
     {
-        return ::configor::from_config(std::forward<_ValTy>(c), v);
+        return ::configor::from_value(std::forward<_ValTy>(c), v);
     }
 };
 
@@ -904,11 +838,11 @@ public:
 // CONFIGOR_BIND(json, myclass, REQUIRED(field1), REQUIRED(field2, "field2 name"))
 // CONFIGOR_BIND(json, myclass, OPTIONAL(field1), OPTIONAL(field2, "field2 name"))
 #define CONFIGOR_BIND(value_type, custom_type, ...)                                                                   \
-    friend void to_config(value_type& c, const custom_type& v)                                                        \
+    friend void to_value(value_type& c, const custom_type& v)                                                        \
     {                                                                                                                 \
         __CONFIGOR_EXPAND(__CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_TO_CONF_CALL_OVERLOAD, __VA_ARGS__)) \
     }                                                                                                                 \
-    friend void from_config(const value_type& c, custom_type& v)                                                      \
+    friend void from_value(const value_type& c, custom_type& v)                                                      \
     {                                                                                                                 \
         __CONFIGOR_EXPAND(                                                                                            \
             __CONFIGOR_PASTE(__CONFIGOR_COMBINE_PASTE1, __CONFIGOR_FROM_CONF_CALL_OVERLOAD, __VA_ARGS__))             \

@@ -20,9 +20,6 @@
 
 #pragma once
 #include "configor.hpp"
-#include "configor_parser.hpp"
-#include "configor_serializer.hpp"
-#include "configor_wrapper.hpp"
 
 #include <algorithm>  // std::for_each
 #include <iomanip>    // std::setprecision, std::right, std::noshowbase

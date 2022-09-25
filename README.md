@@ -438,12 +438,12 @@ namespace configor
 template <>
 struct value_binder<User>
 {
-    static void to_config(json& j, const User& v)
+    static void to_value(json& j, const User& v)
     {
         j = { { "user_id", v.user_id }, { "user_name", v.user_name } };
     }
 
-    static void from_config(const json& j, User& v)
+    static void from_value(const json& j, User& v)
     {
         j["user_id"].get(v.user_id);
         j["user_name"].get(v.user_name);

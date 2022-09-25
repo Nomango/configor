@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_basic.hpp"
 #include "configor_encoding.hpp"
 #include "configor_stream.hpp"
 #include "configor_token.hpp"

@@ -27,12 +27,12 @@ namespace configor
 template <>
 struct value_binder<Driver>
 {
-    static void to_config(config& c, const Driver& v)
+    static void to_value(config& c, const Driver& v)
     {
         c["name"] = v.name_;
     }
 
-    static Driver from_config(const config& c)
+    static Driver from_value(const config& c)
     {
         return Driver(c["name"].get<std::string>());
     }
@@ -65,13 +65,13 @@ namespace configor
 template <>
 struct value_binder<Passenger>
 {
-    static void to_config(config& c, const Passenger& v)
+    static void to_value(config& c, const Passenger& v)
     {
         c["name"] = v.name_;
         c["age"]  = v.age_;
     }
 
-    static void from_config(const config& c, Passenger& v)
+    static void from_value(const config& c, Passenger& v)
     {
         c["name"].get(v.name_);
         c["age"].get(v.age_);
