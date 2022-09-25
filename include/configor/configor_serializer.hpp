@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "configor_basic.hpp"
 #include "configor_encoding.hpp"
 #include "configor_stream.hpp"
 #include "configor_token.hpp"
@@ -206,14 +207,14 @@ protected:
 // serializable
 //
 
-template <typename _Args>
+template <class _Args, template <class, class> class _SerializerTy, template <class> class _DefaultEncoding>
 class serializable
 {
 public:
-    using value_type = typename _Args::value_type;
+    using value_type = basic_value<_Args>;
 
     template <typename _TargetCharTy>
-    using serializer_type = typename _Args::template serializer_type<value_type, _TargetCharTy>;
+    using serializer_type = _SerializerTy<value_type, _TargetCharTy>;
 
     template <typename _TargetCharTy>
     using serializer_option = typename serializer_type<_TargetCharTy>::option;
@@ -224,8 +225,8 @@ public:
                      std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
         serializer_type<_TargetCharTy> s{ os };
-        s.template set_source_encoding<typename _Args::default_encoding>();
-        s.template set_target_encoding<typename _Args::default_encoding>();
+        s.template set_source_encoding<_DefaultEncoding>();
+        s.template set_target_encoding<_DefaultEncoding>();
         s.apply(options);
         s.dump(v);
     }

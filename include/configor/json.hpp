@@ -40,40 +40,25 @@ template <typename _ValTy, typename _TargetCharTy>
 class json_serializer;
 }  // namespace detail
 
-struct json_args : config_args
-{
-    using value_type = basic_value<json_args>;
-
-    template <typename _ValTy, typename _SourceCharTy>
-    using parser_type = detail::json_parser<_ValTy, _SourceCharTy>;
-
-    template <typename _ValTy, typename _TargetCharTy>
-    using serializer_type = detail::json_serializer<_ValTy, _TargetCharTy>;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::auto_utf<_CharTy>;
-};
-
-struct wjson_args : json_args
-{
-    using char_type = wchar_t;
-};
-
-template <typename _Args>
+template <typename _Args, template <typename> typename _DefaultEncoding = encoding::auto_utf>
 class basic_json final
-    : public detail::serializable<_Args>
-    , public detail::parsable<_Args>
-    , public detail::value_maker<basic_value<_Args>>
-    , public detail::wrapper_maker<basic_json<_Args>, basic_value<_Args>>
+    : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
+    , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
+    , public detail::value_maker<_Args>
+    , public detail::wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
 {
 public:
-    using value      = basic_value<_Args>;
-    using serializer = typename detail::serializable<_Args>::serializer_type<typename value::char_type>;
-    using parser     = typename detail::parsable<_Args>::parser_type<typename value::char_type>;
+    using value = basic_value<_Args>;
+
+    using serializable = detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>;
+    using serializer   = typename serializable::serializer_type<typename value::char_type>;
+
+    using parsable = detail::parsable<_Args, detail::json_parser, _DefaultEncoding>;
+    using parser   = typename parsable::parser_type<typename value::char_type>;
 };
 
-using json  = basic_json<json_args>;
-using wjson = basic_json<wjson_args>;
+using json  = basic_json<value_tpl_args>;
+using wjson = basic_json<wvalue_tpl_args>;
 
 // type traits
 
@@ -82,8 +67,8 @@ struct is_json : std::false_type
 {
 };
 
-template <typename _Args>
-struct is_json<basic_json<_Args>> : std::true_type
+template <typename _Args, template <typename> typename _DefaultEncoding>
+struct is_json<basic_json<_Args, _DefaultEncoding>> : std::true_type
 {
 };
 

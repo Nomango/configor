@@ -35,28 +35,9 @@ namespace configor
 //
 
 template <typename _Ty>
-class config_binder;
+class value_binder;
 
-namespace detail
-{
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class parser;
-
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class serializer;
-
-struct nonesuch
-{
-    nonesuch()                      = delete;
-    ~nonesuch()                     = delete;
-    nonesuch(nonesuch const&)       = delete;
-    nonesuch(nonesuch const&&)      = delete;
-    void operator=(nonesuch const&) = delete;
-    void operator=(nonesuch&&)      = delete;
-};
-}  // namespace detail
-
-struct config_args
+struct value_tpl_args
 {
     using boolean_type = bool;
 
@@ -79,28 +60,28 @@ struct config_args
     using allocator_type = std::allocator<_Ty>;
 
     template <class _Ty>
-    using binder_type = config_binder<_Ty>;
+    using binder_type = value_binder<_Ty>;
 };
 
-struct wconfig_args : config_args
+struct wvalue_tpl_args : value_tpl_args
 {
     using char_type = wchar_t;
 };
 
-template <typename _Args = config_args>
+template <typename _Args = value_tpl_args>
 class basic_value;
 
 //
-// is_config
+// is_value
 //
 
 template <typename>
-struct is_config : std::false_type
+struct is_value : std::false_type
 {
 };
 
 template <typename _Args>
-struct is_config<basic_value<_Args>> : std::true_type
+struct is_value<basic_value<_Args>> : std::true_type
 {
 };
 

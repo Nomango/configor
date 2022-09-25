@@ -19,8 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_declare.hpp"
-#include "configor_value.hpp"
+#include "configor_parser.hpp"
+#include "configor_serializer.hpp"
 
 namespace configor
 {
@@ -90,21 +90,22 @@ template <typename _ConfigTy, typename _ValTy>
 class wrapper_maker
 {
 public:
-    using value_type = _ValTy;
+    using config_type = typename _ConfigTy;
+    using value_type  = typename _ValTy;
 
     template <typename _Ty, typename = typename std::enable_if<!std::is_same<value_type, _Ty>::value
                                                                && has_to_config<value_type, _Ty>::value>::type>
-    static inline ostream_wrapper<_ConfigTy, _Ty> wrap(const _Ty& v)
+    static inline ostream_wrapper<config_type, _Ty> wrap(const _Ty& v)
     {
-        return ostream_wrapper<_ConfigTy, _Ty>(v);
+        return ostream_wrapper<config_type, _Ty>(v);
     }
 
     template <typename _Ty,
-              typename = typename std::enable_if<!is_config<_Ty>::value && is_configor_getable<value_type, _Ty>::value
+              typename = typename std::enable_if<!is_value<_Ty>::value && is_configor_getable<value_type, _Ty>::value
                                                  && !std::is_pointer<_Ty>::value>::type>
-    static inline iostream_wrapper<_ConfigTy, _Ty> wrap(_Ty& v)
+    static inline iostream_wrapper<config_type, _Ty> wrap(_Ty& v)
     {
-        return iostream_wrapper<_ConfigTy, _Ty>(v);
+        return iostream_wrapper<config_type, _Ty>(v);
     }
 };
 }  // namespace detail

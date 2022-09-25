@@ -481,7 +481,7 @@ TEST_CASE("test_basic_config")
 
 #include <fifo_map/fifo_map.hpp>
 
-struct fifo_config_args : config_args
+struct fifo_config_args : value_tpl_args
 {
     template <class _Kty, class _Ty, class... _Args>
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;

@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "configor_basic.hpp"
 #include "configor_encoding.hpp"
 #include "configor_stream.hpp"
 #include "configor_token.hpp"
@@ -225,14 +226,14 @@ protected:
 // parsable
 //
 
-template <typename _Args>
+template <typename _Args, template <class, class> class _ParserTy, template <class> class _DefaultEncoding>
 class parsable
 {
 public:
-    using value_type = typename _Args::value_type;
+    using value_type = basic_value<_Args>;
 
     template <typename _SourceCharTy>
-    using parser_type = typename _Args::template parser_type<value_type, _SourceCharTy>;
+    using parser_type = _ParserTy<value_type, _SourceCharTy>;
 
     template <typename _SourceCharTy>
     using parser_option = typename parser_type<_SourceCharTy>::option;
@@ -243,8 +244,8 @@ public:
                       std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
         parser_type<_SourceCharTy> p{ is };
-        p.template set_source_encoding<typename _Args::default_encoding>();
-        p.template set_target_encoding<typename _Args::default_encoding>();
+        p.template set_source_encoding<_DefaultEncoding>();
+        p.template set_target_encoding<_DefaultEncoding>();
         p.apply(options);
         p.parse(c);
     }

@@ -85,7 +85,7 @@ public:
     }
 
     template <typename _CompatibleTy, typename _UTy = typename detail::remove_cvref<_CompatibleTy>::type,
-              typename std::enable_if<!is_config<_UTy>::value && detail::has_to_config<basic_value, _UTy>::value,
+              typename std::enable_if<!is_value<_UTy>::value && detail::has_to_config<basic_value, _UTy>::value,
                                       int>::type = 0>
     basic_value(_CompatibleTy&& value)
     {
@@ -917,11 +917,11 @@ private:
 
 namespace detail
 {
-template <typename _ValTy>
+template <typename _Args>
 class value_maker
 {
 public:
-    using value_type = _ValTy;
+    using value_type = basic_value<_Args>;
 
     struct object
     {

@@ -6,7 +6,7 @@
 
 class Driver
 {
-    friend config_binder<Driver>;
+    friend value_binder<Driver>;
 
     std::string name_;
 
@@ -25,7 +25,7 @@ public:
 namespace configor
 {
 template <>
-struct config_binder<Driver>
+struct value_binder<Driver>
 {
     static void to_config(config& c, const Driver& v)
     {
@@ -41,7 +41,7 @@ struct config_binder<Driver>
 
 class Passenger
 {
-    friend config_binder<Passenger>;
+    friend value_binder<Passenger>;
 
     std::string name_;
     int         age_ = 0;
@@ -63,7 +63,7 @@ public:
 namespace configor
 {
 template <>
-struct config_binder<Passenger>
+struct value_binder<Passenger>
 {
     static void to_config(config& c, const Passenger& v)
     {

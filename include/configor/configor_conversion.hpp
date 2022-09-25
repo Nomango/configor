@@ -52,7 +52,7 @@ struct has_to_config : std::false_type
 };
 
 template <typename _ValTy, typename _Ty>
-struct has_to_config<_ValTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+struct has_to_config<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
 {
 private:
     using binder_type = typename _ValTy::template binder_type<_Ty>;
@@ -70,7 +70,7 @@ struct has_from_config : std::false_type
 };
 
 template <typename _ValTy, typename _Ty>
-struct has_from_config<_ValTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+struct has_from_config<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
 {
 private:
     using binder_type = typename _ValTy::template binder_type<_Ty>;
@@ -88,7 +88,7 @@ struct has_non_default_from_config : std::false_type
 };
 
 template <typename _ValTy, typename _Ty>
-struct has_non_default_from_config<_ValTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+struct has_non_default_from_config<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
 {
 private:
     using binder_type = typename _ValTy::template binder_type<_Ty>;
@@ -106,7 +106,7 @@ struct is_configor_getable : std::false_type
 };
 
 template <typename _ValTy, typename _Ty>
-struct is_configor_getable<_ValTy, _Ty, typename std::enable_if<!is_config<_Ty>::value>::type>
+struct is_configor_getable<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
 {
 private:
     template <typename _UTy, typename... _Args>
@@ -594,11 +594,11 @@ constexpr auto const& from_config = detail::static_const<detail::from_config_fn>
 }  // namespace
 
 //
-// config_binder
+// value_binder
 //
 
 template <typename _Ty>
-class config_binder
+class value_binder
 {
 public:
     template <typename _ValTy, typename _UTy = _Ty>
