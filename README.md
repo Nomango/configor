@@ -335,12 +335,12 @@ std::wstring str = j[L"name"].get<std::wstring>();
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
 
 ```cpp
-struct u16json_args : json_args
+struct u16json_args : json_tpl_args
 {
     using char_type = char16_t;
 };
 
-struct u32json_args : json_args
+struct u32json_args : json_tpl_args
 {
     using char_type = char32_t;
 };
@@ -436,14 +436,14 @@ struct User
 namespace configor
 {
 template <>
-struct config_binder<User>
+struct value_binder<User>
 {
-    static void to_config(json& j, const User& v)
+    static void to_value(json& j, const User& v)
     {
         j = { { "user_id", v.user_id }, { "user_name", v.user_name } };
     }
 
-    static void from_config(const json& j, User& v)
+    static void from_value(const json& j, User& v)
     {
         j["user_id"].get(v.user_id);
         j["user_name"].get(v.user_name);
@@ -531,7 +531,7 @@ std::cout << j.dump<encoding::ignore>() << std::endl;
 或使用自定义的json类：
 
 ```cpp
-struct my_json_args : configor::json_args
+struct my_json_args : configor::json_tpl_args
 {
     // 使用 encoding::ignore 忽略编码
     template <typename _CharTy>
@@ -550,7 +550,7 @@ configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串�
 建议用第三方库替换 std::map，比如 [nlohmann/fifo_map](https://github.com/nlohmann/fifo_map)，然后声明 fifo_json 替换 json 来保证插入序
 
 ```cpp
-struct fifo_json_args : json_args
+struct fifo_json_args : json_tpl_args
 {
     template <class _Kty, class _Ty, class... _Args>
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;

@@ -381,11 +381,11 @@ TEST_CASE("test_basic_config")
         CHECK_THAT(c.type_name(), Equals("string"));
         // integer
         c = 100;
-        CHECK(c.type() == config_value_type::number_integer);
+        CHECK(c.type() == config_value_type::integer);
         CHECK_THAT(c.type_name(), Equals("integer"));
         // floating
         c = 100.0;
-        CHECK(c.type() == config_value_type::number_float);
+        CHECK(c.type() == config_value_type::floating);
         CHECK_THAT(c.type_name(), Equals("float"));
         // boolean
         c = true;
@@ -457,12 +457,12 @@ TEST_CASE("test_basic_config")
         CHECK(c.type() == config_value_type::boolean);
         CHECK_FALSE(c.get<bool>());
 
-        CHECK_NOTHROW(c = config_value_type::number_integer);
-        CHECK(c.type() == config_value_type::number_integer);
+        CHECK_NOTHROW(c = config_value_type::integer);
+        CHECK(c.type() == config_value_type::integer);
         CHECK(c.get<config::integer_type>() == 0);
 
-        CHECK_NOTHROW(c = config_value_type::number_float);
-        CHECK(c.type() == config_value_type::number_float);
+        CHECK_NOTHROW(c = config_value_type::floating);
+        CHECK(c.type() == config_value_type::floating);
         CHECK(c.get<config::float_type>() == 0.0);
 
         CHECK_NOTHROW(c = config_value_type::string);
@@ -481,7 +481,7 @@ TEST_CASE("test_basic_config")
 
 #include <fifo_map/fifo_map.hpp>
 
-struct fifo_config_args : config_args
+struct fifo_config_args : value_tpl_args
 {
     template <class _Kty, class _Ty, class... _Args>
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;

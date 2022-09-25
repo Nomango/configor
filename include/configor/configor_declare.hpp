@@ -19,8 +19,6 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_encoding.hpp"
-
 #include <cstdint>      // std::int64_t
 #include <map>          // std::map
 #include <string>       // std::string
@@ -35,28 +33,9 @@ namespace configor
 //
 
 template <typename _Ty>
-class config_binder;
+class value_binder;
 
-namespace detail
-{
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class parser;
-
-template <typename _ValTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class serializer;
-
-struct nonesuch
-{
-    nonesuch()                      = delete;
-    ~nonesuch()                     = delete;
-    nonesuch(nonesuch const&)       = delete;
-    nonesuch(nonesuch const&&)      = delete;
-    void operator=(nonesuch const&) = delete;
-    void operator=(nonesuch&&)      = delete;
-};
-}  // namespace detail
-
-struct config_args
+struct value_tpl_args
 {
     using boolean_type = bool;
 
@@ -79,28 +58,28 @@ struct config_args
     using allocator_type = std::allocator<_Ty>;
 
     template <class _Ty>
-    using binder_type = config_binder<_Ty>;
+    using binder_type = value_binder<_Ty>;
 };
 
-struct wconfig_args : config_args
+struct wvalue_tpl_args : value_tpl_args
 {
     using char_type = wchar_t;
 };
 
-template <typename _Args = config_args>
+template <typename _Args = value_tpl_args>
 class basic_value;
 
 //
-// is_config
+// is_value
 //
 
 template <typename>
-struct is_config : std::false_type
+struct is_value : std::false_type
 {
 };
 
 template <typename _Args>
-struct is_config<basic_value<_Args>> : std::true_type
+struct is_value<basic_value<_Args>> : std::true_type
 {
 };
 
@@ -176,6 +155,82 @@ struct static_const
 
 template <typename _Ty>
 constexpr _Ty static_const<_Ty>::value;
+
+// to value
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_to_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_to_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using to_config_fn = decltype(_UTy::to_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ValTy&, _Ty>::value;
+};
+
+// from value
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_from_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ValTy, _Ty&>::value;
+};
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_non_default_from_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_non_default_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ValTy>::value;
+};
+
+// getable
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct is_value_getable : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct is_value_getable<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    template <typename _UTy, typename... _Args>
+    using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
+
+public:
+    static constexpr bool value = exact_detect<_Ty, get_fn, _ValTy, _Ty>::value;
+};
 
 }  // namespace detail
 
