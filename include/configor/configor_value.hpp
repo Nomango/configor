@@ -151,25 +151,26 @@ public:
         : value_base{ t }
         , data_{}
     {
+        using accessor = detail::value_accessor<basic_value>;
         switch (t)
         {
         case value_base::object:
-            data_.object = create_data<object_type>();
+            accessor::construct_data<value_base::object>(*this);
             break;
         case value_base::array:
-            data_.vector = create_data<array_type>();
+            accessor::construct_data<value_base::array>(*this);
             break;
         case value_base::string:
-            data_.string = create_data<string_type>();
+            accessor::construct_data<value_base::string>(*this);
             break;
         case value_base::integer:
-            data_.integer = integer_type(0);
+            accessor::construct_data<value_base::integer>(*this, integer_type(0));
             break;
         case value_base::floating:
-            data_.floating = float_type(0.0);
+            accessor::construct_data<value_base::floating>(*this, float_type(0.0));
             break;
         case value_base::boolean:
-            data_.boolean = boolean_type(false);
+            accessor::construct_data<value_base::boolean>(*this, boolean_type(false));
             break;
         default:
             break;
@@ -180,25 +181,26 @@ public:
         : value_base{ other.type() }
         , data_{}
     {
+        using accessor = detail::value_accessor<basic_value>;
         switch (other.type())
         {
         case value_base::object:
-            data_.object = create_data<object_type>(*other.data_.object);
+            accessor::construct_data<value_base::object>(*this, *other.data_.object);
             break;
         case value_base::array:
-            data_.vector = create_data<array_type>(*other.data_.vector);
+            accessor::construct_data<value_base::array>(*this, *other.data_.vector);
             break;
         case value_base::string:
-            data_.string = create_data<string_type>(*other.data_.string);
+            accessor::construct_data<value_base::string>(*this, *other.data_.string);
             break;
         case value_base::integer:
-            data_.integer = other.data_.integer;
+            accessor::construct_data<value_base::integer>(*this, other.data_.integer);
             break;
         case value_base::floating:
-            data_.floating = other.data_.floating;
+            accessor::construct_data<value_base::floating>(*this, other.data_.floating);
             break;
         case value_base::boolean:
-            data_.boolean = other.data_.boolean;
+            accessor::construct_data<value_base::boolean>(*this, other.data_.boolean);
             break;
         default:
             break;
@@ -223,7 +225,8 @@ public:
 
     ~basic_value()
     {
-        destroy_data();
+        using accessor = detail::value_accessor<basic_value>;
+        accessor::destroy_data(*this);
     }
 
     static basic_value object(std::initializer_list<std::pair<string_type, basic_value>> list)
@@ -1053,46 +1056,6 @@ public:
     }
 
 private:
-    void destroy_data()
-    {
-        switch (type())
-        {
-        case value_base::object:
-            destroy_data<object_type>(data_.object);
-            break;
-        case value_base::array:
-            destroy_data<array_type>(data_.vector);
-            break;
-        case value_base::string:
-            destroy_data<string_type>(data_.string);
-            break;
-        default:
-            break;
-        }
-    }
-
-    template <typename _Ty, typename... _Args>
-    _Ty* create_data(_Args&&... args) const
-    {
-        using allocator_traits = std::allocator_traits<allocator_type<_Ty>>;
-
-        static allocator_type<_Ty> allocator;
-
-        auto ptr = allocator_traits::allocate(allocator, 1);
-        allocator_traits::construct(allocator, ptr, std::forward<_Args>(args)...);
-        return ptr;
-    }
-
-    template <typename _Ty>
-    void destroy_data(_Ty* ptr) const
-    {
-        using allocator_traits = std::allocator_traits<allocator_type<_Ty>>;
-
-        static allocator_type<_Ty> allocator;
-        allocator_traits::destroy(allocator, ptr);
-        allocator_traits::deallocate(allocator, ptr, 1);
-    }
-
 private:
     union data_type
     {
@@ -1113,6 +1076,9 @@ class value_accessor
 public:
     using value_type = _ValTy;
 
+    template <typename _Ty>
+    using allocator_type = typename value_type::template allocator_type<_Ty>;
+
     static inline typename value_type::data_type& get_data(value_type& v)
     {
         return v.data_;
@@ -1127,29 +1093,54 @@ public:
     using type_constant = std::integral_constant<value_base::value_type, _Ty>;
 
     template <value_base::value_type _Ty, typename... _Args>
+    static inline void reset_data(value_type& v, _Args&&... args)
+    {
+        destroy_data(v);
+        v.set_type(_Ty);
+        construct_data<_Ty>(v, std::forward<_Args>(args)...);
+    }
+
+    template <value_base::value_type _Ty, typename... _Args>
     static inline void construct_data(value_type& v, _Args&&... args)
     {
-        v = _Ty;
         construct_data(type_constant<_Ty>{}, v, std::forward<_Args>(args)...);
+    }
+
+    static void destroy_data(value_type& v)
+    {
+        switch (v.type())
+        {
+        case value_base::object:
+            destroy_data<typename value_type::object_type>(v.data_.object);
+            break;
+        case value_base::array:
+            destroy_data<typename value_type::array_type>(v.data_.vector);
+            break;
+        case value_base::string:
+            destroy_data<typename value_type::string_type>(v.data_.string);
+            break;
+        default:
+            break;
+        }
     }
 
 private:
     template <typename... _Args>
     static inline void construct_data(type_constant<value_base::object>, value_type& v, _Args&&... args)
     {
-        v.data_.object = v.create_data<typename value_type::object_type>(std::forward<_Args>(args)...);
+        v.data_.object = create_data<typename value_type::object_type>(std::forward<_Args>(args)...);
     }
 
     template <typename... _Args>
     static inline void construct_data(type_constant<value_base::array>, value_type& v, _Args&&... args)
     {
-        v.data_.vector = v.create_data<typename value_type::array_type>(std::forward<_Args>(args)...);
+        v.data_.vector = create_data<typename value_type::array_type>(std::forward<_Args>(args)...);
     }
 
     template <typename... _Args>
     static inline void construct_data(type_constant<value_base::string>, value_type& v, _Args&&... args)
     {
-        v.data_.string = v.create_data<typename value_type::string_type>(std::forward<_Args>(args)...);
+        v.data_.string = create_data<typename value_type::string_type>(std::forward<_Args>(args)...);
     }
 
     template <typename... _Args>
@@ -1173,7 +1164,29 @@ private:
     template <typename... _Args>
     static inline void construct_data(type_constant<value_base::null>, value_type& v, _Args&&... args)
     {
-        v = value_base::null;
+        ((void)v);
+    }
+
+    template <typename _Ty, typename... _Args>
+    static _Ty* create_data(_Args&&... args)
+    {
+        using allocator_traits = std::allocator_traits<allocator_type<_Ty>>;
+
+        static allocator_type<_Ty> allocator;
+
+        auto ptr = allocator_traits::allocate(allocator, 1);
+        allocator_traits::construct(allocator, ptr, std::forward<_Args>(args)...);
+        return ptr;
+    }
+
+    template <typename _Ty>
+    static void destroy_data(_Ty* ptr)
+    {
+        using allocator_traits = std::allocator_traits<allocator_type<_Ty>>;
+
+        static allocator_type<_Ty> allocator;
+        allocator_traits::destroy(allocator, ptr);
+        allocator_traits::deallocate(allocator, ptr, 1);
     }
 };
 
