@@ -818,7 +818,7 @@ public:
 #define CONFIGOR_REQUIRED(field) REQUIRED(field)
 #define CONFIGOR_OPTIONAL(field) OPTIONAL(field)
 
-// Bind custom type to config type
+// Bind custom type to configor value
 // e.g.
 // CONFIGOR_BIND(json, myclass, REQUIRED(field1), REQUIRED(field2, "field2 name"))
 // CONFIGOR_BIND(json, myclass, OPTIONAL(field1), OPTIONAL(field2, "field2 name"))

@@ -52,7 +52,7 @@ class configor_type_error : public configor_exception
 {
 public:
     explicit configor_type_error(const std::string& message)
-        : configor_exception("config type error: " + message)
+        : configor_exception("value type error: " + message)
     {
     }
 };
@@ -61,7 +61,7 @@ class configor_invalid_key : public configor_exception
 {
 public:
     explicit configor_invalid_key(const std::string& message)
-        : configor_exception("invalid config key error: " + message)
+        : configor_exception("invalid value key error: " + message)
     {
     }
 };
@@ -70,7 +70,7 @@ class configor_invalid_iterator : public configor_exception
 {
 public:
     explicit configor_invalid_iterator(const std::string& message)
-        : configor_exception("invalid config iterator error: " + message)
+        : configor_exception("invalid value iterator error: " + message)
     {
     }
 };
@@ -79,7 +79,7 @@ class configor_deserialization_error : public configor_exception
 {
 public:
     explicit configor_deserialization_error(const std::string& message)
-        : configor_exception("config deserialization error: " + message)
+        : configor_exception("value deserialization error: " + message)
     {
     }
 };
@@ -88,7 +88,7 @@ class configor_serialization_error : public configor_exception
 {
 public:
     explicit configor_serialization_error(const std::string& message)
-        : configor_exception("config serialization error: " + message)
+        : configor_exception("value serialization error: " + message)
     {
     }
 };

@@ -1234,18 +1234,3 @@ public:
 }  // namespace detail
 
 }  // namespace configor
-
-namespace std
-{
-template <typename _Args>
-struct hash<::configor::basic_value<_Args>>
-{
-    using argument_type = ::configor::basic_value<_Args>;
-    using result_type   = size_t;
-
-    result_type operator()(argument_type const& config) const
-    {
-        return hash<typename argument_type::string_type>{}(config.dump());
-    }
-};
-}  // namespace std

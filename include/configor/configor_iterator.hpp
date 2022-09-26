@@ -142,8 +142,8 @@ struct iterator
     using pointer           = value_type*;
     using reference         = value_type&;
 
-    inline explicit iterator(value_type* config)
-        : data_(config)
+    inline explicit iterator(value_type* v)
+        : data_(v)
     {
     }
 
@@ -343,7 +343,7 @@ struct iterator
         rhs.check_data();
 
         if (data_ != rhs.data_)
-            throw configor_invalid_iterator("cannot compute iterator offsets of different config objects");
+            throw configor_invalid_iterator("cannot compute iterator offsets of different value objects");
 
         if (data_->type() != value_base::array)
             throw configor_invalid_iterator("cannot compute iterator offsets with non-array type");
@@ -397,7 +397,7 @@ struct iterator
         other.check_data();
 
         if (data_ != other.data_)
-            throw configor_invalid_iterator("cannot compare iterators of different config objects");
+            throw configor_invalid_iterator("cannot compare iterators of different value objects");
 
         switch (data_->type())
         {
