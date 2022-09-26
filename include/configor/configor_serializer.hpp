@@ -44,12 +44,13 @@ public:
     using source_char_type = typename value_type::char_type;
     using target_char_type = _TargetCharTy;
 
-    basic_serializer(std::basic_ostream<target_char_type>& os)
+    explicit basic_serializer(std::basic_ostream<target_char_type>& os)
         : os_(os.rdbuf())
         , err_handler_(nullptr)
         , source_decoder_(nullptr)
         , target_encoder_(nullptr)
     {
+        os_.setf(os.flags(), std::ios_base::floatfield);
         os_.imbue(std::locale(std::locale::classic(), os.getloc(), std::locale::collate | std::locale::ctype));
     }
 
@@ -226,7 +227,7 @@ public:
         serializer_type<_TargetCharTy> s{ os };
         s.template set_source_encoding<_DefaultEncoding>();
         s.template set_target_encoding<_DefaultEncoding>();
-        s.apply(options);
+        s.prepare(options);
         s.dump(v);
     }
 

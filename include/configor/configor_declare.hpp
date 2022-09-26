@@ -19,11 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <cstdint>      // std::int64_t
-#include <map>          // std::map
-#include <string>       // std::string
 #include <type_traits>  // std::false_type, std::true_type, std::remove_cv, std::remove_reference
-#include <vector>       // std::vector
 
 namespace configor
 {
@@ -35,38 +31,7 @@ namespace configor
 template <typename _Ty>
 class value_binder;
 
-struct value_tpl_args
-{
-    using boolean_type = bool;
-
-    using integer_type = int64_t;
-
-    using float_type = double;
-
-    using char_type = char;
-
-    template <class _CharTy, class... _Args>
-    using string_type = std::basic_string<_CharTy, _Args...>;
-
-    template <class _Kty, class... _Args>
-    using array_type = std::vector<_Kty, _Args...>;
-
-    template <class _Kty, class _Ty, class... _Args>
-    using object_type = std::map<_Kty, _Ty, _Args...>;
-
-    template <class _Ty>
-    using allocator_type = std::allocator<_Ty>;
-
-    template <class _Ty>
-    using binder_type = value_binder<_Ty>;
-};
-
-struct wvalue_tpl_args : value_tpl_args
-{
-    using char_type = wchar_t;
-};
-
-template <typename _Args = value_tpl_args>
+template <typename _Args>
 class basic_value;
 
 //
@@ -82,6 +47,67 @@ template <typename _Args>
 struct is_value<basic_value<_Args>> : std::true_type
 {
 };
+
+//
+// value_base
+//
+
+class value_base
+{
+public:
+    enum value_type
+    {
+        null,
+        integer,
+        floating,
+        string,
+        array,
+        object,
+        boolean,
+    };
+
+    inline value_type type() const
+    {
+        return type_;
+    }
+
+protected:
+    value_base(value_type t = value_type::null)
+        : type_{ t }
+    {
+    }
+
+    ~value_base() {}
+
+    inline void set_type(value_type t)
+    {
+        type_ = t;
+    }
+
+    value_type type_;
+};
+
+inline const char* to_string(value_base::value_type t) noexcept
+{
+    switch (t)
+    {
+    case value_base::value_type::object:
+        return "object";
+    case value_base::value_type::array:
+        return "array";
+    case value_base::value_type::string:
+        return "string";
+    case value_base::value_type::integer:
+        return "integer";
+    case value_base::value_type::floating:
+        return "float";
+    case value_base::value_type::boolean:
+        return "boolean";
+    case value_base::value_type::null:
+        return "null";
+    }
+    return "unknown";
+}
 
 namespace detail
 {

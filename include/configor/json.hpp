@@ -41,17 +41,18 @@ template <typename _Args, template <typename> class _DefaultEncoding = encoding:
 class basic_json final
     : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
     , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
-    , public detail::value_maker<_Args>
+    , public detail::value_maker<basic_value<_Args>>
     , public detail::wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
 {
 public:
     using value = basic_value<_Args>;
 
-    using serializable = detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>;
-    using serializer   = typename serializable::template serializer_type<typename value::char_type>;
+    using serializer =
+        typename detail::serializable<_Args, detail::json_serializer,
+                                      _DefaultEncoding>::template serializer_type<typename value::char_type>;
 
-    using parsable = detail::parsable<_Args, detail::json_parser, _DefaultEncoding>;
-    using parser   = typename parsable::template parser_type<typename value::char_type>;
+    using parser = typename detail::parsable<_Args, detail::json_parser,
+                                             _DefaultEncoding>::template parser_type<typename value::char_type>;
 };
 
 using json  = basic_json<value_tpl_args>;
@@ -90,6 +91,16 @@ public:
     }
 
     template <template <class> class _Encoding>
+    static option with_encoding()
+    {
+        return [=](json_parser& p)
+        {
+            p.template set_source_encoding<_Encoding>();
+            p.template set_target_encoding<_Encoding>();
+        };
+    }
+
+    template <template <class> class _Encoding>
     static option with_source_encoding()
     {
         return [=](json_parser& p) { p.template set_source_encoding<_Encoding>(); };
@@ -108,12 +119,11 @@ public:
         , number_integer_(0)
         , number_float_(0)
     {
-        this->is_ >> std::noskipws;
     }
 
-    inline void apply(std::initializer_list<option> options)
+    inline void prepare(std::initializer_list<option> options)
     {
-        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
+        std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
     }
 
     virtual void parse(value_type& c) override
@@ -637,9 +647,28 @@ public:
         return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
     }
 
+    static option with_precision(int precision, std::ios_base::fmtflags floatflags = std::ios_base::fixed)
+    {
+        return [=](json_serializer& s)
+        {
+            s.os_.precision(static_cast<std::streamsize>(precision));
+            s.os_.setf(floatflags, std::ios_base::floatfield);
+        };
+    }
+
     static option with_error_handler(error_handler* eh)
     {
         return [=](json_serializer& s) { s.set_error_handler(eh); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_encoding()
+    {
+        return [=](json_serializer& s)
+        {
+            s.template set_source_encoding<_Encoding>();
+            s.template set_target_encoding<_Encoding>();
+        };
     }
 
     template <template <class> class _Encoding>
@@ -662,13 +691,18 @@ public:
         , last_token_(token_type::uninitialized)
         , indent_(static_cast<uint8_t>(os.width()), os.fill())
     {
-        this->os_ << std::right << std::noshowbase << std::setprecision(os.precision());
+        this->os_ << std::setprecision(os.precision());
         os.width(0);  // clear width
     }
 
-    inline void apply(std::initializer_list<option> options)
+    inline void prepare(std::initializer_list<option> options)
     {
-        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
+        std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
+        if ((this->os_.flags() & std::ios_base::floatfield) == (std::ios_base::fixed | std::ios_base::scientific))
+        {
+            // hexfloat is disabled
+            this->os_.unsetf(std::ios_base::floatfield);
+        }
     }
 
     virtual void next(token_type token) override

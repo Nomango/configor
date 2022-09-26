@@ -1,73 +1,18 @@
 // Copyright (c) 2021 Nomango
 
-// #include "handler.h"
+#include "handler.h"
 
-// #include <iostream>
-
-// int main(int argc, char** argv)
-// {
-//     std::istringstream req("{\n    \"user_id\": 10001\n}\n");
-//     std::ostringstream resp;
-
-//     GetUserInfoHandler handler;
-//     handler.POST(req, resp);
-
-//     std::cout << "request: \n" << req.str() << std::endl;
-//     std::cout << "response: \n" << resp.str() << std::endl;
-//     return 0;
-// }
-
-#include <configor/json.hpp>
 #include <iostream>
-#include <locale>
-#include <sstream>
-#include <string>
-
-using namespace configor;
-
-struct User
-{
-    int         id;
-    std::string name;
-
-    CONFIGOR_BIND(json::value, User, REQUIRED(id), REQUIRED(name));
-};
 
 int main(int argc, char** argv)
 {
-    std::locale::global(std::locale(""));
-    std::wcout.imbue(std::locale());
+    std::istringstream req("{\n    \"user_id\": 10001\n}\n");
+    std::ostringstream resp;
 
-    json::value v = json::object{
-        { "test", 1 },
-        { "array", json::array{ 1, 2 } },
-    };
+    GetUserInfoHandler handler;
+    handler.POST(req, resp);
 
-    User u = { 1001, "中文" };
-
-    json::serializer::with_error_handler(nullptr);
-    json::parser::with_error_handler(nullptr);
-
-    const auto str =
-        json::dump<wchar_t>(u, {
-                                   json::serializer_type<wchar_t>::with_indent(2),
-                                   json::serializer_type<wchar_t>::with_unicode_escaping(false),
-                                   json::serializer_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
-                                   json::serializer_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
-                               });
-    std::wcout << str << std::endl;
-
-    u = json::parse(L"{\"id\": 1002,\"name\":\"Jack中文\"}",
-                    {
-                        json::parser_type<wchar_t>::with_error_handler(nullptr),
-                        json::parser_type<wchar_t>::with_source_encoding<encoding::auto_utf>(),
-                        json::parser_type<wchar_t>::with_target_encoding<encoding::auto_utf>(),
-                    });
-
-    std::cout << u.id << " " << u.name << std::endl;
-
-    std::wstringstream ss(L"{\"id\": 3001,\"name\":\"Jack中文22\"}");
-    ss >> json::wrap(u);
-    std::wcout << std::setw(4) << json::wrap(u) << std::endl;
+    std::cout << "request: \n" << req.str() << std::endl;
+    std::cout << "response: \n" << resp.str() << std::endl;
     return 0;
 }
