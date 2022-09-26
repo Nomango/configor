@@ -73,7 +73,35 @@ struct is_json<basic_json<_Args, _DefaultEncoding>> : std::true_type
 namespace detail
 {
 
+template <typename _IntTy>
+struct json_hex
+{
+    const _IntTy i;
+
+    template <typename _CharTy>
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const json_hex& i)
+    {
+        os << std::setfill(_CharTy('0')) << std::hex << std::uppercase;
+        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
+        os << std::dec << std::nouppercase;
+        return os;
+    }
+};
+
+namespace
+{
+
+template <typename _IntTy>
+inline json_hex<_IntTy> make_json_hex(const _IntTy i)
+{
+    return json_hex<_IntTy>{ i };
+}
+
+}  // namespace
+
+//
 // json_parser
+//
 
 template <typename _ValTy, typename _SourceCharTy>
 class json_parser : public basic_parser<_ValTy, _SourceCharTy>
@@ -610,7 +638,7 @@ public:
     inline void fail(const std::string& msg, _IntTy code)
     {
         detail::fast_ostringstream ss;
-        ss << msg << " '" << detail::serialize_hex(code) << "'";
+        ss << msg << " '" << make_json_hex(code) << "'";
         fail(ss.str());
     }
 
@@ -621,7 +649,9 @@ private:
     typename value_type::float_type   number_float_;
 };
 
+//
 // json_serializer
+//
 
 template <typename _ValTy, typename _TargetCharTy>
 class json_serializer : public basic_serializer<_ValTy, _TargetCharTy>
@@ -827,12 +857,20 @@ public:
 
     virtual void put_integer(typename value_type::integer_type i) override
     {
-        this->os_ << serialize_integer(i);
+        this->os_ << i;
     }
 
     virtual void put_float(typename value_type::float_type f) override
     {
-        this->os_ << serialize_float(f);
+        if (std::ceil(f) == std::floor(f))
+        {
+            // integer
+            this->os_ << static_cast<int64_t>(f) << ".0";
+        }
+        else
+        {
+            this->os_ << f;
+        }
     }
 
     virtual void put_string(const typename value_type::string_type& s) override
@@ -902,14 +940,14 @@ public:
                     if (codepoint <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        this->os_ << serialize_hex(static_cast<uint16_t>(codepoint));
+                        this->os_ << make_json_hex(static_cast<uint16_t>(codepoint));
                     }
                     else
                     {
                         // supplementary planes: U+10000...U+10FFFF
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
                         encoding::unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-                        this->os_ << serialize_hex(lead_surrogate) << serialize_hex(trail_surrogate);
+                        this->os_ << make_json_hex(lead_surrogate) << make_json_hex(trail_surrogate);
                     }
                 }
 
@@ -955,7 +993,7 @@ public:
     inline void fail(const std::string& msg, uint32_t codepoint)
     {
         fast_ostringstream ss;
-        ss << msg << " '" << serialize_hex(codepoint) << "'";
+        ss << msg << " '" << make_json_hex(codepoint) << "'";
         throw configor_serialization_error(ss.str());
     }
 

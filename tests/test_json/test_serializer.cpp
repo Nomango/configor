@@ -36,10 +36,6 @@ TEST_CASE_METHOD(SerializerTest, "test_dump")
     CHECK(json::dump(json::value(1.0)) == "1.0");
     CHECK(wjson::dump(wjson::value(0.0)) == WIDE("0.0"));
     CHECK(wjson::dump(wjson::value(1.0)) == WIDE("1.0"));
-    CHECK(u16json::dump(u16json::value(0.0)) == U16("0.0"));
-    CHECK(u16json::dump(u16json::value(1.0)) == U16("1.0"));
-    CHECK(u32json::dump(u32json::value(0.0)) == U32("0.0"));
-    CHECK(u32json::dump(u32json::value(1.0)) == U32("1.0"));
 
     CHECK(json::dump(json::value(1.2)) == "1.2");
     CHECK(json::dump(json::value(1.23)) == "1.23");
@@ -138,14 +134,6 @@ TEST_CASE("test_serializer")
         CHECK(wjson::dump(wjson::value(int32_t(2147483647))) == WIDE("2147483647"));
         CHECK(wjson::dump(wjson::value(int64_t(9223372036854775807))) == WIDE("9223372036854775807"));
 
-        CHECK(u16json::dump(u16json::value(0)) == U16("0"));
-        CHECK(u16json::dump(u16json::value(int32_t(2147483647))) == U16("2147483647"));
-        CHECK(u16json::dump(u16json::value(int64_t(9223372036854775807))) == U16("9223372036854775807"));
-
-        CHECK(u32json::dump(u32json::value(0)) == U32("0"));
-        CHECK(u32json::dump(u32json::value(int32_t(2147483647))) == U32("2147483647"));
-        CHECK(u32json::dump(u32json::value(int64_t(9223372036854775807))) == U32("9223372036854775807"));
-
         // dump signed integer
         CHECK(json::dump(json::value(-0)) == "0");
         CHECK(json::dump(json::value(int32_t(-2147483647))) == "-2147483647");
@@ -154,14 +142,6 @@ TEST_CASE("test_serializer")
         CHECK(wjson::dump(wjson::value(-0)) == WIDE("0"));
         CHECK(wjson::dump(wjson::value(int32_t(-2147483647))) == WIDE("-2147483647"));
         CHECK(wjson::dump(wjson::value(int64_t(-9223372036854775807))) == WIDE("-9223372036854775807"));
-
-        CHECK(u16json::dump(u16json::value(-0)) == U16("0"));
-        CHECK(u16json::dump(u16json::value(int32_t(-2147483647))) == U16("-2147483647"));
-        CHECK(u16json::dump(u16json::value(int64_t(-9223372036854775807))) == U16("-9223372036854775807"));
-
-        CHECK(u32json::dump(u32json::value(-0)) == U32("0"));
-        CHECK(u32json::dump(u32json::value(int32_t(-2147483647))) == U32("-2147483647"));
-        CHECK(u32json::dump(u32json::value(int64_t(-9223372036854775807))) == U32("-9223372036854775807"));
     }
 
     SECTION("test_dump_intend")
