@@ -34,19 +34,11 @@ namespace configor
 
 namespace detail
 {
-template <typename _Ty>
-bool nearly_equal(_Ty a, _Ty b)
-{
-    // TODO
-    return std::fabs(a - b) < std::numeric_limits<_Ty>::epsilon();
-}
-
 template <typename _ValTy>
 class value_accessor;
 
 template <typename _ValTy>
 class value_maker;
-
 }  // namespace detail
 
 template <typename _Args>
@@ -812,24 +804,24 @@ public:
             case value_base::null:
                 return true;
             case value_base::string:
-                return (*lhs.data_.string == *rhs.data_.string);
+                return *lhs.data_.string == *rhs.data_.string;
             case value_base::boolean:
-                return (lhs.data_.boolean == rhs.data_.boolean);
+                return lhs.data_.boolean == rhs.data_.boolean;
             case value_base::integer:
-                return (lhs.data_.integer == rhs.data_.integer);
+                return lhs.data_.integer == rhs.data_.integer;
             case value_base::floating:
-                return detail::nearly_equal(lhs.data_.floating, rhs.data_.floating);
+                return lhs.data_.floating == rhs.data_.floating;
             default:
                 return false;
             }
         }
         else if (lhs.type() == value_base::integer && rhs.type() == value_base::floating)
         {
-            return detail::nearly_equal<float_type>(static_cast<float_type>(lhs.data_.integer), rhs.data_.floating);
+            return static_cast<float_type>(lhs.data_.integer) == rhs.data_.floating;
         }
         else if (lhs.type() == value_base::floating && rhs.type() == value_base::integer)
         {
-            return detail::nearly_equal<float_type>(lhs.data_.floating, static_cast<float_type>(rhs.data_.integer));
+            return lhs.data_.floating == static_cast<float_type>(rhs.data_.integer);
         }
         return false;
     }
