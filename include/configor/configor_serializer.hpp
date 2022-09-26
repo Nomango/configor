@@ -44,7 +44,7 @@ public:
     using source_char_type = typename value_type::char_type;
     using target_char_type = _TargetCharTy;
 
-    basic_serializer(std::basic_ostream<target_char_type>& os)
+    explicit basic_serializer(std::basic_ostream<target_char_type>& os)
         : os_(os.rdbuf())
         , err_handler_(nullptr)
         , source_decoder_(nullptr)

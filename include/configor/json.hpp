@@ -41,17 +41,18 @@ template <typename _Args, template <typename> class _DefaultEncoding = encoding:
 class basic_json final
     : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
     , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
-    , public detail::value_maker<_Args>
+    , public detail::value_maker<basic_value<_Args>>
     , public detail::wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
 {
 public:
     using value = basic_value<_Args>;
 
-    using serializable = detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>;
-    using serializer   = typename serializable::template serializer_type<typename value::char_type>;
+    using serializer =
+        typename detail::serializable<_Args, detail::json_serializer,
+                                      _DefaultEncoding>::template serializer_type<typename value::char_type>;
 
-    using parsable = detail::parsable<_Args, detail::json_parser, _DefaultEncoding>;
-    using parser   = typename parsable::template parser_type<typename value::char_type>;
+    using parser = typename detail::parsable<_Args, detail::json_parser,
+                                             _DefaultEncoding>::template parser_type<typename value::char_type>;
 };
 
 using json  = basic_json<value_tpl_args>;
@@ -87,6 +88,16 @@ public:
     static option with_error_handler(error_handler* eh)
     {
         return [=](json_parser& p) { p.set_error_handler(eh); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_encoding()
+    {
+        return [=](json_parser& p)
+        {
+            p.template set_source_encoding<_Encoding>();
+            p.template set_target_encoding<_Encoding>();
+        };
     }
 
     template <template <class> class _Encoding>
@@ -637,9 +648,24 @@ public:
         return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
     }
 
+    static option with_precision(int precision)
+    {
+        return [=](json_serializer& s) { s.os_.precision(static_cast<std::streamsize>(precision)); };
+    }
+
     static option with_error_handler(error_handler* eh)
     {
         return [=](json_serializer& s) { s.set_error_handler(eh); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_encoding()
+    {
+        return [=](json_serializer& s)
+        {
+            s.template set_source_encoding<_Encoding>();
+            s.template set_target_encoding<_Encoding>();
+        };
     }
 
     template <template <class> class _Encoding>

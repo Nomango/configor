@@ -106,6 +106,10 @@ bool nearly_equal(_Ty a, _Ty b)
 
 template <typename _ValTy>
 class value_accessor;
+
+template <typename _ValTy>
+class value_maker;
+
 }  // namespace detail
 
 template <typename _Args>
@@ -114,6 +118,7 @@ class basic_value final : public value_base
     friend detail::iterator<basic_value>;
     friend detail::iterator<const basic_value>;
     friend detail::value_accessor<basic_value>;
+    friend detail::value_maker<basic_value>;
 
 public:
     template <typename _Ty>
@@ -227,22 +232,6 @@ public:
     {
         using accessor = detail::value_accessor<basic_value>;
         accessor::destroy_data(*this);
-    }
-
-    static basic_value object(std::initializer_list<std::pair<string_type, basic_value>> list)
-    {
-        basic_value v{ value_base::object };
-        std::for_each(list.begin(), list.end(),
-                      [&](const auto& pair) { v.data_.object->emplace(pair.first, pair.second); });
-        return v;
-    }
-
-    static basic_value array(std::initializer_list<basic_value> list)
-    {
-        basic_value v{ value_base::array };
-        v.data_.vector->reserve(list.size());
-        v.data_.vector->assign(list.begin(), list.end());
-        return v;
     }
 
     inline bool is_object() const
@@ -1191,11 +1180,11 @@ private:
     }
 };
 
-template <typename _Args>
+template <typename _ValTy>
 class value_maker
 {
 public:
-    using value_type = basic_value<_Args>;
+    using value_type = _ValTy;
 
     struct object
     {
@@ -1206,9 +1195,12 @@ public:
         {
         }
 
-        inline operator value_type() const
+        operator value_type() const
         {
-            return value_type::object(list_);
+            value_type v{ value_base::object };
+            std::for_each(list_.begin(), list_.end(),
+                          [&](const auto& pair) { v.data_.object->emplace(pair.first, pair.second); });
+            return v;
         }
 
     private:
@@ -1222,9 +1214,12 @@ public:
         {
         }
 
-        inline operator value_type() const
+        operator value_type() const
         {
-            return value_type::array(list_);
+            value_type v{ value_base::array };
+            v.data_.vector->reserve(list_.size());
+            v.data_.vector->assign(list_.begin(), list_.end());
+            return v;
         }
 
     private:
@@ -1232,5 +1227,17 @@ public:
     };
 };
 }  // namespace detail
+
+template <typename _ValTy>
+inline _ValTy make_object(std::initializer_list<std::pair<typename _ValTy::string_type, _ValTy>> list)
+{
+    return typename detail::value_maker<_ValTy>::object{ list };
+}
+
+template <typename _ValTy>
+inline _ValTy make_array(std::initializer_list<_ValTy> list)
+{
+    return typename detail::value_maker<_ValTy>::array{ list };
+}
 
 }  // namespace configor

@@ -10,7 +10,7 @@ TEST_CASE("test_parser")
 {
     SECTION("test_parse")
     {
-        json j;
+        json::value j;
 
         // parse c-style string
         CHECK_NOTHROW(j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }"));
@@ -127,13 +127,14 @@ TEST_CASE("test_parser")
     SECTION("test_error_policy")
     {
         error_handler_with<error_policy::strict> strict_handler{};
-        CHECK_THROWS_AS(json::parse("\f", &strict_handler), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("\f", { json::parser::with_error_handler(&strict_handler) }),
+                        configor_deserialization_error);
 
         error_handler_with<error_policy::ignore> ignore_handler{};
-        CHECK_NOTHROW(json::parse("\f", &ignore_handler));
+        CHECK_NOTHROW(json::parse("\f", { json::parser::with_error_handler(&ignore_handler) }));
 
         error_handler_with<error_policy::record> record_handler{};
-        CHECK_NOTHROW(json::parse("\f", &record_handler));
+        CHECK_NOTHROW(json::parse("\f", { json::parser::with_error_handler(&record_handler) }));
         CHECK_FALSE(record_handler.error.empty());
     }
 
@@ -174,28 +175,28 @@ TEST_CASE("test_parser")
             "tests/data/json.org/4.json", "tests/data/json.org/5.json",
         };
 
-        std::function<void(json&)> tests[] = {
-            [](json& j)
+        std::function<void(json::value&)> tests[] = {
+            [](json::value& j)
             {
                 // test 1
                 auto list = j["glossary"]["GlossDiv"]["GlossList"]["GlossEntry"]["GlossDef"]["GlossSeeAlso"];
                 CHECK(list[0].get<std::string>() == "GML");
                 CHECK(list[1].get<std::string>() == "XML");
             },
-            [](json& j)
+            [](json::value& j)
             {
                 // test 2
                 CHECK(j["menu"]["popup"]["menuitem"][0]["onclick"].get<std::string>() == "CreateNewDoc()");
             },
-            [](json& j)
+            [](json::value& j)
             {
                 // test 3
             },
-            [](json& j)
+            [](json::value& j)
             {
                 // test 4
             },
-            [](json& j)
+            [](json::value& j)
             {
                 // test 5
                 CHECK(j["menu"]["items"][2].is_null());
@@ -208,8 +209,8 @@ TEST_CASE("test_parser")
             // read a json file
             std::ifstream ifs(files[i]);
 
-            json j;
-            CHECK_NOTHROW((ifs >> j));
+            json::value j;
+            CHECK_NOTHROW((ifs >> json::wrap(j)));
 
             // run tests
             tests[i](j);
@@ -230,7 +231,7 @@ TEST_CASE("test_parser")
             {
                 if (idx_ >= str_.size())
                     return '\0';
-                    // return std::char_traits<char>::eof();
+                // return std::char_traits<char>::eof();
                 return str_[idx_++];
             }
 
