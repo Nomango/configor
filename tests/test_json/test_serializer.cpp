@@ -184,8 +184,8 @@ TEST_CASE("test_serializer")
 
         json::value j = minimal_float;
         CHECK(json::dump(j) == "3.14159e-06");
-        CHECK(json::dump(j, { json::serializer::with_precision(6) }) == "3.14159e-06");
-        CHECK(json::dump(j, { json::serializer::with_precision(std::numeric_limits<double>::digits10 + 1) })
+        CHECK(json::dump(j, { json::serializer::with_precision(6, 0) }) == "3.14159e-06");
+        CHECK(json::dump(j, { json::serializer::with_precision(std::numeric_limits<double>::digits10 + 1, 0) })
               == "3.141592653589793e-06");
 
         j = json::parse(json::dump(j));
@@ -197,17 +197,11 @@ TEST_CASE("test_serializer")
         const double pi = std::acos(-1.0);
         json::value  j  = pi;
 
+        CHECK(json::dump(j, { json::serializer::with_precision(4) }) == "3.1416");
+
         std::stringstream ss;
         ss << std::fixed << std::setprecision(4) << json::wrap(j);
         CHECK(ss.str() == "3.1416");
-
-        ss.str("");
-        ss << std::fixed << std::setprecision(4) << pi;
-        CHECK(ss.str() == "3.1416");
-
-        ss.str("");
-        ss << std::fixed << std::setprecision(12) << pi;
-        CHECK(ss.str() == "3.141592653590");
 
         ss.str("");
         ss << std::fixed << std::setprecision(12) << json::wrap(j);

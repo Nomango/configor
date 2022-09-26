@@ -50,6 +50,7 @@ public:
         , source_decoder_(nullptr)
         , target_encoder_(nullptr)
     {
+        os_.setf(os.flags(), std::ios_base::floatfield);
         os_.imbue(std::locale(std::locale::classic(), os.getloc(), std::locale::collate | std::locale::ctype));
     }
 
@@ -226,7 +227,7 @@ public:
         serializer_type<_TargetCharTy> s{ os };
         s.template set_source_encoding<_DefaultEncoding>();
         s.template set_target_encoding<_DefaultEncoding>();
-        s.apply(options);
+        s.prepare(options);
         s.dump(v);
     }
 

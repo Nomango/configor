@@ -119,10 +119,9 @@ public:
         , number_integer_(0)
         , number_float_(0)
     {
-        this->is_ >> std::noskipws;
     }
 
-    inline void apply(std::initializer_list<option> options)
+    inline void prepare(std::initializer_list<option> options)
     {
         std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
     }
@@ -648,9 +647,13 @@ public:
         return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
     }
 
-    static option with_precision(int precision)
+    static option with_precision(int precision, std::ios_base::fmtflags floatflags = std::ios_base::fixed)
     {
-        return [=](json_serializer& s) { s.os_.precision(static_cast<std::streamsize>(precision)); };
+        return [=](json_serializer& s)
+        {
+            s.os_.precision(static_cast<std::streamsize>(precision));
+            s.os_.setf(floatflags, std::ios_base::floatfield);
+        };
     }
 
     static option with_error_handler(error_handler* eh)
@@ -688,13 +691,18 @@ public:
         , last_token_(token_type::uninitialized)
         , indent_(static_cast<uint8_t>(os.width()), os.fill())
     {
-        this->os_ << std::right << std::noshowbase << std::setprecision(os.precision());
+        this->os_ << std::setprecision(os.precision());
         os.width(0);  // clear width
     }
 
-    inline void apply(std::initializer_list<option> options)
+    inline void prepare(std::initializer_list<option> options)
     {
         std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
+        if ((this->os_.flags() & std::ios_base::floatfield) == (std::ios_base::fixed | std::ios_base::scientific))
+        {
+            // hexfloat is disabled
+            this->os_.unsetf(std::ios_base::floatfield);
+        }
     }
 
     virtual void next(token_type token) override

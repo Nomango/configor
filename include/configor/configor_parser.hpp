@@ -48,6 +48,7 @@ public:
         , source_decoder_(nullptr)
         , target_encoder_(nullptr)
     {
+        is_.unsetf(std::ios_base::skipws);
         is_.imbue(std::locale(std::locale::classic(), is.getloc(), std::locale::collate | std::locale::ctype));
     }
 
@@ -245,7 +246,7 @@ public:
         parser_type<_SourceCharTy> p{ is };
         p.template set_source_encoding<_DefaultEncoding>();
         p.template set_target_encoding<_DefaultEncoding>();
-        p.apply(options);
+        p.prepare(options);
         p.parse(c);
     }
 
