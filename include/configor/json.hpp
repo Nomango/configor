@@ -37,7 +37,7 @@ template <typename _ValTy, typename _TargetCharTy>
 class json_serializer;
 }  // namespace detail
 
-template <typename _Args, template <typename> typename _DefaultEncoding = encoding::auto_utf>
+template <typename _Args, template <typename> class _DefaultEncoding = encoding::auto_utf>
 class basic_json final
     : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
     , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
@@ -48,10 +48,10 @@ public:
     using value = basic_value<_Args>;
 
     using serializable = detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>;
-    using serializer   = typename serializable::serializer_type<typename value::char_type>;
+    using serializer   = typename serializable::template serializer_type<typename value::char_type>;
 
     using parsable = detail::parsable<_Args, detail::json_parser, _DefaultEncoding>;
-    using parser   = typename parsable::parser_type<typename value::char_type>;
+    using parser   = typename parsable::template parser_type<typename value::char_type>;
 };
 
 using json  = basic_json<value_tpl_args>;
@@ -64,7 +64,7 @@ struct is_json : std::false_type
 {
 };
 
-template <typename _Args, template <typename> typename _DefaultEncoding>
+template <typename _Args, template <typename> class _DefaultEncoding>
 struct is_json<basic_json<_Args, _DefaultEncoding>> : std::true_type
 {
 };
@@ -104,9 +104,9 @@ public:
     explicit json_parser(std::basic_istream<source_char_type>& is)
         : basic_parser<value_type, source_char_type>(is)
         , is_negative_(false)
+        , current_(0)
         , number_integer_(0)
         , number_float_(0)
-        , current_(0)
     {
         this->is_ >> std::noskipws;
     }

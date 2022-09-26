@@ -56,7 +56,7 @@ template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::boolean>(c, v);
+    value_accessor<_ValTy>::template reset_data<value_base::boolean>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
@@ -64,25 +64,25 @@ template <typename _ValTy, typename _Ty,
               std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::integer>(c, static_cast<typename _ValTy::integer_type>(v));
+    value_accessor<_ValTy>::template reset_data<value_base::integer>(c, static_cast<typename _ValTy::integer_type>(v));
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::floating>(c, static_cast<typename _ValTy::float_type>(v));
+    value_accessor<_ValTy>::template reset_data<value_base::floating>(c, static_cast<typename _ValTy::float_type>(v));
 }
 
 template <typename _ValTy>
 void to_value(_ValTy& c, const typename _ValTy::string_type& v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::string>(c, v);
+    value_accessor<_ValTy>::template reset_data<value_base::string>(c, v);
 }
 
 template <typename _ValTy>
 void to_value(_ValTy& c, typename _ValTy::string_type&& v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::string>(c, std::move(v));
+    value_accessor<_ValTy>::template reset_data<value_base::string>(c, std::move(v));
 }
 
 template <typename _ValTy, typename _Ty,
@@ -91,21 +91,21 @@ template <typename _ValTy, typename _Ty,
                                   int>::type = 0>
 void to_value(_ValTy& c, const _Ty& v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::string>(c, v);
+    value_accessor<_ValTy>::template reset_data<value_base::string>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::array_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty& v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::array>(c, v);
+    value_accessor<_ValTy>::template reset_data<value_base::array>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::object_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty& v)
 {
-    value_accessor<_ValTy>::reset_data<value_base::object>(c, v);
+    value_accessor<_ValTy>::template reset_data<value_base::object>(c, v);
 }
 
 // from_value functions

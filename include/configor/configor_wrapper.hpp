@@ -31,7 +31,7 @@ template <typename _ConfigTy, typename _Ty>
 class ostream_wrapper
 {
 public:
-    using config_type = typename _ConfigTy;
+    using config_type = _ConfigTy;
     using value_type  = typename _ConfigTy::value;
 
     explicit ostream_wrapper(const _Ty& v)
@@ -59,7 +59,7 @@ template <typename _ConfigTy, typename _Ty>
 class iostream_wrapper : public ostream_wrapper<_ConfigTy, _Ty>
 {
 public:
-    using config_type = typename _ConfigTy;
+    using config_type = _ConfigTy;
     using value_type  = typename _ConfigTy::value;
 
     explicit iostream_wrapper(_Ty& v)
@@ -69,15 +69,16 @@ public:
     }
 
     template <typename _SourceCharTy, typename _Traits>
-    friend std::basic_istream<_SourceCharTy, _Traits>& operator>>(std::basic_istream<_SourceCharTy, _Traits>& in,
-                                                                  iostream_wrapper&                           wrapper)
+    friend std::basic_istream<_SourceCharTy, _Traits>&
+    operator>>(std::basic_istream<_SourceCharTy, _Traits>& in,
+               const iostream_wrapper&                     wrapper /* wrapper must be lvalue */)
     {
         typename std::basic_istream<_SourceCharTy, _Traits>::sentry s(in);
         if (s)
         {
             value_type c{};
             config_type::parse(c, in);
-            wrapper.v_ = c.template get<_Ty>();
+            const_cast<_Ty&>(wrapper.v_) = c.template get<_Ty>();
         }
         return in;
     }
@@ -90,8 +91,8 @@ template <typename _ConfigTy, typename _ValTy>
 class wrapper_maker
 {
 public:
-    using config_type = typename _ConfigTy;
-    using value_type  = typename _ValTy;
+    using config_type = _ConfigTy;
+    using value_type  = _ValTy;
 
     template <typename _Ty, typename = typename std::enable_if<!std::is_same<value_type, _Ty>::value
                                                                && has_to_value<value_type, _Ty>::value>::type>

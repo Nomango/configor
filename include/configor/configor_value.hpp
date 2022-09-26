@@ -155,22 +155,22 @@ public:
         switch (t)
         {
         case value_base::object:
-            accessor::construct_data<value_base::object>(*this);
+            accessor::template construct_data<value_base::object>(*this);
             break;
         case value_base::array:
-            accessor::construct_data<value_base::array>(*this);
+            accessor::template construct_data<value_base::array>(*this);
             break;
         case value_base::string:
-            accessor::construct_data<value_base::string>(*this);
+            accessor::template construct_data<value_base::string>(*this);
             break;
         case value_base::integer:
-            accessor::construct_data<value_base::integer>(*this, integer_type(0));
+            accessor::template construct_data<value_base::integer>(*this, integer_type(0));
             break;
         case value_base::floating:
-            accessor::construct_data<value_base::floating>(*this, float_type(0.0));
+            accessor::template construct_data<value_base::floating>(*this, float_type(0.0));
             break;
         case value_base::boolean:
-            accessor::construct_data<value_base::boolean>(*this, boolean_type(false));
+            accessor::template construct_data<value_base::boolean>(*this, boolean_type(false));
             break;
         default:
             break;
@@ -185,22 +185,22 @@ public:
         switch (other.type())
         {
         case value_base::object:
-            accessor::construct_data<value_base::object>(*this, *other.data_.object);
+            accessor::template construct_data<value_base::object>(*this, *other.data_.object);
             break;
         case value_base::array:
-            accessor::construct_data<value_base::array>(*this, *other.data_.vector);
+            accessor::template construct_data<value_base::array>(*this, *other.data_.vector);
             break;
         case value_base::string:
-            accessor::construct_data<value_base::string>(*this, *other.data_.string);
+            accessor::template construct_data<value_base::string>(*this, *other.data_.string);
             break;
         case value_base::integer:
-            accessor::construct_data<value_base::integer>(*this, other.data_.integer);
+            accessor::template construct_data<value_base::integer>(*this, other.data_.integer);
             break;
         case value_base::floating:
-            accessor::construct_data<value_base::floating>(*this, other.data_.floating);
+            accessor::template construct_data<value_base::floating>(*this, other.data_.floating);
             break;
         case value_base::boolean:
-            accessor::construct_data<value_base::boolean>(*this, other.data_.boolean);
+            accessor::template construct_data<value_base::boolean>(*this, other.data_.boolean);
             break;
         default:
             break;
@@ -745,7 +745,8 @@ public:
     {
         if (this != &rhs)
         {
-            this->swap(basic_value{ rhs });
+            basic_value tmp{ rhs };
+            this->swap(tmp);
         }
         return *this;
     }
@@ -1093,7 +1094,7 @@ public:
     using type_constant = std::integral_constant<value_base::value_type, _Ty>;
 
     template <value_base::value_type _Ty, typename... _Args>
-    static inline void reset_data(value_type& v, _Args&&... args)
+    static void reset_data(value_type& v, _Args&&... args)
     {
         destroy_data(v);
         v.set_type(_Ty);
