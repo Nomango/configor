@@ -48,6 +48,67 @@ struct is_value<basic_value<_Args>> : std::true_type
 {
 };
 
+//
+// value_base
+//
+
+class value_base
+{
+public:
+    enum value_type
+    {
+        null,
+        integer,
+        floating,
+        string,
+        array,
+        object,
+        boolean,
+    };
+
+    inline value_type type() const
+    {
+        return type_;
+    }
+
+protected:
+    value_base(value_type t = value_type::null)
+        : type_{ t }
+    {
+    }
+
+    ~value_base() {}
+
+    inline void set_type(value_type t)
+    {
+        type_ = t;
+    }
+
+    value_type type_;
+};
+
+inline const char* to_string(value_base::value_type t) noexcept
+{
+    switch (t)
+    {
+    case value_base::value_type::object:
+        return "object";
+    case value_base::value_type::array:
+        return "array";
+    case value_base::value_type::string:
+        return "string";
+    case value_base::value_type::integer:
+        return "integer";
+    case value_base::value_type::floating:
+        return "float";
+    case value_base::value_type::boolean:
+        return "boolean";
+    case value_base::value_type::null:
+        return "null";
+    }
+    return "unknown";
+}
+
 namespace detail
 {
 

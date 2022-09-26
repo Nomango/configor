@@ -19,8 +19,6 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_declare.hpp"
-#include "configor_exception.hpp"
 #include "configor_iterator.hpp"
 
 #include <algorithm>    // std::for_each, std::all_of
@@ -33,67 +31,6 @@
 
 namespace configor
 {
-
-//
-// value_base
-//
-
-class value_base
-{
-public:
-    enum value_type
-    {
-        null,
-        integer,
-        floating,
-        string,
-        array,
-        object,
-        boolean,
-    };
-
-    inline value_type type() const
-    {
-        return type_;
-    }
-
-protected:
-    value_base(value_type t = value_type::null)
-        : type_{ t }
-    {
-    }
-
-    ~value_base() {}
-
-    inline void set_type(value_type t)
-    {
-        type_ = t;
-    }
-
-    value_type type_;
-};
-
-inline const char* to_string(value_base::value_type t) noexcept
-{
-    switch (t)
-    {
-    case value_base::value_type::object:
-        return "object";
-    case value_base::value_type::array:
-        return "array";
-    case value_base::value_type::string:
-        return "string";
-    case value_base::value_type::integer:
-        return "integer";
-    case value_base::value_type::floating:
-        return "float";
-    case value_base::value_type::boolean:
-        return "boolean";
-    case value_base::value_type::null:
-        return "null";
-    }
-    return "unknown";
-}
 
 namespace detail
 {
@@ -1199,7 +1136,7 @@ public:
         {
             value_type v{ value_base::object };
             std::for_each(list_.begin(), list_.end(),
-                          [&](const auto& pair) { v.data_.object->emplace(pair.first, pair.second); });
+                          [&](const pair_type& pair) { v.data_.object->emplace(pair.first, pair.second); });
             return v;
         }
 

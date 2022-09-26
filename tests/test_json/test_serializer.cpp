@@ -184,8 +184,9 @@ TEST_CASE("test_serializer")
 
         json::value j = minimal_float;
         CHECK(json::dump(j) == "3.14159e-06");
-        CHECK(json::dump(j, { json::serializer::with_precision(6, 0) }) == "3.14159e-06");
-        CHECK(json::dump(j, { json::serializer::with_precision(std::numeric_limits<double>::digits10 + 1, 0) })
+        CHECK(json::dump(j, { json::serializer::with_precision(6, std::ios_base::fmtflags{}) }) == "3.14159e-06");
+        CHECK(json::dump(j, { json::serializer::with_precision(std::numeric_limits<double>::digits10 + 1,
+                                                               std::ios_base::fmtflags{}) })
               == "3.141592653589793e-06");
 
         j = json::parse(json::dump(j));

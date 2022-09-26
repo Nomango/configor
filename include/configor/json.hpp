@@ -123,7 +123,7 @@ public:
 
     inline void prepare(std::initializer_list<option> options)
     {
-        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
+        std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
     }
 
     virtual void parse(value_type& c) override
@@ -697,7 +697,7 @@ public:
 
     inline void prepare(std::initializer_list<option> options)
     {
-        std::for_each(options.begin(), options.end(), [&](const auto& option) { option(*this); });
+        std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
         if ((this->os_.flags() & std::ios_base::floatfield) == (std::ios_base::fixed | std::ios_base::scientific))
         {
             // hexfloat is disabled
