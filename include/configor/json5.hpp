@@ -31,42 +31,42 @@ namespace configor
 namespace detail
 {
 template <typename _ValTy, typename _SourceCharTy>
-class json_parser;
+class json5_parser;
 
 template <typename _ValTy, typename _TargetCharTy>
-class json_serializer;
+class json5_serializer;
 }  // namespace detail
 
 template <typename _Args, template <typename> class _DefaultEncoding = encoding::auto_utf>
-class basic_json final
-    : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
-    , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
+class basic_json5 final
+    : public detail::serializable<_Args, detail::json5_serializer, _DefaultEncoding>
+    , public detail::parsable<_Args, detail::json5_parser, _DefaultEncoding>
     , public detail::value_maker<basic_value<_Args>>
-    , public detail::iostream_wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
+    , public detail::iostream_wrapper_maker<basic_json5<_Args, _DefaultEncoding>, basic_value<_Args>>
 {
 public:
     using value = basic_value<_Args>;
 
     using serializer =
-        typename detail::serializable<_Args, detail::json_serializer,
+        typename detail::serializable<_Args, detail::json5_serializer,
                                       _DefaultEncoding>::template serializer_type<typename value::char_type>;
 
-    using parser = typename detail::parsable<_Args, detail::json_parser,
+    using parser = typename detail::parsable<_Args, detail::json5_parser,
                                              _DefaultEncoding>::template parser_type<typename value::char_type>;
 };
 
-using json  = basic_json<value_tpl_args>;
-using wjson = basic_json<wvalue_tpl_args>;
+using json  = basic_json5<value_tpl_args>;
+using wjson = basic_json5<wvalue_tpl_args>;
 
 // type traits
 
 template <typename _Ty>
-struct is_json : std::false_type
+struct is_json5 : std::false_type
 {
 };
 
 template <typename _Args, template <typename> class _DefaultEncoding>
-struct is_json<basic_json<_Args, _DefaultEncoding>> : std::true_type
+struct is_json5<basic_json5<_Args, _DefaultEncoding>> : std::true_type
 {
 };
 
@@ -74,12 +74,12 @@ namespace detail
 {
 
 template <typename _IntTy>
-struct json_hex
+struct json5_hex
 {
     const _IntTy i;
 
     template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const json_hex& i)
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const json5_hex& i)
     {
         os << std::setfill(_CharTy('0')) << std::hex << std::uppercase;
         os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
@@ -92,36 +92,36 @@ namespace
 {
 
 template <typename _IntTy>
-inline json_hex<_IntTy> make_json_hex(const _IntTy i)
+inline json5_hex<_IntTy> make_json5_hex(const _IntTy i)
 {
-    return json_hex<_IntTy>{ i };
+    return json5_hex<_IntTy>{ i };
 }
 
 }  // namespace
 
 //
-// json_parser
+// json5_parser
 //
 
 template <typename _ValTy, typename _SourceCharTy>
-class json_parser : public basic_parser<_ValTy, _SourceCharTy>
+class json5_parser : public basic_parser<_ValTy, _SourceCharTy>
 {
 public:
     using value_type       = _ValTy;
     using source_char_type = _SourceCharTy;
     using target_char_type = typename value_type::char_type;
 
-    using option = std::function<void(json_parser&)>;
+    using option = std::function<void(json5_parser&)>;
 
     static option with_error_handler(error_handler* eh)
     {
-        return [=](json_parser& p) { p.set_error_handler(eh); };
+        return [=](json5_parser& p) { p.set_error_handler(eh); };
     }
 
     template <template <class> class _Encoding>
     static option with_encoding()
     {
-        return [=](json_parser& p)
+        return [=](json5_parser& p)
         {
             p.template set_source_encoding<_Encoding>();
             p.template set_target_encoding<_Encoding>();
@@ -131,16 +131,16 @@ public:
     template <template <class> class _Encoding>
     static option with_source_encoding()
     {
-        return [=](json_parser& p) { p.template set_source_encoding<_Encoding>(); };
+        return [=](json5_parser& p) { p.template set_source_encoding<_Encoding>(); };
     }
 
     template <template <class> class _Encoding>
     static option with_target_encoding()
     {
-        return [=](json_parser& p) { p.template set_target_encoding<_Encoding>(); };
+        return [=](json5_parser& p) { p.template set_target_encoding<_Encoding>(); };
     }
 
-    explicit json_parser(std::basic_istream<source_char_type>& is)
+    explicit json5_parser(std::basic_istream<source_char_type>& is)
         : basic_parser<value_type, source_char_type>(is)
         , is_negative_(false)
         , current_(0)
@@ -217,6 +217,7 @@ public:
             return token_type::value_string;
 
         case '-':
+        case '+':
         case '0':
         case '1':
         case '2':
@@ -227,6 +228,7 @@ public:
         case '7':
         case '8':
         case '9':
+        case '.':
             return scan_number();
 
         case '\0':
@@ -263,6 +265,62 @@ public:
     {
         while (current_ == ' ' || current_ == '\t' || current_ == '\n' || current_ == '\r')
             read_next();
+
+        // skip comments
+        if (current_ == '/')
+        {
+            skip_comments();
+        }
+    }
+
+    void skip_comments()
+    {
+        read_next();
+        if (current_ == '/')
+        {
+            // one line comment
+            while (true)
+            {
+                read_next();
+                if (current_ == '\n' || current_ == '\r')
+                {
+                    // end of comment
+                    skip_spaces();
+                    break;
+                }
+
+                if (this->is_.eof())
+                {
+                    break;
+                }
+            }
+        }
+        else if (current_ == '*')
+        {
+            // multiple line comment
+            while (true)
+            {
+                if (read_next() == '*')
+                {
+                    if (read_next() == '/')
+                    {
+                        // end of comment
+                        read_next();
+                        break;
+                    }
+                }
+
+                if (this->is_.eof())
+                {
+                    fail("unexpected eof while reading comment");
+                }
+            }
+            skip_spaces();
+        }
+        else
+        {
+            fail("unexpected character '/'");
+        }
     }
 
     token_type scan_literal(std::initializer_list<source_char_type> text, token_type result)
@@ -433,6 +491,9 @@ public:
             read_next();
         }
 
+        if (current_ == '.')
+            return scan_float();
+
         if (current_ == '0')
         {
             read_next();
@@ -581,7 +642,7 @@ public:
     inline void fail(const std::string& msg, _IntTy code)
     {
         detail::fast_ostringstream ss;
-        ss << msg << " '" << make_json_hex(code) << "'";
+        ss << msg << " '" << make_json5_hex(code) << "'";
         fail(ss.str());
     }
 
@@ -593,22 +654,22 @@ private:
 };
 
 //
-// json_serializer
+// json5_serializer
 //
 
 template <typename _ValTy, typename _TargetCharTy>
-class json_serializer : public basic_serializer<_ValTy, _TargetCharTy>
+class json5_serializer : public basic_serializer<_ValTy, _TargetCharTy>
 {
 public:
     using value_type       = _ValTy;
     using source_char_type = typename value_type::char_type;
     using target_char_type = _TargetCharTy;
 
-    using option = std::function<void(json_serializer&)>;
+    using option = std::function<void(json5_serializer&)>;
 
     static option with_indent(uint8_t indent_step, target_char_type indent_char = ' ')
     {
-        return [=](json_serializer& s)
+        return [=](json5_serializer& s)
         {
             s.indent_       = indent<target_char_type>{ indent_step, indent_char };
             s.pretty_print_ = indent_step > 0;
@@ -617,12 +678,12 @@ public:
 
     static option with_unicode_escaping(bool enabled)
     {
-        return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
+        return [=](json5_serializer& s) { s.unicode_escaping_ = enabled; };
     }
 
     static option with_precision(int precision, std::ios_base::fmtflags floatflags = std::ios_base::fixed)
     {
-        return [=](json_serializer& s)
+        return [=](json5_serializer& s)
         {
             s.os_.precision(static_cast<std::streamsize>(precision));
             s.os_.setf(floatflags, std::ios_base::floatfield);
@@ -631,13 +692,13 @@ public:
 
     static option with_error_handler(error_handler* eh)
     {
-        return [=](json_serializer& s) { s.set_error_handler(eh); };
+        return [=](json5_serializer& s) { s.set_error_handler(eh); };
     }
 
     template <template <class> class _Encoding>
     static option with_encoding()
     {
-        return [=](json_serializer& s)
+        return [=](json5_serializer& s)
         {
             s.template set_source_encoding<_Encoding>();
             s.template set_target_encoding<_Encoding>();
@@ -647,16 +708,16 @@ public:
     template <template <class> class _Encoding>
     static option with_source_encoding()
     {
-        return [=](json_serializer& s) { s.template set_source_encoding<_Encoding>(); };
+        return [=](json5_serializer& s) { s.template set_source_encoding<_Encoding>(); };
     }
 
     template <template <class> class _Encoding>
     static option with_target_encoding()
     {
-        return [=](json_serializer& s) { s.template set_target_encoding<_Encoding>(); };
+        return [=](json5_serializer& s) { s.template set_target_encoding<_Encoding>(); };
     }
 
-    explicit json_serializer(std::basic_ostream<target_char_type>& os)
+    explicit json5_serializer(std::basic_ostream<target_char_type>& os)
         : basic_serializer<value_type, target_char_type>(os)
         , pretty_print_(os.width() > 0)
         , object_or_array_began_(false)
@@ -671,11 +732,6 @@ public:
     inline void prepare(std::initializer_list<option> options)
     {
         std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
-        if ((this->os_.flags() & std::ios_base::floatfield) == (std::ios_base::fixed | std::ios_base::scientific))
-        {
-            // hexfloat is disabled
-            this->os_.unsetf(std::ios_base::floatfield);
-        }
     }
 
     virtual void next(token_type token) override
@@ -883,14 +939,14 @@ public:
                     if (codepoint <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        this->os_ << make_json_hex(static_cast<uint16_t>(codepoint));
+                        this->os_ << make_json5_hex(static_cast<uint16_t>(codepoint));
                     }
                     else
                     {
                         // supplementary planes: U+10000...U+10FFFF
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
                         encoding::unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-                        this->os_ << make_json_hex(lead_surrogate) << make_json_hex(trail_surrogate);
+                        this->os_ << make_json5_hex(lead_surrogate) << make_json5_hex(trail_surrogate);
                     }
                 }
 
@@ -936,7 +992,7 @@ public:
     inline void fail(const std::string& msg, uint32_t codepoint)
     {
         fast_ostringstream ss;
-        ss << msg << " '" << make_json_hex(codepoint) << "'";
+        ss << msg << " '" << make_json5_hex(codepoint) << "'";
         throw configor_serialization_error(ss.str());
     }
 
