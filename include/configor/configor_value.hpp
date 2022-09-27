@@ -188,14 +188,14 @@ public:
         return type() == value_base::integer;
     }
 
-    inline bool is_float() const
+    inline bool is_floating() const
     {
         return type() == value_base::floating;
     }
 
     inline bool is_number() const
     {
-        return is_integer() || is_float();
+        return is_integer() || is_floating();
     }
 
     inline bool is_null() const
@@ -464,12 +464,12 @@ private:
 
     inline float_type* do_get_ptr(float_type*) noexcept
     {
-        return is_float() ? &data_.floating : nullptr;
+        return is_floating() ? &data_.floating : nullptr;
     }
 
     inline const float_type* do_get_ptr(const float_type*) const noexcept
     {
-        return is_float() ? &data_.floating : nullptr;
+        return is_floating() ? &data_.floating : nullptr;
     }
 
     inline string_type* do_get_ptr(string_type*) noexcept

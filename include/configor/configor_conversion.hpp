@@ -132,7 +132,7 @@ void from_value(const _ValTy& c, _Ty& v)
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
 void from_value(const _ValTy& c, _Ty& v)
 {
-    if (!c.is_float())
+    if (!c.is_floating())
         throw make_conversion_error(c.type(), value_base::floating);
     v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).floating);
 }

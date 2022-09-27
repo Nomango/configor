@@ -29,14 +29,14 @@ TEST_CASE_METHOD(BasicConfigTest, "test_type")
 {
     const auto& c = this->c;
     CHECK(c.is_object());
-    CHECK(c["pi"].is_float());
+    CHECK(c["pi"].is_floating());
     CHECK(c["happy"].is_bool());
     CHECK(c["name"].is_string());
     CHECK(c["nothing"].is_null());
     CHECK(c["list"].is_array());
     CHECK(c["object"].is_object());
     CHECK(c["object"]["currency"].is_string());
-    CHECK(c["object"]["money"].is_float());
+    CHECK(c["object"]["money"].is_floating());
     CHECK(c["single_object"]["number"].is_number());
     CHECK_THROWS_AS(c["missing"].is_null(), std::out_of_range);
     CHECK(this->c["missing"].is_null());
@@ -130,7 +130,7 @@ TEST_CASE_METHOD(BasicConfigTest, "test_numeric_type")
         auto  i = INT_TYPE(123);                               \
         value c = i;                                           \
         CHECK(c.is_integer());                                 \
-        CHECK_FALSE(c.is_float());                             \
+        CHECK_FALSE(c.is_floating());                          \
         CHECK(c.is_number());                                  \
         TEST_NUMERIC_GET_VALUE(c, int8_t, i);                  \
         TEST_NUMERIC_GET_VALUE(c, int16_t, i);                 \
@@ -148,7 +148,7 @@ TEST_CASE_METHOD(BasicConfigTest, "test_numeric_type")
         auto  i = FLOAT_TYPE(123.0);                            \
         value c = i;                                            \
         CHECK_FALSE(c.is_integer());                            \
-        CHECK(c.is_float());                                    \
+        CHECK(c.is_floating());                                 \
         CHECK(c.is_number());                                   \
         TEST_NUMERIC_GET_VALUE(c, float, i);                    \
         TEST_NUMERIC_GET_VALUE(c, double, i);                   \
