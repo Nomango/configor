@@ -64,8 +64,8 @@ class basic_oadapterstream : public std::basic_ostream<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using char_traits = std::char_traits<char_type>;
-    using int_type    = typename char_traits::int_type;
+    using traits_type = typename std::basic_ostream<char_type>::traits_type;
+    using int_type    = typename std::basic_ostream<char_type>::int_type;
 
     explicit basic_oadapterstream(basic_oadapter<char_type>& adapter)
         : std::basic_ostream<char_type>(nullptr)
@@ -88,7 +88,7 @@ private:
         {
             if (c != EOF)
             {
-                adapter_.write(char_traits::to_char_type(c));
+                adapter_.write(traits_type::to_char_type(c));
             }
             return c;
         }
@@ -139,8 +139,8 @@ class basic_iadapterstream : public std::basic_istream<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using char_traits = std::char_traits<char_type>;
-    using int_type    = typename char_traits::int_type;
+    using traits_type = typename std::basic_istream<char_type>::traits_type;
+    using int_type    = typename std::basic_istream<char_type>::int_type;
 
     explicit basic_iadapterstream(basic_iadapter<char_type>& adapter)
         : std::basic_istream<_CharTy>(nullptr)
@@ -150,7 +150,7 @@ public:
     }
 
 private:
-    class streambuf : public std::basic_streambuf<_CharTy>
+    class streambuf : public std::basic_streambuf<char_type>
     {
     public:
         explicit streambuf(basic_iadapter<char_type>& adapter)
@@ -164,7 +164,7 @@ private:
         {
             if (last_char_ != 0)
                 return last_char_;
-            last_char_ = char_traits::to_char_type(adapter_.read());
+            last_char_ = traits_type::to_char_type(adapter_.read());
             return last_char_;
         }
 
@@ -180,7 +180,7 @@ private:
             if (last_char_ != 0)
             {
                 // read last char
-                s[0]       = char_traits::to_char_type(last_char_);
+                s[0]       = traits_type::to_char_type(last_char_);
                 last_char_ = 0;
                 ++s;
                 --num;
@@ -212,8 +212,8 @@ class fast_string_ostreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_string_ostreambuf(string_type& str)
@@ -224,9 +224,9 @@ public:
 protected:
     virtual int_type overflow(int_type c) override
     {
-        if (c != char_traits::eof())
+        if (c != traits_type::eof())
         {
-            str_.push_back(char_traits::to_char_type(c));
+            str_.push_back(traits_type::to_char_type(c));
         }
         return c;
     }
@@ -250,8 +250,8 @@ class fast_string_istreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_string_istreambuf(const string_type& str)
@@ -264,8 +264,8 @@ protected:
     virtual int_type underflow() override
     {
         if (index_ >= str_.size())
-            return char_traits::eof();
-        return char_traits::to_int_type(str_[index_]);
+            return traits_type::eof();
+        return traits_type::to_int_type(str_[index_]);
     }
 
     virtual int_type uflow() override
@@ -291,14 +291,14 @@ class fast_buffer_istreambuf : public std::basic_streambuf<_CharTy>
 {
 public:
     using char_type   = _CharTy;
-    using int_type    = typename std::basic_streambuf<_CharTy>::int_type;
-    using char_traits = std::char_traits<char_type>;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
+    using int_type    = typename std::basic_streambuf<char_type>::int_type;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_buffer_istreambuf(const char_type* buffer)
         : buffer_(buffer)
         , index_(0)
-        , size_(char_traits::length(buffer))
+        , size_(traits_type::length(buffer))
     {
     }
 
@@ -306,8 +306,8 @@ protected:
     virtual int_type underflow() override
     {
         if (index_ >= size_)
-            return char_traits::eof();
-        return char_traits::to_int_type(buffer_[index_]);
+            return traits_type::eof();
+        return traits_type::to_int_type(buffer_[index_]);
     }
 
     virtual int_type uflow() override
@@ -323,7 +323,7 @@ protected:
             num = static_cast<std::streamsize>(size_ - index_);
         if (num == 0)
             return 0;
-        char_traits::copy(s, buffer_, static_cast<size_t>(num));
+        traits_type::copy(s, buffer_, static_cast<size_t>(num));
         return num;
     }
 
@@ -341,8 +341,8 @@ class fast_cfile_istreambuf<char> : public std::basic_streambuf<char>
 {
 public:
     using char_type   = char;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
     using int_type    = typename std::basic_streambuf<char_type>::int_type;
-    using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_cfile_istreambuf(std::FILE* file)
@@ -384,8 +384,8 @@ class fast_cfile_istreambuf<wchar_t> : public std::basic_streambuf<wchar_t>
 {
 public:
     using char_type   = wchar_t;
+    using traits_type = typename std::basic_streambuf<char_type>::traits_type;
     using int_type    = typename std::basic_streambuf<char_type>::int_type;
-    using char_traits = std::char_traits<char_type>;
     using string_type = std::basic_string<char_type>;
 
     explicit fast_cfile_istreambuf(std::FILE* file)
@@ -459,245 +459,6 @@ private:
 
 using fast_ostringstream  = fast_basic_ostringstream<char>;
 using fast_wostringstream = fast_basic_ostringstream<wchar_t>;
-
-//
-// serialization functions
-//
-
-template <typename _CharTy>
-struct snprintf_t
-{
-    using char_type = _CharTy;
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const signed char val)
-    {
-        internal_one_integer(os, "%hhd", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const short val)
-    {
-        internal_one_integer(os, "%hd", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const int val)
-    {
-        internal_one_integer(os, "%d", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const long val)
-    {
-        internal_one_integer(os, "%ld", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const long long val)
-    {
-        internal_one_integer(os, "%lld", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned char val)
-    {
-        internal_one_integer(os, "%hhu", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned short val)
-    {
-        internal_one_integer(os, "%hu", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned int val)
-    {
-        internal_one_integer(os, "%u", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned long val)
-    {
-        internal_one_integer(os, "%lu", val);
-    }
-
-    static inline void one_integer(std::basic_ostream<char_type>& os, const unsigned long long val)
-    {
-        internal_one_integer(os, "%llu", val);
-    }
-
-    template <typename _IntTy>
-    static inline void one_hex(std::basic_ostream<char_type>& os, const _IntTy val)
-    {
-        std::array<char, 7> buffer = {};
-        internal_snprintf(os, buffer.data(), sizeof(buffer), "\\u%04X", val);
-    }
-
-    template <typename _FloatTy>
-    static inline void one_float(std::basic_ostream<char_type>& os, const _FloatTy val)
-    {
-        std::array<char, 32> buffer = {};
-
-        const auto p   = static_cast<int>(os.precision());
-        const auto len = internal_snprintf(os, buffer.data(), sizeof(buffer), "%.*g", p, val);
-        // determine if need to append ".0"
-        if (std::none_of(buffer.data(), buffer.data() + len + 1, [](char c) { return c == '.'; }))
-        {
-            os.put(char_type('.')).put(char_type('0'));
-        }
-    }
-
-private:
-    template <typename _IntTy>
-    static inline void internal_one_integer(std::basic_ostream<char_type>& os, const char* format, const _IntTy val)
-    {
-        std::array<char, 32> buffer = {};
-        internal_snprintf(os, buffer.data(), sizeof(buffer), format, val);
-    }
-
-    template <typename... _Args>
-    static inline int internal_snprintf(std::basic_ostream<char_type>& os, char* buffer, size_t size,
-                                        const char* format, _Args&&... args)
-    {
-        const auto len = std::snprintf(buffer, size, format, std::forward<_Args>(args)...);
-        if (len > 0)
-            copy_simple_string(os, buffer, static_cast<size_t>(len));
-        else
-            os.setstate(std::ios_base::failbit);
-        return len;
-    }
-
-    static inline void copy_simple_string(std::basic_ostream<char>& os, const char* str, size_t len)
-    {
-        os.write(str, static_cast<std::streamsize>(len));
-    }
-
-    template <typename _UCharTy>
-    static inline void copy_simple_string(std::basic_ostream<_UCharTy>& os, const char* str, size_t len)
-    {
-        for (size_t i = 0; i < len; i++)
-            os.put(static_cast<_UCharTy>(str[i]));
-    }
-};
-
-template <typename _IntTy>
-struct serializable_integer
-{
-    const _IntTy i;
-
-    template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os,
-                                                          const serializable_integer&  i)
-    {
-        snprintf_t<_CharTy>::one_integer(os, i.i);
-        return os;
-    }
-
-    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_integer& i)
-    {
-        return os << i.i;
-    }
-
-    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_integer& i)
-    {
-        return os << i.i;
-    }
-};
-
-template <typename _IntTy>
-struct serializable_hex
-{
-    const _IntTy i;
-
-    template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_hex& i)
-    {
-        snprintf_t<_CharTy>::one_hex(os, i.i);
-        return os;
-    }
-
-    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_hex& i)
-    {
-        os << std::setfill('0') << std::hex << std::uppercase;
-        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
-        os << std::dec << std::nouppercase;
-        return os;
-    }
-
-    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_hex& i)
-    {
-        os << std::setfill(wchar_t('0')) << std::hex << std::uppercase;
-        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
-        os << std::dec << std::nouppercase;
-        return os;
-    }
-};
-
-template <typename _FloatTy>
-struct serializable_float
-{
-    const _FloatTy f;
-
-    template <typename _CharTy>
-    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const serializable_float& f)
-    {
-        snprintf_t<_CharTy>::one_float(os, f.f);
-        return os;
-    }
-
-    friend std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const serializable_float& f)
-    {
-        if (std::ceil(f.f) == std::floor(f.f))
-        {
-            // integer
-            return os << static_cast<int64_t>(f.f) << ".0";
-        }
-        return os << f.f;
-    }
-
-    friend std::basic_ostream<wchar_t>& operator<<(std::basic_ostream<wchar_t>& os, const serializable_float& f)
-    {
-        if (std::ceil(f.f) == std::floor(f.f))
-        {
-            // integer
-            return os << static_cast<int64_t>(f.f) << L".0";
-        }
-        return os << f.f;
-    }
-};
-
-namespace
-{
-
-template <typename _IntTy>
-inline serializable_integer<_IntTy> serialize_integer(const _IntTy i)
-{
-    return serializable_integer<_IntTy>{ i };
-}
-
-template <typename _IntTy>
-inline serializable_hex<_IntTy> serialize_hex(const _IntTy i)
-{
-    return serializable_hex<_IntTy>{ i };
-}
-
-template <typename _FloatTy>
-inline serializable_float<_FloatTy> serialize_float(const _FloatTy f)
-{
-    return serializable_float<_FloatTy>{ f };
-}
-
-}  // namespace
-
-template <typename _CharTy>
-inline void copy_fmt(const std::basic_ios<_CharTy>& from, std::basic_ios<_CharTy>& to)
-{
-    // only copy flags
-    to.setf(from.flags());
-}
-
-inline void copy_fmt(const std::basic_ios<char>& from, std::basic_ios<char>& to)
-{
-    to.copyfmt(from);
-}
-
-inline void copy_fmt(const std::basic_ios<wchar_t>& from, std::basic_ios<wchar_t>& to)
-{
-    to.copyfmt(from);
-}
 
 }  // namespace detail
 

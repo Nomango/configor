@@ -19,13 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_encoding.hpp"
-
-#include <cstdint>      // std::int64_t
-#include <map>          // std::map
-#include <string>       // std::string
 #include <type_traits>  // std::false_type, std::true_type, std::remove_cv, std::remove_reference
-#include <vector>       // std::vector
 
 namespace configor
 {
@@ -35,89 +29,85 @@ namespace configor
 //
 
 template <typename _Ty>
-class config_binder;
+class value_binder;
 
-namespace detail
-{
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class parser;
-
-template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-class serializer;
-
-struct nonesuch
-{
-    nonesuch()                 = delete;
-    ~nonesuch()                = delete;
-    nonesuch(nonesuch const&)  = delete;
-    nonesuch(nonesuch const&&) = delete;
-    void operator=(nonesuch const&) = delete;
-    void operator=(nonesuch&&) = delete;
-};
-}  // namespace detail
-
-struct config_args
-{
-    using boolean_type = bool;
-
-    using integer_type = int64_t;
-
-    using float_type = double;
-
-    using char_type = char;
-
-    template <class _CharTy, class... _Args>
-    using string_type = std::basic_string<_CharTy, _Args...>;
-
-    template <class _Kty, class... _Args>
-    using array_type = std::vector<_Kty, _Args...>;
-
-    template <class _Kty, class _Ty, class... _Args>
-    using object_type = std::map<_Kty, _Ty, _Args...>;
-
-    template <class _Ty>
-    using allocator_type = std::allocator<_Ty>;
-
-    template <class _ConfTy>
-    using reader_type = detail::nonesuch;
-
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using parser_type = detail::parser<_ConfTy, _SourceEncoding, _TargetEncoding>;
-
-    template <class _ConfTy>
-    using writer_type = detail::nonesuch;
-
-    template <typename _ConfTy, template <typename> class _SourceEncoding, template <typename> class _TargetEncoding>
-    using serializer_type = detail::serializer<_ConfTy, _SourceEncoding, _TargetEncoding>;
-
-    template <class _Ty>
-    using binder_type = config_binder<_Ty>;
-
-    template <typename _CharTy>
-    using default_encoding = encoding::ignore<_CharTy>;
-};
-
-struct wconfig_args : config_args
-{
-    using char_type = wchar_t;
-};
-
-template <typename _Args = config_args>
-class basic_config;
+template <typename _Args>
+class basic_value;
 
 //
-// is_config
+// is_value
 //
 
 template <typename>
-struct is_config : std::false_type
+struct is_value : std::false_type
 {
 };
 
 template <typename _Args>
-struct is_config<basic_config<_Args>> : std::true_type
+struct is_value<basic_value<_Args>> : std::true_type
 {
 };
+
+//
+// value_base
+//
+
+class value_base
+{
+public:
+    enum value_type
+    {
+        null,
+        integer,
+        floating,
+        string,
+        array,
+        object,
+        boolean,
+    };
+
+    inline value_type type() const
+    {
+        return type_;
+    }
+
+protected:
+    value_base(value_type t = value_type::null)
+        : type_{ t }
+    {
+    }
+
+    ~value_base() {}
+
+    inline void set_type(value_type t)
+    {
+        type_ = t;
+    }
+
+    value_type type_;
+};
+
+inline const char* to_string(value_base::value_type t) noexcept
+{
+    switch (t)
+    {
+    case value_base::value_type::object:
+        return "object";
+    case value_base::value_type::array:
+        return "array";
+    case value_base::value_type::string:
+        return "string";
+    case value_base::value_type::integer:
+        return "integer";
+    case value_base::value_type::floating:
+        return "float";
+    case value_base::value_type::boolean:
+        return "boolean";
+    case value_base::value_type::null:
+        return "null";
+    }
+    return "unknown";
+}
 
 namespace detail
 {
@@ -191,6 +181,82 @@ struct static_const
 
 template <typename _Ty>
 constexpr _Ty static_const<_Ty>::value;
+
+// to value
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_to_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_to_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using to_config_fn = decltype(_UTy::to_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ValTy&, _Ty>::value;
+};
+
+// from value
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_from_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ValTy, _Ty&>::value;
+};
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct has_non_default_from_value : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct has_non_default_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    using binder_type = typename _ValTy::template binder_type<_Ty>;
+
+    template <typename _UTy, typename... _Args>
+    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+public:
+    static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ValTy>::value;
+};
+
+// getable
+
+template <typename _ValTy, typename _Ty, typename _Void = void>
+struct is_value_getable : std::false_type
+{
+};
+
+template <typename _ValTy, typename _Ty>
+struct is_value_getable<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+{
+private:
+    template <typename _UTy, typename... _Args>
+    using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
+
+public:
+    static constexpr bool value = exact_detect<_Ty, get_fn, _ValTy, _Ty>::value;
+};
 
 }  // namespace detail
 

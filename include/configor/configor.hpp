@@ -19,33 +19,51 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_basic.hpp"
+#include "configor_conversion.hpp"
+#include "configor_parser.hpp"
+#include "configor_serializer.hpp"
+#include "configor_wrapper.hpp"
+
+#include <cstdint>      // std::int64_t
+#include <map>          // std::map
+#include <string>       // std::string
+#include <vector>       // std::vector
 
 namespace configor
 {
 
-using config  = basic_config<>;
-using wconfig = basic_config<wconfig_args>;
-
-template <typename _ConfTy, typename = typename std::enable_if<is_config<_ConfTy>::value>::type>
-inline void swap(_ConfTy& lhs, _ConfTy& rhs)
+struct value_tpl_args
 {
-    lhs.swap(rhs);
-}
+    using boolean_type = bool;
+
+    using integer_type = int64_t;
+
+    using float_type = double;
+
+    using char_type = char;
+
+    template <class _CharTy, class... _Args>
+    using string_type = std::basic_string<_CharTy, _Args...>;
+
+    template <class _Kty, class... _Args>
+    using array_type = std::vector<_Kty, _Args...>;
+
+    template <class _Kty, class _Ty, class... _Args>
+    using object_type = std::map<_Kty, _Ty, _Args...>;
+
+    template <class _Ty>
+    using allocator_type = std::allocator<_Ty>;
+
+    template <class _Ty>
+    using binder_type = value_binder<_Ty>;
+};
+
+struct wvalue_tpl_args : value_tpl_args
+{
+    using char_type = wchar_t;
+};
+
+using value  = basic_value<value_tpl_args>;
+using wvalue = basic_value<wvalue_tpl_args>;
 
 }  // namespace configor
-
-namespace std
-{
-template <typename _Args>
-struct hash<::configor::basic_config<_Args>>
-{
-    using argument_type = ::configor::basic_config<_Args>;
-    using result_type   = size_t;
-
-    result_type operator()(argument_type const& config) const
-    {
-        return hash<typename argument_type::string_type>{}(config.dump());
-    }
-};
-}  // namespace std

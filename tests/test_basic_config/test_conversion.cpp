@@ -6,7 +6,7 @@
 
 class Driver
 {
-    friend config_binder<Driver>;
+    friend value_binder<Driver>;
 
     std::string name_;
 
@@ -25,14 +25,14 @@ public:
 namespace configor
 {
 template <>
-struct config_binder<Driver>
+struct value_binder<Driver>
 {
-    static void to_config(config& c, const Driver& v)
+    static void to_value(value& c, const Driver& v)
     {
         c["name"] = v.name_;
     }
 
-    static Driver from_config(const config& c)
+    static Driver from_value(const value& c)
     {
         return Driver(c["name"].get<std::string>());
     }
@@ -41,7 +41,7 @@ struct config_binder<Driver>
 
 class Passenger
 {
-    friend config_binder<Passenger>;
+    friend value_binder<Passenger>;
 
     std::string name_;
     int         age_ = 0;
@@ -63,15 +63,15 @@ public:
 namespace configor
 {
 template <>
-struct config_binder<Passenger>
+struct value_binder<Passenger>
 {
-    static void to_config(config& c, const Passenger& v)
+    static void to_value(value& c, const Passenger& v)
     {
         c["name"] = v.name_;
         c["age"]  = v.age_;
     }
 
-    static void from_config(const config& c, Passenger& v)
+    static void from_value(const value& c, Passenger& v)
     {
         c["name"].get(v.name_);
         c["age"].get(v.age_);
@@ -125,7 +125,7 @@ public:
         return *this;
     }
 
-    CONFIGOR_BIND(config, Bus, REQUIRED(license_, "license"), REQUIRED(driver_, "driver"),
+    CONFIGOR_BIND(value, Bus, REQUIRED(license_, "license"), REQUIRED(driver_, "driver"),
                   OPTIONAL(passengers_, "passengers"), OPTIONAL(olders_, "olders"))
 
 private:
@@ -138,8 +138,8 @@ private:
 class ConversionTest
 {
 protected:
-    Bus    expect_bus;
-    config expect_config;
+    Bus   expect_bus;
+    value expect_config;
 
     ConversionTest()
     {
@@ -150,26 +150,24 @@ protected:
             { { "p2", std::make_shared<Passenger>("p2", 54) } },
         };
 
-        expect_config = {
+        expect_config = make_object<value>({
             { "license", 100 },
-            { "driver", { { "name", "driver" } } },
-            { "passengers",
-              {
-                  { { "name", "p1" }, { "age", 18 } },
-                  { { "name", "p2" }, { "age", 54 } },
-                  nullptr,
-              } },
-            { "olders",
-              {
-                  { "p2", { { "name", "p2" }, { "age", 54 } } },
-              } },
-        };
+            { "driver", make_object<value>({ { "name", "driver" } }) },
+            { "passengers", make_array<value>({
+                                make_object<value>({ { "name", "p1" }, { "age", 18 } }),
+                                make_object<value>({ { "name", "p2" }, { "age", 54 } }),
+                                nullptr,
+                            }) },
+            { "olders", make_object<value>({
+                            { "p2", make_object<value>({ { "name", "p2" }, { "age", 54 } }) },
+                        }) },
+        });
     }
 };
 
 TEST_CASE_METHOD(ConversionTest, "test_to_config")
 {
-    config c = expect_bus;
+    value c = expect_bus;
 
     CHECK(c == expect_config);
 }
@@ -187,7 +185,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::array<Bus, 1> v;
         v[0] = expect_bus;
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -202,7 +200,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::vector<Bus> v;
         v.push_back(expect_bus);
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -218,7 +216,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::deque<Bus> v;
         v.push_back(expect_bus);
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -234,7 +232,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::list<Bus> v;
         v.push_back(expect_bus);
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -250,7 +248,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         std::forward_list<Bus> v;
         v.push_front(expect_bus);
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -264,7 +262,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     {
         std::set<int> expect = { 1, 1, 2, 3 };
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_array());
         CHECK(c.size() == 3);
@@ -278,7 +276,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     {
         std::unordered_set<int> expect = { 1, 1, 2, 3 };
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_array());
         CHECK(c.size() == 3);
@@ -292,7 +290,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     {
         std::map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_object());
         CHECK(c.size() == 2);
@@ -307,7 +305,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     {
         std::unordered_map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
 
-        config c;
+        value c;
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_object());
         CHECK(c.size() == 2);
@@ -324,14 +322,14 @@ struct CStylePassengers
 {
     Passenger passengers[2];
 
-    CONFIGOR_BIND_ALL_REQUIRED(config, CStylePassengers, passengers);
+    CONFIGOR_BIND(value, CStylePassengers, REQUIRED(passengers));
 };
 
 TEST_CASE("test_conversion")
 {
     SECTION("test unique_ptr")
     {
-        config c;
+        value c;
 
         std::unique_ptr<Passenger> pnull = nullptr;
         CHECK_NOTHROW(c = pnull);
@@ -344,7 +342,7 @@ TEST_CASE("test_conversion")
 
     SECTION("test shared_ptr")
     {
-        config c;
+        value c;
 
         std::shared_ptr<Passenger> pnull = nullptr;
         CHECK_NOTHROW(c = pnull);
@@ -357,7 +355,7 @@ TEST_CASE("test_conversion")
 
     SECTION("test c-style array")
     {
-        config c;
+        value c;
 
         CStylePassengers v = { Passenger{ "1", 1 }, Passenger{ "2", 2 } };
         CHECK_NOTHROW(c = v);

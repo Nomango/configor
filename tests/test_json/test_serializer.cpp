@@ -11,80 +11,77 @@ class SerializerTest
 protected:
     SerializerTest()
     {
-        j = {
+        j = json::object{
             { "pi", 3.141 },
             { "happy", true },
             { "name", "Nomango" },
             { "nothing", nullptr },
-            { "answer", { { "everything", 42 } } },
-            { "list", { 1, 0, 2 } },
-            { "object", { { "currency", "USD" }, { "value", 42.99 } } },
+            { "answer", json::object{ { "everything", 42 } } },
+            { "list", json::array{ 1, 0, 2 } },
+            { "object", json::object{ { "currency", "USD" }, { "value", 42.99 } } },
         };
     }
 
-    json j;
+    json::value j;
 };
 
 TEST_CASE_METHOD(SerializerTest, "test_dump")
 {
-    CHECK_NOTHROW(j.dump());
-    CHECK_NOTHROW(j.dump(4, ' '));
+    CHECK_NOTHROW(json::dump(j));
+    CHECK_NOTHROW(json::dump(j, { json::serializer::with_indent(4, ' ') }));
 
     // dump float
     // issue 7
-    CHECK(json(0.0).dump() == "0.0");
-    CHECK(json(1.0).dump() == "1.0");
-    CHECK(wjson(0.0).dump() == WIDE("0.0"));
-    CHECK(wjson(1.0).dump() == WIDE("1.0"));
-    CHECK(u16json(0.0).dump() == U16("0.0"));
-    CHECK(u16json(1.0).dump() == U16("1.0"));
-    CHECK(u32json(0.0).dump() == U32("0.0"));
-    CHECK(u32json(1.0).dump() == U32("1.0"));
+    CHECK(json::dump(json::value(0.0)) == "0.0");
+    CHECK(json::dump(json::value(1.0)) == "1.0");
+    CHECK(wjson::dump(wjson::value(0.0)) == WIDE("0.0"));
+    CHECK(wjson::dump(wjson::value(1.0)) == WIDE("1.0"));
 
-    CHECK(json(1.2).dump() == "1.2");
-    CHECK(json(1.23).dump() == "1.23");
+    CHECK(json::dump(json::value(1.2)) == "1.2");
+    CHECK(json::dump(json::value(1.23)) == "1.23");
 
     // dump empty object
-    CHECK(json::object({}).dump() == "{}");
+    CHECK(json::dump(json::object{}) == "{}");
 
     // dump empty array
-    CHECK(json::array({}).dump() == "[]");
+    CHECK(json::dump(json::array{}) == "[]");
 
     // dump boolean
-    CHECK(json(true).dump() == "true");
-    CHECK(json(false).dump() == "false");
+    CHECK(json::dump(json::value(true)) == "true");
+    CHECK(json::dump(json::value(false)) == "false");
 
     // dump control characters
-    CHECK(json("\t\r\n\b\f\"\\").dump() == "\"\\t\\r\\n\\b\\f\\\"\\\\\"");
+    CHECK(json::dump(json::value("\t\r\n\b\f\"\\")) == "\"\\t\\r\\n\\b\\f\\\"\\\\\"");
 
     // invalid unicode
-    CHECK_THROWS_AS(json("\xC0").dump(), configor_serialization_error);
+    CHECK_THROWS_AS(json::dump(json::value("\xC0")), configor_serialization_error);
 
     // test error policy
     error_handler_with<error_policy::strict> strict_handler{};
-    CHECK_THROWS_AS(json("\xC0").dump(&strict_handler), configor_serialization_error);
+    CHECK_THROWS_AS(json::dump(json::value("\xC0"), { json::serializer::with_error_handler(&strict_handler) }),
+                    configor_serialization_error);
 
     error_handler_with<error_policy::ignore> ignore_handler{};
-    CHECK_NOTHROW(json("\xC0").dump(&ignore_handler));
+    CHECK_NOTHROW(json::dump(json::value("\xC0"), { json::serializer::with_error_handler(&ignore_handler) }));
 
     error_handler_with<error_policy::record> record_handler{};
-    CHECK_NOTHROW(json("\xC0").dump(&record_handler));
+    CHECK_NOTHROW(json::dump(json::value("\xC0"), { json::serializer::with_error_handler(&record_handler) }));
     CHECK_FALSE(record_handler.error.empty());
 }
 
 TEST_CASE_METHOD(SerializerTest, "test_write_to_stream")
 {
     std::stringstream ss;
-    ss << j;
-    CHECK(ss.str() == j.dump());
+    ss << json::wrap(j);
+    CHECK(ss.str() == json::dump(j));
 
     ss.str("");
-    ss << std::setw(4) << j;
-    CHECK(ss.str() == j.dump(4));
+    ss << std::setw(4) << json::wrap(j);
+    CHECK(ss.str() == json::dump(j, { json::serializer::with_indent(4) }));
 
     ss.str("");
-    ss << std::setw(2) << std::setfill('.') << j;
-    CHECK(ss.str() == j.dump(2, '.'));
+    ss << std::setw(2) << std::setfill('.') << json::wrap(j);
+    CHECK(ss.str() == json::dump(j, { json::serializer::with_indent(2, '.') }));
 }
 
 TEST_CASE_METHOD(SerializerTest, "test_adapter")
@@ -109,8 +106,8 @@ TEST_CASE_METHOD(SerializerTest, "test_adapter")
     {
         myadapter      ma{ output };
         oadapterstream os{ ma };
-        CHECK_NOTHROW(j.dump(os));
-        CHECK(output == j.dump());
+        CHECK_NOTHROW(json::dump(os, j));
+        CHECK(output == json::dump(j));
     }
 
     {
@@ -129,49 +126,34 @@ TEST_CASE("test_serializer")
     SECTION("test_numeric")
     {
         // dump integer
-        CHECK(json(0).dump() == "0");
-        CHECK(json(int32_t(2147483647)).dump() == "2147483647");
-        CHECK(json(int64_t(9223372036854775807)).dump() == "9223372036854775807");
+        CHECK(json::dump(json::value(0)) == "0");
+        CHECK(json::dump(json::value(int32_t(2147483647))) == "2147483647");
+        CHECK(json::dump(json::value(int64_t(9223372036854775807))) == "9223372036854775807");
 
-        CHECK(wjson(0).dump() == WIDE("0"));
-        CHECK(wjson(int32_t(2147483647)).dump() == WIDE("2147483647"));
-        CHECK(wjson(int64_t(9223372036854775807)).dump() == WIDE("9223372036854775807"));
-
-        CHECK(u16json(0).dump() == U16("0"));
-        CHECK(u16json(int32_t(2147483647)).dump() == U16("2147483647"));
-        CHECK(u16json(int64_t(9223372036854775807)).dump() == U16("9223372036854775807"));
-
-        CHECK(u32json(0).dump() == U32("0"));
-        CHECK(u32json(int32_t(2147483647)).dump() == U32("2147483647"));
-        CHECK(u32json(int64_t(9223372036854775807)).dump() == U32("9223372036854775807"));
+        CHECK(wjson::dump(wjson::value(0)) == WIDE("0"));
+        CHECK(wjson::dump(wjson::value(int32_t(2147483647))) == WIDE("2147483647"));
+        CHECK(wjson::dump(wjson::value(int64_t(9223372036854775807))) == WIDE("9223372036854775807"));
 
         // dump signed integer
-        CHECK(json(-0).dump() == "0");
-        CHECK(json(int32_t(-2147483647)).dump() == "-2147483647");
-        CHECK(json(int64_t(-9223372036854775807)).dump() == "-9223372036854775807");
+        CHECK(json::dump(json::value(-0)) == "0");
+        CHECK(json::dump(json::value(int32_t(-2147483647))) == "-2147483647");
+        CHECK(json::dump(json::value(int64_t(-9223372036854775807))) == "-9223372036854775807");
 
-        CHECK(wjson(-0).dump() == WIDE("0"));
-        CHECK(wjson(int32_t(-2147483647)).dump() == WIDE("-2147483647"));
-        CHECK(wjson(int64_t(-9223372036854775807)).dump() == WIDE("-9223372036854775807"));
-
-        CHECK(u16json(-0).dump() == U16("0"));
-        CHECK(u16json(int32_t(-2147483647)).dump() == U16("-2147483647"));
-        CHECK(u16json(int64_t(-9223372036854775807)).dump() == U16("-9223372036854775807"));
-
-        CHECK(u32json(-0).dump() == U32("0"));
-        CHECK(u32json(int32_t(-2147483647)).dump() == U32("-2147483647"));
-        CHECK(u32json(int64_t(-9223372036854775807)).dump() == U32("-9223372036854775807"));
+        CHECK(wjson::dump(wjson::value(-0)) == WIDE("0"));
+        CHECK(wjson::dump(wjson::value(int32_t(-2147483647))) == WIDE("-2147483647"));
+        CHECK(wjson::dump(wjson::value(int64_t(-9223372036854775807))) == WIDE("-9223372036854775807"));
     }
 
     SECTION("test_dump_intend")
     {
-        json j;
+        json::value j;
         j[0] = json::object({ { "num", 1 } });
         j[1] = true;
 
-        CHECK(j.dump() == "[{\"num\":1},true]");
-        CHECK(j.dump(4) == "[\n    {\n        \"num\": 1\n    },\n    true\n]");
-        CHECK(j.dump(2, '$') == "[\n$${\n$$$$\"num\":$1\n$$},\n$$true\n]");
+        CHECK(json::dump(j) == "[{\"num\":1},true]");
+        CHECK(json::dump(j, { json::serializer::with_indent(4) })
+              == "[\n    {\n        \"num\": 1\n    },\n    true\n]");
+        CHECK(json::dump(j, { json::serializer::with_indent(2, '$') }) == "[\n$${\n$$$$\"num\":$1\n$$},\n$$true\n]");
     }
 
     SECTION("test_dump_minimal_float")
@@ -180,39 +162,41 @@ TEST_CASE("test_serializer")
         const double pi            = std::acos(-1.0);
         const double minimal_float = pi / 1000000.0;
 
-        json j = minimal_float;
-        CHECK(j.dump() == "3.141592653589793e-06");
+        json::value j = minimal_float;
+        CHECK(json::dump(j) == "3.14159e-06");
+        CHECK(json::dump(j, { json::serializer::with_precision(6, std::ios_base::fmtflags{}) }) == "3.14159e-06");
+        CHECK(json::dump(j, { json::serializer::with_precision(std::numeric_limits<double>::digits10 + 1,
+                                                               std::ios_base::fmtflags{}) })
+              == "3.141592653589793e-06");
 
-        json::writer::args args;
-        args.precision = 6;
-        CHECK(j.dump(args) == "3.14159e-06");
-
-        j = json::parse(j.dump());
+        j = json::parse(json::dump(j));
         CHECK(j.get<double>() == Approx(minimal_float));
     }
 
     SECTION("test_float_precision")
     {
         const double pi = std::acos(-1.0);
-        json         j  = pi;
+        json::value  j  = pi;
+
+        CHECK(json::dump(j, { json::serializer::with_precision(4) }) == "3.1416");
 
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(4) << j;
+        ss << std::fixed << std::setprecision(4) << json::wrap(j);
         CHECK(ss.str() == "3.1416");
 
         ss.str("");
-        ss << std::fixed << std::setprecision(12) << j;
+        ss << std::fixed << std::setprecision(12) << json::wrap(j);
         CHECK(ss.str() == "3.141592653590");
     }
 
     SECTION("test_wrap")
     {
-        int  i = 1;
-        json j = i;
+        int         i = 1;
+        json::value j = i;
 
         std::stringstream s;
         s << json::wrap(i);
-        CHECK(s.str() == j.dump());
+        CHECK(s.str() == json::dump(j));
 
         int i2 = 0;
         s >> json::wrap(i2);

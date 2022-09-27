@@ -19,8 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "configor_declare.hpp"
 #include "configor_exception.hpp"
-#include "configor_value.hpp"
 
 #include <cstddef>   // std::ptrdiff_t
 #include <iterator>  // std::reverse_iterator, std::prev
@@ -129,83 +129,83 @@ private:
     difference_type it_;
 };
 
-template <typename _ConfTy>
+template <typename _ValTy>
 struct iterator
 {
-    friend _ConfTy;
-    friend iterator<typename std::conditional<std::is_const<_ConfTy>::value, typename std::remove_const<_ConfTy>::type,
-                                              const _ConfTy>::type>;
+    friend _ValTy;
+    friend iterator<typename std::conditional<std::is_const<_ValTy>::value, typename std::remove_const<_ValTy>::type,
+                                              const _ValTy>::type>;
 
-    using value_type        = _ConfTy;
+    using value_type        = _ValTy;
     using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
     using pointer           = value_type*;
     using reference         = value_type&;
 
-    inline explicit iterator(value_type* config)
-        : data_(config)
+    inline explicit iterator(value_type* v)
+        : value_(v)
     {
     }
 
-    inline iterator(const iterator<const _ConfTy>& rhs)
-        : data_(rhs.data_)
+    inline iterator(const iterator<const _ValTy>& rhs)
+        : value_(rhs.value_)
         , array_it_(rhs.array_it_)
         , object_it_(rhs.object_it_)
         , primitive_it_(rhs.primitive_it_)
     {
     }
 
-    iterator& operator=(const iterator<const _ConfTy>& rhs)
+    iterator& operator=(const iterator<const _ValTy>& rhs)
     {
-        this->data_         = rhs.data_;
+        this->value_        = rhs.value_;
         this->array_it_     = rhs.array_it_;
         this->object_it_    = rhs.object_it_;
         this->primitive_it_ = rhs.primitive_it_;
         return *this;
     }
 
-    inline iterator(const iterator<typename std::remove_const<_ConfTy>::type>& rhs)
-        : data_(rhs.data_)
+    inline iterator(const iterator<typename std::remove_const<_ValTy>::type>& rhs)
+        : value_(rhs.value_)
         , array_it_(rhs.array_it_)
         , object_it_(rhs.object_it_)
         , primitive_it_(rhs.primitive_it_)
     {
     }
 
-    iterator& operator=(const iterator<typename std::remove_const<_ConfTy>::type>& rhs)
+    iterator& operator=(const iterator<typename std::remove_const<_ValTy>::type>& rhs)
     {
-        this->data_         = rhs.data_;
+        this->value_        = rhs.value_;
         this->array_it_     = rhs.array_it_;
         this->object_it_    = rhs.object_it_;
         this->primitive_it_ = rhs.primitive_it_;
         return *this;
     }
 
-    inline const typename value_type::string_type& key() const
+    const typename value_type::string_type& key() const
     {
         check_data();
         check_iterator();
 
-        if (data_->type() != config_value_type::object)
+        if (value_->type() != value_base::object)
             throw configor_invalid_iterator("cannot use key() with non-object type");
         return object_it_->first;
     }
 
-    inline reference value() const
+    reference value() const
     {
         check_data();
         check_iterator();
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
             return object_it_->second;
-        case config_value_type::array:
+        case value_base::array:
             return *array_it_;
         default:
             break;
         }
-        return *data_;
+        return *value_;
     }
 
     inline reference operator*() const
@@ -225,23 +225,23 @@ struct iterator
         return old;
     }
 
-    inline iterator& operator++()
+    iterator& operator++()
     {
         check_data();
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
             std::advance(object_it_, 1);
             break;
         }
-        case config_value_type::array:
+        case value_base::array:
         {
             std::advance(array_it_, 1);
             break;
         }
-        case config_value_type::null:
+        case value_base::null:
         {
             // DO NOTHING
             break;
@@ -262,23 +262,23 @@ struct iterator
         return old;
     }
 
-    inline iterator& operator--()
+    iterator& operator--()
     {
         check_data();
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
             std::advance(object_it_, -1);
             break;
         }
-        case config_value_type::array:
+        case value_base::array:
         {
             std::advance(array_it_, -1);
             break;
         }
-        case config_value_type::null:
+        case value_base::null:
         {
             // DO NOTHING
             break;
@@ -307,23 +307,23 @@ struct iterator
     {
         return operator+=(-off);
     }
-    inline iterator& operator+=(difference_type off)
+    iterator& operator+=(difference_type off)
     {
         check_data();
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
             throw configor_invalid_iterator("cannot compute offsets with object type");
             break;
         }
-        case config_value_type::array:
+        case value_base::array:
         {
             std::advance(array_it_, off);
             break;
         }
-        case config_value_type::null:
+        case value_base::null:
         {
             // DO NOTHING
             break;
@@ -337,15 +337,15 @@ struct iterator
         return *this;
     }
 
-    inline difference_type operator-(const iterator& rhs) const
+    difference_type operator-(const iterator& rhs) const
     {
         check_data();
         rhs.check_data();
 
-        if (data_ != rhs.data_)
-            throw configor_invalid_iterator("cannot compute iterator offsets of different config objects");
+        if (value_ != rhs.value_)
+            throw configor_invalid_iterator("cannot compute iterator offsets of different value objects");
 
-        if (data_->type() != config_value_type::array)
+        if (value_->type() != value_base::array)
             throw configor_invalid_iterator("cannot compute iterator offsets with non-array type");
         return array_it_ - rhs.array_it_;
     }
@@ -354,21 +354,21 @@ struct iterator
     {
         return !(*this == other);
     }
-    inline bool operator==(iterator const& other) const
+    bool operator==(iterator const& other) const
     {
-        if (data_ == nullptr)
+        if (value_ == nullptr)
             return false;
 
-        if (data_ != other.data_)
+        if (value_ != other.value_)
             return false;
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
             return object_it_ == other.object_it_;
         }
-        case config_value_type::array:
+        case value_base::array:
         {
             return array_it_ == other.array_it_;
         }
@@ -391,19 +391,19 @@ struct iterator
     {
         return !other.operator<(*this);
     }
-    inline bool operator<(iterator const& other) const
+    bool operator<(iterator const& other) const
     {
         check_data();
         other.check_data();
 
-        if (data_ != other.data_)
-            throw configor_invalid_iterator("cannot compare iterators of different config objects");
+        if (value_ != other.value_)
+            throw configor_invalid_iterator("cannot compare iterators of different value objects");
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
             throw configor_invalid_iterator("cannot compare iterators with object type");
-        case config_value_type::array:
+        case value_base::array:
             return array_it_ < other.array_it_;
         default:
             return primitive_it_ < other.primitive_it_;
@@ -411,23 +411,23 @@ struct iterator
     }
 
 private:
-    inline void set_begin()
+    void set_begin()
     {
         check_data();
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
-            object_it_ = data_->value_.data.object->begin();
+            object_it_ = value_->data_.object->begin();
             break;
         }
-        case config_value_type::array:
+        case value_base::array:
         {
-            array_it_ = data_->value_.data.vector->begin();
+            array_it_ = value_->data_.vector->begin();
             break;
         }
-        case config_value_type::null:
+        case value_base::null:
         {
             // DO NOTHING
             break;
@@ -440,23 +440,23 @@ private:
         }
     }
 
-    inline void set_end()
+    void set_end()
     {
         check_data();
 
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
+        case value_base::object:
         {
-            object_it_ = data_->value_.data.object->end();
+            object_it_ = value_->data_.object->end();
             break;
         }
-        case config_value_type::array:
+        case value_base::array:
         {
-            array_it_ = data_->value_.data.vector->end();
+            array_it_ = value_->data_.vector->end();
             break;
         }
-        case config_value_type::null:
+        case value_base::null:
         {
             // DO NOTHING
             break;
@@ -471,29 +471,29 @@ private:
 
     inline void check_data() const
     {
-        if (data_ == nullptr)
+        if (value_ == nullptr)
         {
             throw configor_invalid_iterator("iterator is empty");
         }
     }
 
-    inline void check_iterator() const
+    void check_iterator() const
     {
-        switch (data_->type())
+        switch (value_->type())
         {
-        case config_value_type::object:
-            if (object_it_ == data_->value_.data.object->end())
+        case value_base::object:
+            if (object_it_ == value_->data_.object->end())
             {
                 throw std::out_of_range("object iterator out of range");
             }
             break;
-        case config_value_type::array:
-            if (array_it_ == data_->value_.data.vector->end())
+        case value_base::array:
+            if (array_it_ == value_->data_.vector->end())
             {
                 throw std::out_of_range("array iterator out of range");
             }
             break;
-        case config_value_type::null:
+        case value_base::null:
         {
             throw std::out_of_range("null iterator out of range");
         }
@@ -507,11 +507,11 @@ private:
     }
 
 private:
-    value_type* data_;
+    value_type* value_;
 
-    typename _ConfTy::array_type::iterator  array_it_;
-    typename _ConfTy::object_type::iterator object_it_;
-    primitive_iterator                      primitive_it_ = 0;  // for other types
+    typename _ValTy::array_type::iterator  array_it_;
+    typename _ValTy::object_type::iterator object_it_;
+    primitive_iterator                     primitive_it_ = 0;  // for other types
 };
 
 template <typename _IterTy>

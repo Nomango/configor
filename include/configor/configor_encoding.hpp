@@ -73,17 +73,17 @@ inline void encode_surrogates(uint32_t codepoint, uint32_t& lead_surrogate, uint
 }  // namespace unicode
 
 template <typename _CharTy>
-using encoder = void(*)(std::basic_ostream<_CharTy>&, uint32_t);
+using encoder = void (*)(std::basic_ostream<_CharTy>&, uint32_t);
 
 template <typename _CharTy>
-using decoder = bool(*)(std::basic_istream<_CharTy>&, uint32_t&);
+using decoder = bool (*)(std::basic_istream<_CharTy>&, uint32_t&);
 
 template <typename _CharTy>
 class ignore
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
@@ -94,7 +94,7 @@ public:
 
     static bool decode(istream_type& is, uint32_t& codepoint)
     {
-        codepoint = static_cast<uint32_t>(static_cast<_CharTy>(is.get()));
+        codepoint = static_cast<uint32_t>(static_cast<char_type>(is.get()));
         return !is.eof();
     }
 };
@@ -104,7 +104,7 @@ class utf8
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
@@ -213,24 +213,24 @@ class utf16
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
     static_assert(sizeof(char_type) >= 2, "The size of utf16 characters must be larger than 16 bits");
 
-    static inline void encode(ostream_type& os, uint32_t codepoint)
+    static void encode(ostream_type& os, uint32_t codepoint)
     {
         if (codepoint <= 0xFFFF)
         {
-            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint)));
+            os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(codepoint)));
         }
         else if (codepoint <= 0x10FFFF)
         {
             uint32_t lead_surrogate = 0, trail_surrogate = 0;
             unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(lead_surrogate)));
-            os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(trail_surrogate)));
+            os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(lead_surrogate)));
+            os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(trail_surrogate)));
         }
         else
         {
@@ -238,7 +238,7 @@ public:
         }
     }
 
-    static inline bool decode(istream_type& is, uint32_t& codepoint)
+    static bool decode(istream_type& is, uint32_t& codepoint)
     {
         codepoint = static_cast<uint32_t>(static_cast<uint16_t>(is.get()));
 
@@ -273,22 +273,22 @@ class utf32
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
     static_assert(sizeof(char_type) >= 4, "The size of utf32 characters must be larger than 32 bits");
 
-    static inline void encode(ostream_type& os, uint32_t codepoint)
+    static void encode(ostream_type& os, uint32_t codepoint)
     {
         if (codepoint > 0x10FFFF)
         {
             os.setstate(std::ios_base::failbit);
         }
-        os.put(char_traits::to_char_type(static_cast<typename char_traits::int_type>(codepoint)));
+        os.put(traits_type::to_char_type(static_cast<typename traits_type::int_type>(codepoint)));
     }
 
-    static inline bool decode(istream_type& is, uint32_t& codepoint)
+    static bool decode(istream_type& is, uint32_t& codepoint)
     {
         codepoint = static_cast<uint32_t>(is.get());
 
@@ -308,55 +308,56 @@ class auto_utf
 {
 public:
     using char_type    = _CharTy;
-    using char_traits  = std::char_traits<char_type>;
+    using traits_type  = std::char_traits<char_type>;
     using istream_type = std::basic_istream<char_type>;
     using ostream_type = std::basic_ostream<char_type>;
 
     static inline void encode(ostream_type& os, uint32_t codepoint)
     {
-        encode(os, codepoint, std::integral_constant<int, sizeof(_CharTy)>());
+        encode(os, codepoint, std::integral_constant<int, sizeof(char_type)>());
     }
 
     static inline bool decode(istream_type& is, uint32_t& codepoint)
     {
-        return decode(is, codepoint, std::integral_constant<int, sizeof(_CharTy)>());
+        return decode(is, codepoint, std::integral_constant<int, sizeof(char_type)>());
     }
 
 private:
     static inline void encode(ostream_type& os, uint32_t codepoint, std::integral_constant<int, 1>)
     {
-        utf8<_CharTy>::encode(os, codepoint);
+        utf8<char_type>::encode(os, codepoint);
     }
 
     static inline void encode(ostream_type& os, uint32_t codepoint, std::integral_constant<int, 2>)
     {
-        utf16<_CharTy>::encode(os, codepoint);
+        utf16<char_type>::encode(os, codepoint);
     }
 
     static inline void encode(ostream_type& os, uint32_t codepoint, std::integral_constant<int, 4>)
     {
-        utf32<_CharTy>::encode(os, codepoint);
+        utf32<char_type>::encode(os, codepoint);
     }
 
     static inline bool decode(istream_type& is, uint32_t& codepoint, std::integral_constant<int, 1>)
     {
-        return utf8<_CharTy>::decode(is, codepoint);
+        return utf8<char_type>::decode(is, codepoint);
     }
 
     static inline bool decode(istream_type& is, uint32_t& codepoint, std::integral_constant<int, 2>)
     {
-        return utf16<_CharTy>::decode(is, codepoint);
+        return utf16<char_type>::decode(is, codepoint);
     }
 
     static inline bool decode(istream_type& is, uint32_t& codepoint, std::integral_constant<int, 4>)
     {
-        return utf32<_CharTy>::decode(is, codepoint);
+        return utf32<char_type>::decode(is, codepoint);
     }
 };
 
 //
 // type traits
 //
+
 template <typename _Encoding>
 struct is_unicode_encoding : std::false_type
 {

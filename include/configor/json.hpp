@@ -21,141 +21,157 @@
 #pragma once
 #include "configor.hpp"
 
-#include <iomanip>  // std::setprecision, std::right, std::noshowbase
+#include <algorithm>  // std::for_each
+#include <iomanip>    // std::setprecision
+#include <ios>        // std::noskipws, std::noshowbase, std::right
 
 namespace configor
 {
 
 namespace detail
 {
-template <typename _JsonTy>
-class json_reader;
+template <typename _ValTy, typename _SourceCharTy>
+class json_parser;
 
-template <typename _JsonTy>
-class json_writer;
+template <typename _ValTy, typename _TargetCharTy>
+class json_serializer;
 }  // namespace detail
 
-struct json_args : config_args
+template <typename _Args, template <typename> class _DefaultEncoding = encoding::auto_utf>
+class basic_json final
+    : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
+    , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
+    , public detail::value_maker<basic_value<_Args>>
+    , public detail::iostream_wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
 {
-    template <class _JsonTy>
-    using reader_type = detail::json_reader<_JsonTy>;
+public:
+    using value = basic_value<_Args>;
 
-    template <class _JsonTy>
-    using writer_type = detail::json_writer<_JsonTy>;
+    using serializer =
+        typename detail::serializable<_Args, detail::json_serializer,
+                                      _DefaultEncoding>::template serializer_type<typename value::char_type>;
 
-    template <typename _CharTy>
-    using default_encoding = encoding::auto_utf<_CharTy>;
+    using parser = typename detail::parsable<_Args, detail::json_parser,
+                                             _DefaultEncoding>::template parser_type<typename value::char_type>;
 };
 
-struct wjson_args : json_args
-{
-    using char_type = wchar_t;
-};
-
-using json  = basic_config<json_args>;
-using wjson = basic_config<wjson_args>;
+using json  = basic_json<value_tpl_args>;
+using wjson = basic_json<wvalue_tpl_args>;
 
 // type traits
 
-template <typename _JsonTy>
+template <typename _Ty>
 struct is_json : std::false_type
 {
 };
 
-template <typename _Args>
-struct is_json<basic_config<_Args>>
+template <typename _Args, template <typename> class _DefaultEncoding>
+struct is_json<basic_json<_Args, _DefaultEncoding>> : std::true_type
 {
-    using type = basic_config<_Args>;
-
-    static const bool value = std::is_same<typename type::reader, detail::json_reader<type>>::value
-                              && std::is_same<typename type::writer, detail::json_writer<type>>::value;
 };
-
-// deprecated
-#define JSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::json, value_type, __VA_ARGS__)
-// deprecated
-#define WJSON_BIND(value_type, ...) CONFIGOR_BIND_ALL_REQUIRED(::configor::wjson, value_type, __VA_ARGS__)
-
-template <typename _JsonTy, typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-std::basic_ostream<typename _JsonTy::char_type>& operator<<(std::basic_ostream<typename _JsonTy::char_type>& os,
-                                                            const _JsonTy&                                   j)
-{
-    using writer_type = typename _JsonTy::writer;
-    using writer_args = typename writer_type::args;
-
-    writer_args args;
-    args.indent      = static_cast<unsigned int>(os.width());
-    args.indent_char = os.fill();
-    args.precision   = static_cast<int>(os.precision());
-
-    os.width(0);
-    j.dump(os, args);
-    return os;
-}
-
-template <typename _JsonTy, typename char_type = typename _JsonTy::char_type,
-          typename = typename std::enable_if<is_json<_JsonTy>::value>::type>
-std::basic_istream<char_type>& operator>>(std::basic_istream<char_type>& is, _JsonTy& j)
-{
-    _JsonTy::parse(j, is);
-    return is;
-}
 
 namespace detail
 {
 
-// json_reader
+template <typename _IntTy>
+struct json_hex
+{
+    const _IntTy i;
 
-template <typename _JsonTy>
-class json_reader : public basic_reader<_JsonTy>
+    template <typename _CharTy>
+    friend inline std::basic_ostream<_CharTy>& operator<<(std::basic_ostream<_CharTy>& os, const json_hex& i)
+    {
+        os << std::setfill(_CharTy('0')) << std::hex << std::uppercase;
+        os << '\\' << 'u' << std::setw(sizeof(i.i)) << i.i;
+        os << std::dec << std::nouppercase;
+        return os;
+    }
+};
+
+namespace
+{
+
+template <typename _IntTy>
+inline json_hex<_IntTy> make_json_hex(const _IntTy i)
+{
+    return json_hex<_IntTy>{ i };
+}
+
+}  // namespace
+
+//
+// json_parser
+//
+
+template <typename _ValTy, typename _SourceCharTy>
+class json_parser : public basic_parser<_ValTy, _SourceCharTy>
 {
 public:
-    using char_type     = typename _JsonTy::char_type;
-    using char_traits   = std::char_traits<char_type>;
-    using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _JsonTy::string_type;
-    using integer_type  = typename _JsonTy::integer_type;
-    using float_type    = typename _JsonTy::float_type;
+    using value_type       = _ValTy;
+    using source_char_type = _SourceCharTy;
+    using target_char_type = typename value_type::char_type;
 
-    explicit json_reader(error_handler* eh = nullptr)
-        : is_negative_(false)
+    using option = std::function<void(json_parser&)>;
+
+    static option with_error_handler(error_handler* eh)
+    {
+        return [=](json_parser& p) { p.set_error_handler(eh); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_encoding()
+    {
+        return [=](json_parser& p)
+        {
+            p.template set_source_encoding<_Encoding>();
+            p.template set_target_encoding<_Encoding>();
+        };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_source_encoding()
+    {
+        return [=](json_parser& p) { p.template set_source_encoding<_Encoding>(); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_target_encoding()
+    {
+        return [=](json_parser& p) { p.template set_target_encoding<_Encoding>(); };
+    }
+
+    explicit json_parser(std::basic_istream<source_char_type>& is)
+        : basic_parser<value_type, source_char_type>(is)
+        , is_negative_(false)
+        , current_(0)
         , number_integer_(0)
         , number_float_(0)
-        , current_(0)
-        , is_(nullptr)
-        , err_handler_(eh)
-        , src_decoder_(nullptr)
-        , target_encoder_(nullptr)
     {
-        is_ >> std::noskipws;
     }
 
-    virtual error_handler* get_error_handler() override
+    inline void prepare(std::initializer_list<option> options)
     {
-        return err_handler_;
+        std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
     }
 
-    virtual void source(std::basic_istream<char_type>& is, encoding::decoder<char_type> src_decoder,
-                        encoding::encoder<char_type> target_encoder) override
+    virtual void parse(value_type& c) override
     {
-        is_.rdbuf(is.rdbuf());
-        src_decoder_    = src_decoder;
-        target_encoder_ = target_encoder;
         // read first char
         read_next();
+        basic_parser<value_type, source_char_type>::parse(c);
     }
 
-    virtual void get_integer(integer_type& out) override
+    virtual void get_integer(typename value_type::integer_type& out) override
     {
         out = is_negative_ ? -number_integer_ : number_integer_;
     }
 
-    virtual void get_float(float_type& out) override
+    virtual void get_float(typename value_type::float_type& out) override
     {
         out = is_negative_ ? -number_float_ : number_float_;
     }
 
-    virtual void get_string(string_type& out) override
+    virtual void get_string(typename value_type::string_type& out) override
     {
         scan_string(out);
     }
@@ -164,7 +180,7 @@ public:
     {
         skip_spaces();
 
-        if (is_.eof())
+        if (this->is_.eof())
             return token_type::end_of_input;
 
         token_type result = token_type::uninitialized;
@@ -228,11 +244,11 @@ public:
         return result;
     }
 
-    char_int_type read_next()
+    uint32_t read_next()
     {
-        if (src_decoder_(is_, current_))
+        if (this->source_decoder_(this->is_, current_))
         {
-            if (!is_.good())
+            if (!this->is_.good())
             {
                 fail("decoding failed with codepoint", current_);
             }
@@ -272,7 +288,7 @@ public:
                     break;
                 }
 
-                if (is_.eof())
+                if (this->is_.eof())
                 {
                     break;
                 }
@@ -293,7 +309,7 @@ public:
                     }
                 }
 
-                if (is_.eof())
+                if (this->is_.eof())
                 {
                     fail("unexpected eof while reading comment");
                 }
@@ -306,11 +322,11 @@ public:
         }
     }
 
-    token_type scan_literal(std::initializer_list<char_type> text, token_type result)
+    token_type scan_literal(std::initializer_list<source_char_type> text, token_type result)
     {
         for (const auto ch : text)
         {
-            if (ch != char_traits::to_char_type(current_))
+            if (ch != std::char_traits<source_char_type>::to_char_type(current_))
             {
                 detail::fast_ostringstream ss;
                 ss << "unexpected character '" << static_cast<char>(current_) << "'";
@@ -325,16 +341,16 @@ public:
         return result;
     }
 
-    void scan_string(string_type& out)
+    void scan_string(typename value_type::string_type& out)
     {
         CONFIGOR_ASSERT(current_ == '\"');
 
-        detail::fast_string_ostreambuf<char_type> buf{ out };
-        std::basic_ostream<char_type>             oss{ &buf };
+        detail::fast_string_ostreambuf<target_char_type> buf{ out };
+        std::basic_ostream<target_char_type>             oss{ &buf };
         while (true)
         {
             read_next();
-            if (is_.eof())
+            if (this->is_.eof())
             {
                 fail("unexpected end of string");
             }
@@ -435,7 +451,7 @@ public:
                         codepoint = encoding::unicode::decode_surrogates(lead_surrogate, trail_surrogate);
                     }
 
-                    target_encoder_(oss, codepoint);
+                    this->target_encoder_(oss, codepoint);
                     if (!oss.good())
                     {
                         fail("encoding failed with codepoint", codepoint);
@@ -453,7 +469,7 @@ public:
 
             default:
             {
-                target_encoder_(oss, current_);
+                this->target_encoder_(oss, current_);
                 if (!oss.good())
                 {
                     fail("encoding failed with codepoint", current_);
@@ -491,6 +507,8 @@ public:
 
     token_type scan_integer()
     {
+        using integer_type = typename value_type::integer_type;
+
         CONFIGOR_ASSERT(is_digit(current_));
 
         number_integer_ = static_cast<integer_type>(current_ - '0');
@@ -510,6 +528,8 @@ public:
 
     token_type scan_float()
     {
+        using float_type = typename value_type::float_type;
+
         number_float_ = static_cast<float_type>(number_integer_);
 
         if (current_ == 'e' || current_ == 'E')
@@ -542,6 +562,8 @@ public:
 
     token_type scan_exponent()
     {
+        using float_type = typename value_type::float_type;
+
         CONFIGOR_ASSERT(current_ == 'e' || current_ == 'E');
 
         read_next();
@@ -602,9 +624,9 @@ public:
         return code;
     }
 
-    inline bool is_digit(char_type ch) const
+    inline bool is_digit(source_char_type ch) const
     {
-        return char_type('0') <= ch && ch <= char_type('9');
+        return source_char_type('0') <= ch && ch <= source_char_type('9');
     }
 
     inline void fail(const std::string& msg)
@@ -616,92 +638,101 @@ public:
     inline void fail(const std::string& msg, _IntTy code)
     {
         detail::fast_ostringstream ss;
-        ss << msg << " '" << detail::serialize_hex(code) << "'";
+        ss << msg << " '" << make_json_hex(code) << "'";
         fail(ss.str());
     }
 
 private:
-    bool         is_negative_;
-    integer_type number_integer_;
-    float_type   number_float_;
-
-    uint32_t                      current_;
-    std::basic_istream<char_type> is_;
-
-    error_handler*               err_handler_;
-    encoding::decoder<char_type> src_decoder_;
-    encoding::encoder<char_type> target_encoder_;
+    bool                              is_negative_;
+    uint32_t                          current_;
+    typename value_type::integer_type number_integer_;
+    typename value_type::float_type   number_float_;
 };
 
-// json_writer
+//
+// json_serializer
+//
 
-template <typename _JsonTy>
-class json_writer : public basic_writer<_JsonTy>
+template <typename _ValTy, typename _TargetCharTy>
+class json_serializer : public basic_serializer<_ValTy, _TargetCharTy>
 {
 public:
-    using char_type     = typename _JsonTy::char_type;
-    using char_traits   = std::char_traits<char_type>;
-    using char_int_type = typename char_traits::int_type;
-    using string_type   = typename _JsonTy::string_type;
-    using integer_type  = typename _JsonTy::integer_type;
-    using float_type    = typename _JsonTy::float_type;
-    using encoder_type  = encoding::encoder<char_type>;
+    using value_type       = _ValTy;
+    using source_char_type = typename value_type::char_type;
+    using target_char_type = _TargetCharTy;
 
-    struct args
+    using option = std::function<void(json_serializer&)>;
+
+    static option with_indent(uint8_t indent_step, target_char_type indent_char = ' ')
     {
-        int       indent;
-        char_type indent_char;
-        bool      escape_unicode;
-        int       precision;
-
-        args(int indent = 0, char_type indent_char = ' ', bool escape_unicode = false,
-             int precision = std::numeric_limits<float_type>::digits10 + 1)
-            : indent(indent)
-            , indent_char(indent_char)
-            , escape_unicode(escape_unicode)
-            , precision(precision)
+        return [=](json_serializer& s)
         {
-        }
-    };
+            s.indent_       = indent<target_char_type>{ indent_step, indent_char };
+            s.pretty_print_ = indent_step > 0;
+        };
+    }
 
-    explicit json_writer(const args& args, error_handler* eh = nullptr)
-        : pretty_print_(args.indent > 0)
+    static option with_unicode_escaping(bool enabled)
+    {
+        return [=](json_serializer& s) { s.unicode_escaping_ = enabled; };
+    }
+
+    static option with_precision(int precision, std::ios_base::fmtflags floatflags = std::ios_base::fixed)
+    {
+        return [=](json_serializer& s)
+        {
+            s.os_.precision(static_cast<std::streamsize>(precision));
+            s.os_.setf(floatflags, std::ios_base::floatfield);
+        };
+    }
+
+    static option with_error_handler(error_handler* eh)
+    {
+        return [=](json_serializer& s) { s.set_error_handler(eh); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_encoding()
+    {
+        return [=](json_serializer& s)
+        {
+            s.template set_source_encoding<_Encoding>();
+            s.template set_target_encoding<_Encoding>();
+        };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_source_encoding()
+    {
+        return [=](json_serializer& s) { s.template set_source_encoding<_Encoding>(); };
+    }
+
+    template <template <class> class _Encoding>
+    static option with_target_encoding()
+    {
+        return [=](json_serializer& s) { s.template set_target_encoding<_Encoding>(); };
+    }
+
+    explicit json_serializer(std::basic_ostream<target_char_type>& os)
+        : basic_serializer<value_type, target_char_type>(os)
+        , pretty_print_(os.width() > 0)
         , object_or_array_began_(false)
+        , unicode_escaping_(false)
         , last_token_(token_type::uninitialized)
-        , args_(args)
-        , indent_(args.indent, args.indent_char)
-        , os_(nullptr)
-        , err_handler_(eh)
-        , src_decoder_(nullptr)
-        , target_encoder_(nullptr)
+        , indent_(static_cast<uint8_t>(os.width()), os.fill())
     {
+        this->os_ << std::setprecision(os.precision());
+        os.width(0);  // clear width
     }
 
-    explicit json_writer(error_handler* eh = nullptr)
-        : json_writer(args{}, eh)
+    inline void prepare(std::initializer_list<option> options)
     {
-    }
-
-    explicit json_writer(int indent, char_type indent_char = ' ', bool escape_unicode = false,
-                         error_handler* eh = nullptr)
-        : json_writer(args(indent, indent_char, escape_unicode), eh)
-    {
-    }
-
-    virtual error_handler* get_error_handler() override
-    {
-        return err_handler_;
-    }
-
-    virtual void target(std::basic_ostream<char_type>& os, encoding::decoder<char_type> src_decoder,
-                        encoding::encoder<char_type> target_encoder) override
-    {
-        detail::copy_fmt(os, os_);
-        os_.rdbuf(os.rdbuf());
-        os_ << std::setprecision(args_.precision) << std::right << std::noshowbase;
-
-        src_decoder_    = src_decoder;
-        target_encoder_ = target_encoder;
+        std::for_each(options.begin(), options.end(), [&](const option& option) { option(*this); });
+        if ((this->os_.flags() & std::ios_base::floatfield) == (std::ios_base::fixed | std::ios_base::scientific))
+        {
+            // hexfloat is disabled
+            this->os_.unsetf(std::ios_base::floatfield);
+        }
     }
 
     virtual void next(token_type token) override
@@ -824,25 +855,33 @@ public:
         last_token_ = token;
     }
 
-    virtual void put_integer(integer_type i) override
+    virtual void put_integer(typename value_type::integer_type i) override
     {
-        os_ << serialize_integer(i);
+        this->os_ << i;
     }
 
-    virtual void put_float(float_type f) override
+    virtual void put_float(typename value_type::float_type f) override
     {
-        os_ << serialize_float(f);
+        if (std::ceil(f) == std::floor(f))
+        {
+            // integer
+            this->os_ << static_cast<int64_t>(f) << ".0";
+        }
+        else
+        {
+            this->os_ << f;
+        }
     }
 
-    virtual void put_string(const string_type& s) override
+    virtual void put_string(const typename value_type::string_type& s) override
     {
         output('\"');
 
-        fast_string_istreambuf<char_type> buf{ s };
-        std::basic_istream<char_type>     iss{ &buf };
+        fast_string_istreambuf<source_char_type> buf{ s };
+        std::basic_istream<source_char_type>     iss{ &buf };
 
         uint32_t codepoint = 0;
-        while (src_decoder_(iss, codepoint))
+        while (this->source_decoder_(iss, codepoint))
         {
             if (!iss.good())
             {
@@ -890,29 +929,29 @@ public:
             {
                 // escape control characters
                 // and non-ASCII characters (if `escape_unicode` is true)
-                const bool need_escape = (codepoint <= 0x1F || (args_.escape_unicode && codepoint >= 0x7F));
+                const bool need_escape = (codepoint <= 0x1F || (unicode_escaping_ && codepoint >= 0x7F));
                 if (!need_escape)
                 {
                     // ASCII or BMP (U+0000...U+007F)
-                    target_encoder_(os_, codepoint);
+                    this->target_encoder_(this->os_, codepoint);
                 }
                 else
                 {
                     if (codepoint <= 0xFFFF)
                     {
                         // BMP: U+007F...U+FFFF
-                        os_ << serialize_hex(static_cast<uint16_t>(codepoint));
+                        this->os_ << make_json_hex(static_cast<uint16_t>(codepoint));
                     }
                     else
                     {
                         // supplementary planes: U+10000...U+10FFFF
                         uint32_t lead_surrogate = 0, trail_surrogate = 0;
                         encoding::unicode::encode_surrogates(codepoint, lead_surrogate, trail_surrogate);
-                        os_ << serialize_hex(lead_surrogate) << serialize_hex(trail_surrogate);
+                        this->os_ << make_json_hex(lead_surrogate) << make_json_hex(trail_surrogate);
                     }
                 }
 
-                if (!os_.good())
+                if (!this->os_.good())
                 {
                     fail("encoding failed with codepoint", codepoint);
                 }
@@ -923,53 +962,47 @@ public:
         output('\"');
     }
 
-    void output(char_type ch)
+    void output(target_char_type ch)
     {
-        os_.put(ch);
+        this->os_.put(ch);
     }
 
-    void output(std::initializer_list<char_type> list)
+    void output(std::initializer_list<target_char_type> list)
     {
-        os_.write(list.begin(), static_cast<std::streamsize>(list.size()));
+        this->os_.write(list.begin(), static_cast<std::streamsize>(list.size()));
     }
 
     void output_indent()
     {
         if (pretty_print_)
-            os_ << indent_;
+            this->os_ << indent_;
     }
 
     void output_indent(int length)
     {
         if (pretty_print_)
-            indent_.put(os_, length);
+            indent_.put(this->os_, length);
     }
 
     void output_newline()
     {
         if (pretty_print_)
-            os_.put('\n');
+            this->os_.put('\n');
     }
 
     inline void fail(const std::string& msg, uint32_t codepoint)
     {
         fast_ostringstream ss;
-        ss << msg << " '" << serialize_hex(codepoint) << "'";
+        ss << msg << " '" << make_json_hex(codepoint) << "'";
         throw configor_serialization_error(ss.str());
     }
 
 private:
-    const bool pretty_print_;
-    bool       object_or_array_began_;
-    token_type last_token_;
-    args       args_;
-
-    indent<char_type>             indent_;
-    std::basic_ostream<char_type> os_;
-
-    error_handler*               err_handler_;
-    encoding::decoder<char_type> src_decoder_;
-    encoding::encoder<char_type> target_encoder_;
+    bool                     pretty_print_;
+    bool                     object_or_array_began_;
+    bool                     unicode_escaping_;
+    token_type               last_token_;
+    indent<target_char_type> indent_;
 };
 
 }  // namespace detail
