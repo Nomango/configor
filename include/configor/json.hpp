@@ -42,7 +42,7 @@ class basic_json final
     : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
     , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
     , public detail::value_maker<basic_value<_Args>>
-    , public detail::wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
+    , public detail::iostream_wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
 {
 public:
     using value = basic_value<_Args>;

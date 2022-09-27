@@ -232,7 +232,7 @@ public:
     }
 
     // dump to string
-    template <typename _TargetCharTy = typename value_type::char_type>
+    template <typename _TargetCharTy>
     static void dump(typename _Args::template string_type<_TargetCharTy>& str, const value_type& v,
                      std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {

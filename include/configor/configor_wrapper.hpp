@@ -55,6 +55,34 @@ private:
     const _Ty& v_;
 };
 
+template <typename _ConfigTy, typename _Args>
+class ostream_wrapper<_ConfigTy, basic_value<_Args>>
+{
+public:
+    using config_type = _ConfigTy;
+    using value_type  = typename _ConfigTy::value;
+
+    explicit ostream_wrapper(const value_type& v)
+        : v_(v)
+    {
+    }
+
+    template <typename _TargetCharTy, typename _Traits>
+    friend std::basic_ostream<_TargetCharTy, _Traits>& operator<<(std::basic_ostream<_TargetCharTy, _Traits>& out,
+                                                                  const ostream_wrapper&                      wrapper)
+    {
+        typename std::basic_ostream<_TargetCharTy, _Traits>::sentry s(out);
+        if (s)
+        {
+            config_type::dump(out, wrapper.v_);
+        }
+        return out;
+    }
+
+private:
+    const value_type& v_;
+};
+
 template <typename _ConfigTy, typename _Ty>
 class iostream_wrapper : public ostream_wrapper<_ConfigTy, _Ty>
 {
@@ -118,7 +146,7 @@ private:
 };
 
 template <typename _ConfigTy, typename _ValTy>
-class wrapper_maker
+class iostream_wrapper_maker
 {
 public:
     using config_type = _ConfigTy;
