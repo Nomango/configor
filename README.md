@@ -18,7 +18,7 @@
 - STL-like，低学习成本
 - 与标准库 io 交互
 - 非侵入式的序列化与反序列化
-- Unicode与多编码支持（支持`char`、`wchar_t`、`char16_t`和`char32_t`）
+- Unicode与多编码支持
 - 可扩展的输入输出方式
 
 > 注意：项目仍处于开发状态，可能有不兼容的修改。
@@ -71,13 +71,13 @@ struct User {
     int age;
 
     // 一行代码完成字段绑定
-    CONFIGOR_BIND(json, User, REQUIRED(name), OPTIONAL(age))
+    CONFIGOR_BIND(json::value, User, REQUIRED(name), OPTIONAL(age))
 };
 
 // User 转换到 json
-json j = User{"John", 18};
+json::value j = User{"John", 18};
 // json 转换到 User
-User u = json({{"name", "John"}, {"age", 18}});
+User u = json::object{{"name", "John"}, {"age", 18}};
 ```
 
 - 使用 C++ 的方式的创建 JSON 对象
@@ -85,7 +85,7 @@ User u = json({{"name", "John"}, {"age", 18}});
 使用 `operator[]` 为 JSON 对象赋值
 
 ```cpp
-json j;
+json::value j;
 j["number"] = 1;
 j["float"] = 1.5;
 j["string"] = "this is a string";
@@ -98,36 +98,29 @@ j["user"]["name"] = "Nomango";
 
 ```cpp
 // 使用初始化列表构造数组
-json arr = { 1, 2, 3 };
+json::value arr = json::array{ 1, 2, 3 };
 // 使用初始化列表构造对象
-json obj = {
+json::value obj = json::object{
     {
-        "user", {
+        "user", json::object{
             { "id", 10 },
             { "name", "Nomango" }
         }
     }
 };
 // 第二个对象
-json obj2 = {
+json::value obj2 = json::object{
     { "nul", nullptr },
     { "number", 1 },
     { "float", 1.3 },
     { "boolean", false },
     { "string", "中文测试" },
-    { "array", { 1, 2, true, 1.4 } },
-    { "object", {
+    { "array", json::array{ 1, 2, true, 1.4 } },
+    { "object", json::object{
         { "key", "value" },
         { "key2", "value2" },
     }},
 };
-```
-
-使用辅助方法构造数组或对象
-
-```cpp
-json arr = json::array({ 1 });
-json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
 ```
 
 ### 取值方式
@@ -136,14 +129,14 @@ json obj = json::object({ { "user", { { "id", 1 }, { "name", "Nomango" } } } });
 
 ```cpp
 // 判断 JSON 值类型
-bool is_null();
-bool is_bool();
-bool is_integer();
-bool is_float();
-bool is_number(); // is_integer() || is_float()
-bool is_string();
-bool is_array();
-bool is_object();
+j.is_null();
+j.is_bool();
+j.is_integer();
+j.is_floating();
+j.is_number(); // is_integer() || is_floating()
+j.is_string();
+j.is_array();
+j.is_object();
 ```
 
 - JSON 对象的取值与类型转换
@@ -154,8 +147,8 @@ bool is_object();
 auto b = j.get<bool>();         // 仅当 j.is_bool() 时可用
 auto i = j.get<int>();          // 仅当 j.is_integer() 时可用
 auto i = j.get<int64_t>();      // 仅当 j.is_integer() 时可用
-auto f = j.get<float>();        // 仅当 j.is_float() 时可用
-auto d = j.get<double>();       // 仅当 j.is_float() 时可用
+auto f = j.get<float>();        // 仅当 j.is_floating() 时可用
+auto d = j.get<double>();       // 仅当 j.is_floating() 时可用
 auto s = j.get<std::string>();  // 仅当 j.is_string() 时可用
 
 // 对于实现了 config_bind 的自定义数据类型，也可以直接取值
@@ -189,15 +182,6 @@ else
 }
 ```
 
-通过 as 系列函数可以将数据类型尽可能的转换：
-
-```cpp
-bool as_bool();           // 对bool直接返回，对数字类型判断是否非0，对null返回false，对其他类型返回empty()
-int64_t as_integer();     // 对数字类型直接返回，对bool类型强转，对其他类型抛出
-double as_float();        // 对数字类型直接返回，对bool类型强转，对其他类型抛出
-std::string as_string();  // 对字符串类型直接返回，对数字类型和bool转换为字符串，对null返回空串，对其他类型抛出
-```
-
 类型转换：
 
 ```cpp
@@ -218,13 +202,13 @@ MyObject myObj = j;
 - size & empty & clear & count & ...
 
 ```cpp
-json arr = json::array({ 1, 2, 3 });
+json::value arr = json::array{ 1, 2, 3 };
 arr.size();    // 3
 arr.empty();   // false
 arr.erase(0);  // 第一个元素被删除
 arr.clear();
 
-json obj = json::object({ { "one", 1 }, { "two", 2 } });
+json::value obj = json::object{ { "one", 1 }, { "two", 2 } };
 obj.size();            // 2
 obj.empty();           // false
 obj.count("one");      // 1
@@ -265,9 +249,9 @@ for (auto iter = obj.begin(); iter != obj.end(); iter++) {
 
 ```cpp
 // 序列化为字符串
-std::string json_str = j.dump();
+std::string json_str = json::dump(j);
 // 美化输出，使用 4 个空格对输出进行格式化
-std::string pretty_str = j.dump(4, ' ');
+std::string pretty_str = json::dump(j, { json::serializer::with_indent(4, ' ') };
 ```
 
 - 序列化到文件
@@ -286,8 +270,8 @@ ofs << std::setw(4) << j << std::endl;
 - 序列化到输出流
 
 ```cpp
-json j;
-std::cout << j;    // 可以使用 std::setw(4) 对输出内容美化
+json::value j;
+std::cout << json::wrap(j);    // 可以使用 std::setw(4) 对输出内容美化
 ```
 
 ### 反序列化
@@ -295,7 +279,7 @@ std::cout << j;    // 可以使用 std::setw(4) 对输出内容美化
 - 从字符串中解析
 
 ```cpp
-json j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+json::value j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
 ```
 
 - 从文件中读取
@@ -303,26 +287,26 @@ json j = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
 ```cpp
 std::ifstream ifs("sample.json");
 
-json j;
-ifs >> j;
+json::value j;
+ifs >> json::wrap(j);
 ```
 
 - 从用户输入中读取
 
 ```cpp
-json j;
-std::cin >> j;
+json::value j;
+std::cin >> json::wrap(j);
 ```
 
 ### Unicode与多编码支持
 
-configor 具有完备的 unicode 支持，同時支持 `char`、`wchar_t`、`char16_t`和`char32_t`。
+configor 具有完备的 unicode 支持，同時支持 `char`、`wchar_t` 等多种字符类型。
 
 对于 `wchar_t` 类型，可使用下面的别名来使用宽字符版本：
 
 ```cpp
-json   // char
-wjson  // wchar_t
+json::value   // char
+wjson::value  // wchar_t
 ```
 
 宽字符版本示例代码：
@@ -335,24 +319,23 @@ std::wstring str = j[L"name"].get<std::wstring>();
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
 
 ```cpp
-struct u16json_args : json_tpl_args
+struct u16value_tpl_args : value_tpl_args
 {
     using char_type = char16_t;
 };
 
-struct u32json_args : json_tpl_args
+struct u32value_tpl_args : value_tpl_args
 {
     using char_type = char32_t;
 };
 
 // char16_t
-using u16json = configor::basic_value<u16json_args>;
+using u16json = configor::basic_json<u16value_tpl_args>;
 // char32_t
-using u32json = configor::basic_value<u32json_args>;
+using u32json = configor::basic_json<u32value_tpl_args>;
 ```
 
-> 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。  
-> 对于 Clang 编译器来说，您可能需要自己实现 std::ctype<char16_t> 和 std::ctype<char32_t> 才能让 configor 正常工作。
+> 由于C++标准库并不支持 char16_t 和 char32_t 的IO流，在不同的平台和编译器上可能会有不同表现。
 
 ### 与自定义类型转换
 
@@ -367,7 +350,7 @@ struct User
     std::string user_name;
 
     CONFIGOR_BIND(
-        json, User,                     // 将 User 类绑定到 json
+        json::value, User,              // 将 User 类绑定到 json
         CONFIGOR_REQUIRED(user_id),     // user_id 字段必填，空值会引发异常
         CONFIGOR_OPTIONAL(user_name)    // user_name 字段非必填，空值会被忽略
     );
@@ -382,7 +365,7 @@ private:
 
 public:
     // 绑定私有字段，支持 REQUIRED 和 OPTIONAL 的简写
-    CONFIGOR_BIND(json, User, REQUIRED(user_id), OPTIONAL(user_name));
+    CONFIGOR_BIND(json::value, User, REQUIRED(user_id), OPTIONAL(user_name));
 };
 
 // 指定与 C++ 字段名不同的 JSON 名
@@ -394,14 +377,14 @@ private:
 
 public:
     // 为 JSON 指定不同的名称，使 User 可以接受如 {"id": 1, "name": "John"} 这样的 JSON 内容
-    CONFIGOR_BIND(json, User, REQUIRED(user_id_, "id"), OPTIONAL(user_name_, "name"));
+    CONFIGOR_BIND(json::value, User, REQUIRED(user_id_, "id"), OPTIONAL(user_name_, "name"));
 };
 ```
 
 与 JSON 绑定后，可以方便的将自定义类型与 JSON 进行转换：
 
 ```cpp
-json j;
+json::value j;
 User user;
 
 // 将 User 转换为 json
@@ -417,12 +400,12 @@ user = (User)j;
 
 ```cpp
 std::vector<std::shared_ptr<User>> user_list;
-json j = user_list;  // 可以正确处理复合类型的转换
+json::value j = user_list;  // 可以正确处理复合类型的转换
 ```
 
-对于第三方库的类型，由于无法侵入式的在其内部声明 JSON_BIND，可以通过特化实现 config_bind 类，非侵入式的绑定到 JSON。
+对于第三方库的类型，由于无法侵入式的在其内部声明 CONFIGOR_BIND，可以通过特化实现 value_binder 类，非侵入式的绑定到 JSON。
 
-特化实现 config_bind 的例子：
+特化实现 value_binder 的例子：
 
 ```cpp
 // 用户类
@@ -484,7 +467,7 @@ struct User
     int user_id;
     std::string user_name;
 
-    CONFIGOR_BIND(json, User, REQUIRED(user_id), OPTIONAL(user_name));
+    CONFIGOR_BIND(json::value, User, REQUIRED(user_id), OPTIONAL(user_name));
 };
 
 int main(int argc, char** argv)
@@ -524,21 +507,14 @@ Visual Studio 使用 utf-8 非常困难，建议直接忽略编码，对中文�
 ```cpp
 using namespace configor;
 // 使用 encoding::ignore 忽略编码
-json j = json::parse<encoding::ignore>("{\"chinese\":\"一些带有中文的JSON字符串\"}");
-std::cout << j.dump<encoding::ignore>() << std::endl;
+json::value j = json::parse("{\"chinese\":\"一些带有中文的JSON字符串\"}", { json::parser::with_encoding<encoding::ignore>() });
+std::cout << json::dump(j, { json::parser::with_encoding<encoding::ignore>() }) << std::endl;
 ```
 
 或使用自定义的json类：
 
 ```cpp
-struct my_json_args : configor::json_tpl_args
-{
-    // 使用 encoding::ignore 忽略编码
-    template <typename _CharTy>
-    using default_encoding = configor::encoding::ignore<_CharTy>;
-};
-
-using json = configor::basic_value<my_json_args>;
+using myjson = configor::basic_json<value_tpl_args, encoding::ignore>;
 ```
 
 #### Q:  
@@ -550,14 +526,14 @@ configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串�
 建议用第三方库替换 std::map，比如 [nlohmann/fifo_map](https://github.com/nlohmann/fifo_map)，然后声明 fifo_json 替换 json 来保证插入序
 
 ```cpp
-struct fifo_json_args : json_tpl_args
+struct fifo_value_tpl_args : value_tpl_args
 {
     template <class _Kty, class _Ty, class... _Args>
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;
 };
 
 // fifo_json 是按插入序排列的
-using fifo_json = configor::basic_value<fifo_json_args>;
+using fifo_json = configor::basic_json<fifo_value_tpl_args>;
 ```
 
 ### 更多
@@ -565,6 +541,7 @@ using fifo_json = configor::basic_value<fifo_json_args>;
 若你需要将 JSON 解析和序列化应用到非 std::basic_stream 流中，可以通过实现自定义 `oadapter` 和 `iadapter` 的方式。
 
 一个 oadapter 的例子：
+
 ```cpp
 struct myadapter : public oadapter
 {
@@ -579,10 +556,11 @@ struct myadapter : public oadapter
 // 使用方式
 myadapter ma;
 oadapterstream os{ ma };
-j.dump(os);  // 将 json j 序列化输出到屏幕上
+json::dump(os, j);  // 将 json j 序列化输出到屏幕上
 ```
 
 一个 iadapter 的例子：
+
 ```cpp
 struct myadapter : public iadapter
 {
@@ -600,7 +578,7 @@ struct myadapter : public iadapter
 // 使用方式
 myadapter ma;
 iadapterstream is{ ma };
-json j = json::parse(is);  // 读取用户输入，并反序列化
+json::value j = json::parse(is);  // 读取用户输入，并反序列化
 ```
 
 详细内容请参考 json_stream.hpp
