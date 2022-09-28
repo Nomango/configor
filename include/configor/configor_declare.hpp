@@ -28,10 +28,13 @@ namespace configor
 // forward declare
 //
 
-template <typename _Ty>
-class value_binder;
+namespace detail
+{
+template <typename _Args, typename _ContainerValTy>
+class basic_value_data;
+}
 
-template <typename _Args>
+template <typename _Args, template <class, class> typename _DataTy = detail::basic_value_data>
 class basic_value;
 
 //
@@ -43,8 +46,8 @@ struct is_value : std::false_type
 {
 };
 
-template <typename _Args>
-struct is_value<basic_value<_Args>> : std::true_type
+template <typename _Args, template <class, class> typename _DataTy>
+struct is_value<basic_value<_Args, _DataTy>> : std::true_type
 {
 };
 

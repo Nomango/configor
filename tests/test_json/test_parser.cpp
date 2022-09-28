@@ -10,7 +10,7 @@ TEST_CASE("test_json_parser")
 {
     SECTION("test_parse")
     {
-        json::value j;
+        json::value j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }");
 
         // parse c-style string
         CHECK_NOTHROW(j = json::parse("{ \"happy\": true, \"pi\": 3.141, \"name\": \"中文测试\" }"));

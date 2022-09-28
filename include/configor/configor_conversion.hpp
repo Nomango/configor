@@ -116,7 +116,7 @@ void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_bool())
         throw make_conversion_error(c.type(), value_base::boolean);
-    v = value_accessor<_ValTy>::get_data(c).boolean;
+    v = c.data().boolean;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -126,7 +126,7 @@ void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_integer())
         throw make_conversion_error(c.type(), value_base::integer);
-    v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).integer);
+    v = static_cast<_Ty>(c.data().integer);
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
@@ -134,7 +134,7 @@ void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_floating())
         throw make_conversion_error(c.type(), value_base::floating);
-    v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).floating);
+    v = static_cast<_Ty>(c.data().floating);
 }
 
 template <typename _ValTy>
@@ -142,7 +142,7 @@ void from_value(const _ValTy& c, typename _ValTy::string_type& v)
 {
     if (!c.is_string())
         throw make_conversion_error(c.type(), value_base::string);
-    v = *value_accessor<_ValTy>::get_data(c).string;
+    v = *c.data().string;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -153,7 +153,7 @@ void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_string())
         throw make_conversion_error(c.type(), value_base::string);
-    v = *value_accessor<_ValTy>::get_data(c).string;
+    v = *c.data().string;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -167,8 +167,7 @@ void from_value(const _ValTy& c, _Ty& v)
     }
     if (!c.is_array())
         throw make_conversion_error(c.type(), value_base::array);
-    v.assign((*value_accessor<_ValTy>::get_data(c).vector).begin(),
-             (*value_accessor<_ValTy>::get_data(c).vector).end());
+    v.assign((*c.data().vector).begin(), (*c.data().vector).end());
 }
 
 template <typename _ValTy, typename _Ty,
@@ -182,7 +181,7 @@ void from_value(const _ValTy& c, _Ty& v)
     }
     if (!c.is_object())
         throw make_conversion_error(c.type(), value_base::object);
-    v = *value_accessor<_ValTy>::get_data(c).object;
+    v = *c.data().object;
 }
 
 // c-style array

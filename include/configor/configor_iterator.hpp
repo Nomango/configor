@@ -419,12 +419,12 @@ private:
         {
         case value_base::object:
         {
-            object_it_ = value_->data_.object->begin();
+            object_it_ = value_->data().object->begin();
             break;
         }
         case value_base::array:
         {
-            array_it_ = value_->data_.vector->begin();
+            array_it_ = value_->data().vector->begin();
             break;
         }
         case value_base::null:
@@ -448,12 +448,12 @@ private:
         {
         case value_base::object:
         {
-            object_it_ = value_->data_.object->end();
+            object_it_ = value_->data().object->end();
             break;
         }
         case value_base::array:
         {
-            array_it_ = value_->data_.vector->end();
+            array_it_ = value_->data().vector->end();
             break;
         }
         case value_base::null:
@@ -482,13 +482,13 @@ private:
         switch (value_->type())
         {
         case value_base::object:
-            if (object_it_ == value_->data_.object->end())
+            if (object_it_ == value_->data().object->end())
             {
                 throw std::out_of_range("object iterator out of range");
             }
             break;
         case value_base::array:
-            if (array_it_ == value_->data_.vector->end())
+            if (array_it_ == value_->data().vector->end())
             {
                 throw std::out_of_range("array iterator out of range");
             }

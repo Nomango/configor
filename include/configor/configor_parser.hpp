@@ -119,17 +119,17 @@ protected:
 
         case token_type::value_string:
             c = value_base::string;
-            get_string(*value_accessor<value_type>::get_data(c).string);
+            get_string(*c.data().string);
             break;
 
         case token_type::value_integer:
             c = value_base::integer;
-            get_integer(value_accessor<value_type>::get_data(c).integer);
+            get_integer(c.data().integer);
             break;
 
         case token_type::value_float:
             c = value_base::floating;
-            get_float(value_accessor<value_type>::get_data(c).floating);
+            get_float(c.data().floating);
             break;
 
         case token_type::begin_array:
@@ -157,8 +157,8 @@ protected:
                 if (is_end)
                     break;
 
-                value_accessor<value_type>::get_data(c).vector->push_back(_ValTy());
-                do_parse(value_accessor<value_type>::get_data(c).vector->back(), token, false);
+                c.data().vector->push_back(_ValTy());
+                do_parse(c.data().vector->back(), token, false);
 
                 // read ','
                 token = scan();
@@ -186,7 +186,7 @@ protected:
 
                 _ValTy object;
                 do_parse(object, token);
-                value_accessor<value_type>::get_data(c).object->emplace(key, object);
+                c.data().object->emplace(key, object);
 
                 // read ','
                 token = scan();
@@ -226,12 +226,15 @@ protected:
 // parsable
 //
 
-template <typename _Args, template <class, class> class _ParserTy, template <class> class _DefaultEncoding>
+template <class _ValTy, template <class, class> class _ParserTy, template <class> class _DefaultEncoding>
 class parsable
 {
-public:
-    using value_type = basic_value<_Args>;
+    using value_type = _ValTy;
 
+    template <typename _CharTy>
+    using string_type = typename value_type::tplargs_type::template string_type<_CharTy>;
+
+public:
     template <typename _SourceCharTy>
     using parser_type = _ParserTy<value_type, _SourceCharTy>;
 
@@ -261,7 +264,7 @@ public:
 
     // parse from string
     template <typename _SourceCharTy>
-    static void parse(value_type& c, const typename _Args::template string_type<_SourceCharTy>& str,
+    static void parse(value_type& c, const string_type<_SourceCharTy>& str,
                       std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
         detail::fast_string_istreambuf<_SourceCharTy> buf{ str };
@@ -270,8 +273,8 @@ public:
     }
 
     template <typename _SourceCharTy>
-    static value_type parse(const typename _Args::template string_type<_SourceCharTy>& str,
-                            std::initializer_list<parser_option<_SourceCharTy>>        options = {})
+    static value_type parse(const string_type<_SourceCharTy>&                   str,
+                            std::initializer_list<parser_option<_SourceCharTy>> options = {})
     {
         detail::fast_string_istreambuf<_SourceCharTy> buf{ str };
         std::basic_istream<_SourceCharTy>             is{ &buf };

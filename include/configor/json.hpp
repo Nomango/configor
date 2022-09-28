@@ -39,19 +39,20 @@ class json_serializer;
 
 template <typename _Args, template <typename> class _DefaultEncoding = encoding::auto_utf>
 class basic_json final
-    : public detail::serializable<_Args, detail::json_serializer, _DefaultEncoding>
-    , public detail::parsable<_Args, detail::json_parser, _DefaultEncoding>
-    , public detail::value_maker<basic_value<_Args>>
-    , public detail::iostream_wrapper_maker<basic_json<_Args, _DefaultEncoding>, basic_value<_Args>>
+    : public detail::serializable<basic_value<_Args, detail::iovalue_data>, detail::json_serializer, _DefaultEncoding>
+    , public detail::parsable<basic_value<_Args, detail::iovalue_data>, detail::json_parser, _DefaultEncoding>
+    , public detail::value_maker<basic_value<_Args, detail::iovalue_data>>
+    , public detail::iostream_wrapper_maker<basic_json<_Args, _DefaultEncoding>,
+                                            basic_value<_Args, detail::iovalue_data>>
 {
 public:
-    using value = basic_value<_Args>;
+    using value = basic_value<_Args, detail::iovalue_data>;
 
     using serializer =
-        typename detail::serializable<_Args, detail::json_serializer,
+        typename detail::serializable<basic_value<_Args, detail::iovalue_data>, detail::json_serializer,
                                       _DefaultEncoding>::template serializer_type<typename value::char_type>;
 
-    using parser = typename detail::parsable<_Args, detail::json_parser,
+    using parser = typename detail::parsable<basic_value<_Args, detail::iovalue_data>, detail::json_parser,
                                              _DefaultEncoding>::template parser_type<typename value::char_type>;
 };
 
@@ -233,9 +234,7 @@ public:
             return token_type::end_of_input;
 
         default:
-        {
             fail("unexpected character", current_);
-        }
         }
 
         // skip next char

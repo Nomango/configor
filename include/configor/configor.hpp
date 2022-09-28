@@ -32,7 +32,7 @@
 namespace configor
 {
 
-struct value_tpl_args
+struct value_tpl_args // tplargs
 {
     using boolean_type = bool;
 

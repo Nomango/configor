@@ -237,9 +237,7 @@ public:
             return token_type::end_of_input;
 
         default:
-        {
             fail("unexpected character", current_);
-        }
         }
 
         // skip next char

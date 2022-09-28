@@ -100,7 +100,7 @@ protected:
         {
         case value_base::object:
         {
-            const auto& object = *value_accessor<value_type>::get_data(c).object;
+            const auto& object = *c.data().object;
 
             next(token_type::begin_object);
             if (object.empty())
@@ -133,7 +133,7 @@ protected:
         {
             next(token_type::begin_array);
 
-            auto& v = *value_accessor<value_type>::get_data(c).vector;
+            auto& v = *c.data().vector;
             if (v.empty())
             {
                 next(token_type::end_array);
@@ -157,13 +157,13 @@ protected:
         case value_base::string:
         {
             next(token_type::value_string);
-            put_string(*value_accessor<value_type>::get_data(c).string);
+            put_string(*c.data().string);
             return;
         }
 
         case value_base::boolean:
         {
-            if (value_accessor<value_type>::get_data(c).boolean)
+            if (c.data().boolean)
             {
                 next(token_type::literal_true);
             }
@@ -177,14 +177,14 @@ protected:
         case value_base::integer:
         {
             next(token_type::value_integer);
-            put_integer(value_accessor<value_type>::get_data(c).integer);
+            put_integer(c.data().integer);
             return;
         }
 
         case value_base::floating:
         {
             next(token_type::value_float);
-            put_float(value_accessor<value_type>::get_data(c).floating);
+            put_float(c.data().floating);
             return;
         }
 
@@ -207,12 +207,15 @@ protected:
 // serializable
 //
 
-template <class _Args, template <class, class> class _SerializerTy, template <class> class _DefaultEncoding>
+template <class _ValTy, template <class, class> class _SerializerTy, template <class> class _DefaultEncoding>
 class serializable
 {
-public:
-    using value_type = basic_value<_Args>;
+    using value_type = _ValTy;
 
+    template <typename _CharTy>
+    using string_type = typename value_type::tplargs_type::template string_type<_CharTy>;
+
+public:
     template <typename _TargetCharTy>
     using serializer_type = _SerializerTy<value_type, _TargetCharTy>;
 
@@ -233,7 +236,7 @@ public:
 
     // dump to string
     template <typename _TargetCharTy>
-    static void dump(typename _Args::template string_type<_TargetCharTy>& str, const value_type& v,
+    static void dump(string_type<_TargetCharTy>& str, const value_type& v,
                      std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
         detail::fast_string_ostreambuf<_TargetCharTy> buf{ str };
@@ -242,10 +245,10 @@ public:
     }
 
     template <typename _TargetCharTy = typename value_type::char_type>
-    static typename _Args::template string_type<_TargetCharTy>
-    dump(const value_type& v, std::initializer_list<serializer_option<_TargetCharTy>> options = {})
+    static string_type<_TargetCharTy> dump(const value_type&                                       v,
+                                           std::initializer_list<serializer_option<_TargetCharTy>> options = {})
     {
-        typename _Args::template string_type<_TargetCharTy> result;
+        string_type<_TargetCharTy> result;
         dump<_TargetCharTy>(result, v, options);
         return result;
     }

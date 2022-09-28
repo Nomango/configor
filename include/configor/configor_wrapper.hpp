@@ -27,6 +27,57 @@ namespace configor
 
 namespace detail
 {
+template <typename _Args, typename _ValTy>
+class iovalue_data : public basic_value_data<_Args, _ValTy>
+{
+    using inheritance_type = basic_value_data<_Args, _ValTy>;
+    using value_type       = _ValTy;
+
+    // template <typename _CharTy>
+    // using string_type = typename value_type::tplargs_type::template string_type<_CharTy>;
+
+public:
+    iovalue_data()
+        : inheritance_type{}
+    {
+    }
+
+    iovalue_data(const value_base::value_type t)
+        : inheritance_type{ t }
+    {
+    }
+
+    iovalue_data(const iovalue_data& other)
+        : inheritance_type{ other }
+    {
+    }
+
+    iovalue_data(iovalue_data&& other) noexcept
+        : inheritance_type{ std::move(other) }
+    {
+    }
+
+    iovalue_data& operator=(const iovalue_data& other)
+    {
+        inheritance_type::operator=(other);
+        return *this;
+    }
+
+    iovalue_data& operator=(iovalue_data&& other)
+    {
+        inheritance_type::operator=(std::move(other));
+        return *this;
+    }
+
+    // template <typename _TargetCharTy = typename value_type::char_type>
+    // string_type<_TargetCharTy> dump(std::initializer_list<serializer_option<_TargetCharTy>> options = {}) const
+    // {
+    //     string_type<_TargetCharTy> result;
+    //     dump<_TargetCharTy>(result, v, options);
+    //     return result;
+    // }
+};
+
 template <typename _ConfigTy, typename _Ty>
 class ostream_wrapper
 {
