@@ -54,6 +54,10 @@ TEST_CASE("test_json5_parser")
         CHECK(json5::parse("112.5e-2").get<double>() == Approx(1.125));
         CHECK(json5::parse("12.5e-2").get<double>() == Approx(0.125));
 
+        // parse float with fraction part only
+        CHECK(json5::parse(".25").get<double>() == Approx(0.25));
+        CHECK(json5::parse(".125e2").get<double>() == Approx(12.5));
+
         // parse signed float
         CHECK(json5::parse("+0.25").get<double>() == Approx(0.25));
         CHECK(json5::parse("+1.25").get<double>() == Approx(1.25));

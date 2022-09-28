@@ -228,7 +228,9 @@ public:
         case '7':
         case '8':
         case '9':
-        case '.':
+        case '.':  // fraction part only
+        case 'I':  // Infinity
+        case 'N':  // NaN
             return scan_number();
 
         case '\0':
@@ -494,6 +496,12 @@ public:
         if (current_ == '.')
             return scan_float();
 
+        if (current_ == 'I')
+            return scan_infinity();
+
+        if (current_ == 'N')
+            return scan_NaN();
+
         if (current_ == '0')
         {
             read_next();
@@ -600,6 +608,20 @@ public:
 
         number_float_ *= power;
         return token_type::value_float;
+    }
+
+    token_type scan_infinity()
+    {
+        const auto result = scan_literal({ 'I', 'n', 'f', 'i', 'n', 'i', 't', 'y' }, token_type::value_float);
+        number_float_     = std::numeric_limits<typename value_type::float_type>::infinity();
+        return result;
+    }
+
+    token_type scan_NaN()
+    {
+        const auto result = scan_literal({ 'N', 'a', 'N' }, token_type::value_float);
+        number_float_     = std::numeric_limits<typename value_type::float_type>::quiet_NaN();
+        return result;
     }
 
     uint32_t read_escaped_codepoint()
