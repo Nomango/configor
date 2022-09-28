@@ -427,7 +427,7 @@ public:
         is_negative_    = false;
         number_integer_ = 0;
 
-        if (current_ == '-' || current_ == '+')
+        if (current_ == '-')
         {
             is_negative_ = (current_ == '-');
             read_next();

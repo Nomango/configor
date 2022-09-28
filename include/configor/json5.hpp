@@ -55,8 +55,8 @@ public:
                                              _DefaultEncoding>::template parser_type<typename value::char_type>;
 };
 
-using json  = basic_json5<value_tpl_args>;
-using wjson = basic_json5<wvalue_tpl_args>;
+using json5  = basic_json5<value_tpl_args>;
+using wjson5 = basic_json5<wvalue_tpl_args>;
 
 // type traits
 

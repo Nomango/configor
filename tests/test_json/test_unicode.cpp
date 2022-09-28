@@ -4,7 +4,7 @@
 
 #include <sstream>  // std::wstringstream
 
-TEST_CASE("test_unicode")
+TEST_CASE("test_json_unicode")
 {
     SECTION("test_dump_surrogate")
     {
@@ -60,7 +60,7 @@ protected:
     wjson::value j;
 };
 
-TEST_CASE_METHOD(WCharTest, "test_write_to_stream_w")
+TEST_CASE_METHOD(WCharTest, "test_json_write_to_stream_w")
 {
     std::wstringstream ss;
     ss << wjson::wrap(j);

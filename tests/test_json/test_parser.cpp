@@ -6,7 +6,7 @@
 #include <fstream>
 #include <functional>
 
-TEST_CASE("test_parser")
+TEST_CASE("test_json_parser")
 {
     SECTION("test_parse")
     {
@@ -39,9 +39,9 @@ TEST_CASE("test_parser")
         CHECK(json::parse("9223372036854775807").get<int64_t>() == int64_t(9223372036854775807));
 
         // parse signed integer
-        CHECK(json::parse("+0").get<int>() == 0);
-        CHECK(json::parse("+2147483647").get<int32_t>() == int32_t(2147483647));
-        CHECK(json::parse("+9223372036854775807").get<int64_t>() == int64_t(9223372036854775807));
+        CHECK_THROWS_AS(json::parse("+0").get<int>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+2147483647").get<int32_t>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+9223372036854775807").get<int64_t>(), configor_deserialization_error);
         CHECK(json::parse("-0").get<int>() == 0);
         CHECK(json::parse("-2147483647").get<int32_t>() == int32_t(-2147483647));
         CHECK(json::parse("-9223372036854775807").get<int64_t>() == int64_t(-9223372036854775807));
@@ -55,12 +55,12 @@ TEST_CASE("test_parser")
         CHECK(json::parse("12.5e-2").get<double>() == Approx(0.125));
 
         // parse signed float
-        CHECK(json::parse("+0.25").get<double>() == Approx(0.25));
-        CHECK(json::parse("+1.25").get<double>() == Approx(1.25));
-        CHECK(json::parse("+1.125e2").get<double>() == Approx(112.5));
-        CHECK(json::parse("+0.125e2").get<double>() == Approx(12.5));
-        CHECK(json::parse("+112.5e-2").get<double>() == Approx(1.125));
-        CHECK(json::parse("+12.5e-2").get<double>() == Approx(0.125));
+        CHECK_THROWS_AS(json::parse("+0.25").get<double>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+1.25").get<double>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+1.125e2").get<double>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+0.125e2").get<double>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+112.5e-2").get<double>(), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("+12.5e-2").get<double>(), configor_deserialization_error);
 
         CHECK(json::parse("-0.25").get<double>() == Approx(-0.25));
         CHECK(json::parse("-1.25").get<double>() == Approx(-1.25));
@@ -105,14 +105,6 @@ TEST_CASE("test_parser")
         CHECK_THROWS_AS(json::parse("1ex"), configor_deserialization_error);
         CHECK_THROWS_AS(json::parse("1e0"), configor_deserialization_error);
 
-        // not allow comments
-        {
-            // TODO
-            CHECK_NOTHROW(json::parse("{/**/}"));
-            CHECK_NOTHROW(json::parse("{//\n}"));
-            CHECK_THROWS_AS(json::parse("{/x\n}"), configor_deserialization_error);
-        }
-
         // unexpect end
         CHECK_THROWS_AS(json::parse("\\"), configor_deserialization_error);
 
@@ -140,25 +132,8 @@ TEST_CASE("test_parser")
 
     SECTION("test_comment")
     {
-        auto j = json::parse(R"(// some comments
-        /* some comments */
-        {
-            // some comments
-            /* some comments */ "happy": true,  /* some comments */
-            // "pi": 1,
-            "pi": 3.141, // some comments
-            // "pi": 2,
-            /*
-            some comments
-            "pi": 3,
-            */"name": "中文测试"
-        }// some comments)");
-        CHECK(j["happy"].get<bool>());
-        CHECK(j["pi"].get<double>() == Approx(3.141));
-        CHECK(j["name"].get<std::string>() == "中文测试");
-
-        CHECK_THROWS_AS(json::parse("/* aaaa"), configor_deserialization_error);
-        CHECK_THROWS_AS(json::parse("/* aaaa *"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("// some comments\n{}"), configor_deserialization_error);
+        CHECK_THROWS_AS(json::parse("/* some comments */\n{}"), configor_deserialization_error);
     }
 
     SECTION("test_parse_surrogate")

@@ -3,7 +3,7 @@
 #pragma once
 
 #include <catch2/catch.hpp>
-#include <configor/json.hpp>
+#include <configor/json5.hpp>
 
 using namespace configor;
 

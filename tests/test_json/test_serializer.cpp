@@ -25,7 +25,7 @@ protected:
     json::value j;
 };
 
-TEST_CASE_METHOD(SerializerTest, "test_dump")
+TEST_CASE_METHOD(SerializerTest, "test_json_dump")
 {
     CHECK_NOTHROW(json::dump(j));
     CHECK_NOTHROW(json::dump(j, { json::serializer::with_indent(4, ' ') }));
@@ -69,7 +69,7 @@ TEST_CASE_METHOD(SerializerTest, "test_dump")
     CHECK_FALSE(record_handler.error.empty());
 }
 
-TEST_CASE_METHOD(SerializerTest, "test_write_to_stream")
+TEST_CASE_METHOD(SerializerTest, "test_json_write_to_stream")
 {
     std::stringstream ss;
     ss << json::wrap(j);
@@ -84,7 +84,7 @@ TEST_CASE_METHOD(SerializerTest, "test_write_to_stream")
     CHECK(ss.str() == json::dump(j, { json::serializer::with_indent(2, '.') }));
 }
 
-TEST_CASE_METHOD(SerializerTest, "test_adapter")
+TEST_CASE_METHOD(SerializerTest, "test_json_adapter")
 {
     struct myadapter : public oadapter
     {
@@ -121,7 +121,7 @@ TEST_CASE_METHOD(SerializerTest, "test_adapter")
     }
 }
 
-TEST_CASE("test_serializer")
+TEST_CASE("test_json_serializer")
 {
     SECTION("test_numeric")
     {
