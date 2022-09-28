@@ -381,13 +381,13 @@ TEST_CASE("test_basic_config")
 
 #include <fifo_map/fifo_map.hpp>
 
-struct fifo_value_tpl_args : value_tpl_args
+struct fifo_value_tplargs : value_tplargs
 {
     template <class _Kty, class _Ty, class... _Args>
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;
 };
 
-using fifo_value = basic_value<fifo_value_tpl_args>;
+using fifo_value = basic_value<fifo_value_tplargs>;
 
 TEST_CASE("test_tpl_args")
 {

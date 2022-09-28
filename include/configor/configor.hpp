@@ -32,7 +32,7 @@
 namespace configor
 {
 
-struct value_tpl_args // tplargs
+struct value_tplargs // tplargs
 {
     using boolean_type = bool;
 
@@ -58,12 +58,12 @@ struct value_tpl_args // tplargs
     using binder_type = value_binder<_Ty>;
 };
 
-struct wvalue_tpl_args : value_tpl_args
+struct wvalue_tplargs : value_tplargs
 {
     using char_type = wchar_t;
 };
 
-using value  = basic_value<value_tpl_args>;
-using wvalue = basic_value<wvalue_tpl_args>;
+using value  = basic_value<value_tplargs>;
+using wvalue = basic_value<wvalue_tplargs>;
 
 }  // namespace configor
