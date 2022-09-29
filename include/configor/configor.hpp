@@ -24,15 +24,15 @@
 #include "configor_serializer.hpp"
 #include "configor_wrapper.hpp"
 
-#include <cstdint>      // std::int64_t
-#include <map>          // std::map
-#include <string>       // std::string
-#include <vector>       // std::vector
+#include <cstdint>  // std::int64_t
+#include <map>      // std::map
+#include <string>   // std::string
+#include <vector>   // std::vector
 
 namespace configor
 {
 
-struct value_tpl_args
+struct value_tplargs
 {
     using boolean_type = bool;
 
@@ -58,12 +58,12 @@ struct value_tpl_args
     using binder_type = value_binder<_Ty>;
 };
 
-struct wvalue_tpl_args : value_tpl_args
+struct wvalue_tplargs : value_tplargs
 {
     using char_type = wchar_t;
 };
 
-using value  = basic_value<value_tpl_args>;
-using wvalue = basic_value<wvalue_tpl_args>;
+using value  = basic_value<value_tplargs>;
+using wvalue = basic_value<wvalue_tplargs>;
 
 }  // namespace configor

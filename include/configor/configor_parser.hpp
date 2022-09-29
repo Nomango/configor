@@ -114,26 +114,26 @@ protected:
             break;
 
         case token_type::literal_null:
-            c = value_base::null;
+            c = value_constant::null;
             break;
 
         case token_type::value_string:
-            c = value_base::string;
-            get_string(*value_accessor<value_type>::get_data(c).string);
+            c = value_constant::string;
+            get_string(*c.data().string);
             break;
 
         case token_type::value_integer:
-            c = value_base::integer;
-            get_integer(value_accessor<value_type>::get_data(c).integer);
+            c = value_constant::integer;
+            get_integer(c.data().integer);
             break;
 
         case token_type::value_float:
-            c = value_base::floating;
-            get_float(value_accessor<value_type>::get_data(c).floating);
+            c = value_constant::floating;
+            get_float(c.data().floating);
             break;
 
         case token_type::begin_array:
-            c = value_base::array;
+            c = value_constant::array;
             while (true)
             {
                 token = scan();
@@ -157,8 +157,8 @@ protected:
                 if (is_end)
                     break;
 
-                value_accessor<value_type>::get_data(c).vector->push_back(_ValTy());
-                do_parse(value_accessor<value_type>::get_data(c).vector->back(), token, false);
+                c.data().vector->push_back(_ValTy());
+                do_parse(c.data().vector->back(), token, false);
 
                 // read ','
                 token = scan();
@@ -170,7 +170,7 @@ protected:
             break;
 
         case token_type::begin_object:
-            c = value_base::object;
+            c = value_constant::object;
             while (true)
             {
                 token = scan();
@@ -186,7 +186,7 @@ protected:
 
                 _ValTy object;
                 do_parse(object, token);
-                value_accessor<value_type>::get_data(c).object->emplace(key, object);
+                c.data().object->emplace(key, object);
 
                 // read ','
                 token = scan();

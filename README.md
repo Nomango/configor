@@ -129,6 +129,7 @@ json::value obj2 = json::object{
 
 ```cpp
 // 判断 JSON 值类型
+j.type();
 j.is_null();
 j.is_bool();
 j.is_integer();
@@ -151,7 +152,7 @@ auto f = j.get<float>();        // 仅当 j.is_floating() 时可用
 auto d = j.get<double>();       // 仅当 j.is_floating() 时可用
 auto s = j.get<std::string>();  // 仅当 j.is_string() 时可用
 
-// 对于实现了 config_bind 的自定义数据类型，也可以直接取值
+// 对于实现了 value_binder 的自定义数据类型，也可以直接取值
 // 详情请参考下方 `与自定义类型转换`
 class MyObject;
 auto myObj = j.get<MyObject>();
@@ -190,7 +191,7 @@ bool b = (bool)j["boolean"];
 int i = (int)j["number"];
 float d = (float)j["float"];
 
-// 对于实现了 config_bind 的自定义数据类型，也可以直接转换
+// 对于实现了 value_binder 的自定义数据类型，也可以直接转换
 // 详情请参考下方 `与自定义类型转换`
 class MyObject;
 MyObject myObj = (MyObject)j;
@@ -319,12 +320,12 @@ std::wstring str = j[L"name"].get<std::wstring>();
 对 char16_t 和 char32_t 字符类型需要使用下面的别名
 
 ```cpp
-struct u16value_tpl_args : value_tpl_args
+struct u16value_tpl_args : value_tplargs
 {
     using char_type = char16_t;
 };
 
-struct u32value_tpl_args : value_tpl_args
+struct u32value_tpl_args : value_tplargs
 {
     using char_type = char32_t;
 };
@@ -514,7 +515,7 @@ std::cout << json::dump(j, { json::parser::with_encoding<encoding::ignore>() }) 
 或使用自定义的json类：
 
 ```cpp
-using myjson = configor::basic_json<value_tpl_args, encoding::ignore>;
+using myjson = configor::basic_json<value_tplargs, encoding::ignore>;
 ```
 
 #### Q:  
@@ -526,7 +527,7 @@ configor 内部使用 std::map 存储 kv 对象，默认是按 key 的字符串�
 建议用第三方库替换 std::map，比如 [nlohmann/fifo_map](https://github.com/nlohmann/fifo_map)，然后声明 fifo_json 替换 json 来保证插入序
 
 ```cpp
-struct fifo_value_tpl_args : value_tpl_args
+struct fifo_value_tpl_args : value_tplargs
 {
     template <class _Kty, class _Ty, class... _Args>
     using object_type = nlohmann::fifo_map<_Kty, _Ty>;

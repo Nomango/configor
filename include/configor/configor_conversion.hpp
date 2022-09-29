@@ -42,7 +42,7 @@ namespace detail
 {
 namespace
 {
-inline configor_type_error make_conversion_error(value_base::value_type t, value_base::value_type want)
+inline configor_type_error make_conversion_error(value_constant::type t, value_constant::type want)
 {
     fast_ostringstream ss;
     ss << "cannot convert type '" << to_string(t) << "' to type '" << to_string(want) << "' (implicitly)";
@@ -56,7 +56,7 @@ template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::boolean>(c, v);
+    value_constructor<_ValTy>::template reset<value_constant::boolean>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
@@ -64,25 +64,26 @@ template <typename _ValTy, typename _Ty,
               std::is_integral<_Ty>::value && !std::is_same<_Ty, typename _ValTy::boolean_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::integer>(c, static_cast<typename _ValTy::integer_type>(v));
+    value_constructor<_ValTy>::template reset<value_constant::integer>(c,
+                                                                       static_cast<typename _ValTy::integer_type>(v));
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::floating>(c, static_cast<typename _ValTy::float_type>(v));
+    value_constructor<_ValTy>::template reset<value_constant::floating>(c, static_cast<typename _ValTy::float_type>(v));
 }
 
 template <typename _ValTy>
 void to_value(_ValTy& c, const typename _ValTy::string_type& v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::string>(c, v);
+    value_constructor<_ValTy>::template reset<value_constant::string>(c, v);
 }
 
 template <typename _ValTy>
 void to_value(_ValTy& c, typename _ValTy::string_type&& v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::string>(c, std::move(v));
+    value_constructor<_ValTy>::template reset<value_constant::string>(c, std::move(v));
 }
 
 template <typename _ValTy, typename _Ty,
@@ -91,21 +92,21 @@ template <typename _ValTy, typename _Ty,
                                   int>::type = 0>
 void to_value(_ValTy& c, const _Ty& v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::string>(c, v);
+    value_constructor<_ValTy>::template reset<value_constant::string>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::array_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty& v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::array>(c, v);
+    value_constructor<_ValTy>::template reset<value_constant::array>(c, v);
 }
 
 template <typename _ValTy, typename _Ty,
           typename std::enable_if<std::is_same<_Ty, typename _ValTy::object_type>::value, int>::type = 0>
 void to_value(_ValTy& c, _Ty& v)
 {
-    value_accessor<_ValTy>::template reset_data<value_base::object>(c, v);
+    value_constructor<_ValTy>::template reset<value_constant::object>(c, v);
 }
 
 // from_value functions
@@ -115,8 +116,8 @@ template <typename _ValTy, typename _Ty,
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_bool())
-        throw make_conversion_error(c.type(), value_base::boolean);
-    v = value_accessor<_ValTy>::get_data(c).boolean;
+        throw make_conversion_error(c.type(), value_constant::boolean);
+    v = c.data().boolean;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -125,24 +126,24 @@ template <typename _ValTy, typename _Ty,
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_integer())
-        throw make_conversion_error(c.type(), value_base::integer);
-    v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).integer);
+        throw make_conversion_error(c.type(), value_constant::integer);
+    v = static_cast<_Ty>(c.data().integer);
 }
 
 template <typename _ValTy, typename _Ty, typename std::enable_if<std::is_floating_point<_Ty>::value, int>::type = 0>
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_floating())
-        throw make_conversion_error(c.type(), value_base::floating);
-    v = static_cast<_Ty>(value_accessor<_ValTy>::get_data(c).floating);
+        throw make_conversion_error(c.type(), value_constant::floating);
+    v = static_cast<_Ty>(c.data().floating);
 }
 
 template <typename _ValTy>
 void from_value(const _ValTy& c, typename _ValTy::string_type& v)
 {
     if (!c.is_string())
-        throw make_conversion_error(c.type(), value_base::string);
-    v = *value_accessor<_ValTy>::get_data(c).string;
+        throw make_conversion_error(c.type(), value_constant::string);
+    v = *c.data().string;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -152,8 +153,8 @@ template <typename _ValTy, typename _Ty,
 void from_value(const _ValTy& c, _Ty& v)
 {
     if (!c.is_string())
-        throw make_conversion_error(c.type(), value_base::string);
-    v = *value_accessor<_ValTy>::get_data(c).string;
+        throw make_conversion_error(c.type(), value_constant::string);
+    v = *c.data().string;
 }
 
 template <typename _ValTy, typename _Ty,
@@ -166,9 +167,8 @@ void from_value(const _ValTy& c, _Ty& v)
         return;
     }
     if (!c.is_array())
-        throw make_conversion_error(c.type(), value_base::array);
-    v.assign((*value_accessor<_ValTy>::get_data(c).vector).begin(),
-             (*value_accessor<_ValTy>::get_data(c).vector).end());
+        throw make_conversion_error(c.type(), value_constant::array);
+    v.assign((*c.data().vector).begin(), (*c.data().vector).end());
 }
 
 template <typename _ValTy, typename _Ty,
@@ -181,8 +181,8 @@ void from_value(const _ValTy& c, _Ty& v)
         return;
     }
     if (!c.is_object())
-        throw make_conversion_error(c.type(), value_base::object);
-    v = *value_accessor<_ValTy>::get_data(c).object;
+        throw make_conversion_error(c.type(), value_constant::object);
+    v = *c.data().object;
 }
 
 // c-style array
