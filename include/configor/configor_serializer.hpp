@@ -98,9 +98,9 @@ protected:
     {
         switch (c.type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
-            const auto& object = *value_accessor<value_type>::get_data(c).object;
+            const auto& object = *c.data().object;
 
             next(token_type::begin_object);
             if (object.empty())
@@ -129,11 +129,11 @@ protected:
             return;
         }
 
-        case value_base::array:
+        case value_constant::array:
         {
             next(token_type::begin_array);
 
-            auto& v = *value_accessor<value_type>::get_data(c).vector;
+            auto& v = *c.data().vector;
             if (v.empty())
             {
                 next(token_type::end_array);
@@ -154,16 +154,16 @@ protected:
             return;
         }
 
-        case value_base::string:
+        case value_constant::string:
         {
             next(token_type::value_string);
-            put_string(*value_accessor<value_type>::get_data(c).string);
+            put_string(*c.data().string);
             return;
         }
 
-        case value_base::boolean:
+        case value_constant::boolean:
         {
-            if (value_accessor<value_type>::get_data(c).boolean)
+            if (c.data().boolean)
             {
                 next(token_type::literal_true);
             }
@@ -174,21 +174,21 @@ protected:
             return;
         }
 
-        case value_base::integer:
+        case value_constant::integer:
         {
             next(token_type::value_integer);
-            put_integer(value_accessor<value_type>::get_data(c).integer);
+            put_integer(c.data().integer);
             return;
         }
 
-        case value_base::floating:
+        case value_constant::floating:
         {
             next(token_type::value_float);
-            put_float(value_accessor<value_type>::get_data(c).floating);
+            put_float(c.data().floating);
             return;
         }
 
-        case value_base::null:
+        case value_constant::null:
         {
             next(token_type::literal_null);
             return;

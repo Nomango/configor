@@ -186,7 +186,7 @@ struct iterator
         check_data();
         check_iterator();
 
-        if (value_->type() != value_base::object)
+        if (value_->type() != value_constant::object)
             throw configor_invalid_iterator("cannot use key() with non-object type");
         return object_it_->first;
     }
@@ -198,9 +198,9 @@ struct iterator
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
             return object_it_->second;
-        case value_base::array:
+        case value_constant::array:
             return *array_it_;
         default:
             break;
@@ -231,17 +231,17 @@ struct iterator
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
             std::advance(object_it_, 1);
             break;
         }
-        case value_base::array:
+        case value_constant::array:
         {
             std::advance(array_it_, 1);
             break;
         }
-        case value_base::null:
+        case value_constant::null:
         {
             // DO NOTHING
             break;
@@ -268,17 +268,17 @@ struct iterator
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
             std::advance(object_it_, -1);
             break;
         }
-        case value_base::array:
+        case value_constant::array:
         {
             std::advance(array_it_, -1);
             break;
         }
-        case value_base::null:
+        case value_constant::null:
         {
             // DO NOTHING
             break;
@@ -313,17 +313,17 @@ struct iterator
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
             throw configor_invalid_iterator("cannot compute offsets with object type");
             break;
         }
-        case value_base::array:
+        case value_constant::array:
         {
             std::advance(array_it_, off);
             break;
         }
-        case value_base::null:
+        case value_constant::null:
         {
             // DO NOTHING
             break;
@@ -345,7 +345,7 @@ struct iterator
         if (value_ != rhs.value_)
             throw configor_invalid_iterator("cannot compute iterator offsets of different value objects");
 
-        if (value_->type() != value_base::array)
+        if (value_->type() != value_constant::array)
             throw configor_invalid_iterator("cannot compute iterator offsets with non-array type");
         return array_it_ - rhs.array_it_;
     }
@@ -364,11 +364,11 @@ struct iterator
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
             return object_it_ == other.object_it_;
         }
-        case value_base::array:
+        case value_constant::array:
         {
             return array_it_ == other.array_it_;
         }
@@ -401,9 +401,9 @@ struct iterator
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
             throw configor_invalid_iterator("cannot compare iterators with object type");
-        case value_base::array:
+        case value_constant::array:
             return array_it_ < other.array_it_;
         default:
             return primitive_it_ < other.primitive_it_;
@@ -417,17 +417,17 @@ private:
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
-            object_it_ = value_->data_.object->begin();
+            object_it_ = value_->data().object->begin();
             break;
         }
-        case value_base::array:
+        case value_constant::array:
         {
-            array_it_ = value_->data_.vector->begin();
+            array_it_ = value_->data().vector->begin();
             break;
         }
-        case value_base::null:
+        case value_constant::null:
         {
             // DO NOTHING
             break;
@@ -446,17 +446,17 @@ private:
 
         switch (value_->type())
         {
-        case value_base::object:
+        case value_constant::object:
         {
-            object_it_ = value_->data_.object->end();
+            object_it_ = value_->data().object->end();
             break;
         }
-        case value_base::array:
+        case value_constant::array:
         {
-            array_it_ = value_->data_.vector->end();
+            array_it_ = value_->data().vector->end();
             break;
         }
-        case value_base::null:
+        case value_constant::null:
         {
             // DO NOTHING
             break;
@@ -481,19 +481,19 @@ private:
     {
         switch (value_->type())
         {
-        case value_base::object:
-            if (object_it_ == value_->data_.object->end())
+        case value_constant::object:
+            if (object_it_ == value_->data().object->end())
             {
                 throw std::out_of_range("object iterator out of range");
             }
             break;
-        case value_base::array:
-            if (array_it_ == value_->data_.vector->end())
+        case value_constant::array:
+            if (array_it_ == value_->data().vector->end())
             {
                 throw std::out_of_range("array iterator out of range");
             }
             break;
-        case value_base::null:
+        case value_constant::null:
         {
             throw std::out_of_range("null iterator out of range");
         }
