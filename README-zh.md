@@ -10,22 +10,23 @@
 [![GitHub release](https://img.shields.io/github/release/nomango/configor)](https://github.com/Nomango/configor/releases/latest)
 [![GitHub license](https://img.shields.io/github/license/nomango/configor)](https://github.com/Nomango/configor/blob/master/LICENSE)
 
-A light weight configuration library for C++11.
+为 C++11 设计的轻量级配置库
 
 [EN](./README.md) | [中文](./README-zh.md)
 
 </div>
 
-## Features
+## 特点
 
-- Header-only & STL-like
-- Non-intrusive custom type serialization
-- Complete Unicode support
-- ASCII & Wide-character support
+- 仅头文件，低接入成本
+- STL-like，低学习成本
+- 非侵入式的自定义类型序列化
+- 完备的 Unicode 支持
+- ASCII & 宽字符支持
 
-## Quick start
+## 快速上手
 
-Create JSON objects:
+创建 JSON 文档对象
 
 ```cpp
 json::value j;
@@ -50,7 +51,7 @@ json::value j2 = json::object{
 };
 ```
 
-Conversion & Serialization:
+类型转换 & 序列化:
 
 ```cpp
 struct User
@@ -78,15 +79,15 @@ User u;
 std::cin >> json::wrap(u);
 ```
 
-Learn more from the [wiki](https://github.com/Nomango/configor/wiki).
+更多内容请到 [wiki](https://github.com/Nomango/configor/wiki) 查看。
 
-## Plan
+## 计划
 
-- [x] Custom type conversion
-- [x] Unicode support
-- [x] Unit test coverage above 85%
-- [ ] Improve error message
-- [ ] YAML support
-- [ ] ini support
-- [ ] json5 support
-- [ ] SAX tool
+- [x] 自定义类型转换
+- [x] Unicode 支持
+- [x] 单元测试覆盖率达到 85%
+- [ ] 完善错误信息
+- [ ] YAML 支持
+- [ ] ini 支持
+- [ ] json5 支持
+- [ ] SAX 工具
