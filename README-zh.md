@@ -20,7 +20,7 @@
 
 - 仅头文件，低接入成本
 - STL-like，低学习成本
-- 非侵入式的自定义类型序列化
+- 自定义类型转换与序列化
 - 完备的 Unicode 支持
 - ASCII & 宽字符支持
 
@@ -59,6 +59,7 @@ struct User
     std::string name;
     int age;
 
+    // 将自定义类型绑定到 configor
     CONFIGOR_BIND(json::value, User, REQUIRED(name), OPTIONAL(age))
 };
 

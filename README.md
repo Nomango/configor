@@ -19,7 +19,7 @@ A light weight configuration library for C++11.
 ## Features
 
 - Header-only & STL-like
-- Non-intrusive custom type serialization
+- Custom type conversion & serialization
 - Complete Unicode support
 - ASCII & Wide-character support
 
@@ -58,6 +58,7 @@ struct User
     std::string name;
     int age;
 
+    // bind custom type to configor
     CONFIGOR_BIND(json::value, User, REQUIRED(name), OPTIONAL(age))
 };
 
