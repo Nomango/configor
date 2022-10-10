@@ -234,7 +234,7 @@ public:
     inline iterator begin()
     {
         iterator iter(this);
-        iter.set_begin();
+        iter.set_begin(); // TODO
         return iter;
     }
     inline const_iterator begin() const
@@ -244,13 +244,13 @@ public:
     inline const_iterator cbegin() const
     {
         const_iterator iter(this);
-        iter.set_begin();
+        iter.set_begin(); // TODO
         return iter;
     }
     inline iterator end()
     {
         iterator iter(this);
-        iter.set_end();
+        iter.set_end(); // TODO
         return iter;
     }
     inline const_iterator end() const

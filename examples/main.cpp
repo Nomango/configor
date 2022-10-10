@@ -4,6 +4,9 @@
 
 #include <iostream>
 
+#include <fstream>
+#include <sstream>
+
 int main(int argc, char** argv)
 {
     std::istringstream req("{\n    \"user_id\": 10001\n}\n");

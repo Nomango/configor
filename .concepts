@@ -1,0 +1,23 @@
+
+std::copy(json::itoken_iterator(json::ivalue_tokenstream{j}), json::itoken_iterator(), json::otoken_iterator(json::ostream{std::cout}));
+
+json::ivalue_iterator(j) == json::itoken_iterator{ json::ivalue_tokenization{ j } }
+json::ovalue_iterator(j) == json::otoken_iterator{ json::ovalue_tokenization{ j } }
+
+json::istream_iterator(std::cin) == json::itoken_iterator{ json::istream_tokenization{ std::cin } }
+json::ostream_iterator(std::cout) == json::otoken_iterator{ json::ostream_tokenization{ std::cout } }
+
+json::iany_iterator(u) == json::itoken_iterator{ json::iany_tokenization{ u } }
+json::oany_iterator(u) == json::otoken_iterator{ json::oany_tokenization{ u } }
+
+// json::value -> std::ostream
+std::copy(json::ivalue_iterator(j), json::ivalue_iterator(), json::ostream_iterator(std::cout));
+
+// std::istream -> json::value
+std::copy(json::istream_iterator(std::cin), json::istream_iterator(), json::ovalue_iterator(j));
+
+// any -> std::ostream
+std::copy(json::iany_iterator(u), json::iany_iterator(), json::ostream_iterator(std::cout));
+
+// json::value -> any
+std::copy(json::ivalue_iterator(j), json::ivalue_iterator(), json::oany_iterator(u));
