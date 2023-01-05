@@ -139,7 +139,7 @@ class ConversionTest
 {
 protected:
     Bus   expect_bus;
-    value expect_config;
+    value expect_value;
 
     ConversionTest()
     {
@@ -150,7 +150,7 @@ protected:
             { { "p2", std::make_shared<Passenger>("p2", 54) } },
         };
 
-        expect_config = make_object<value>({
+        expect_value = make_object<value>({
             { "license", 100 },
             { "driver", make_object<value>({ { "name", "driver" } }) },
             { "passengers", make_array<value>({
@@ -169,12 +169,12 @@ TEST_CASE_METHOD(ConversionTest, "test_to_config")
 {
     value c = expect_bus;
 
-    CHECK(c == expect_config);
+    CHECK(c == expect_value);
 }
 
 TEST_CASE_METHOD(ConversionTest, "test_from_config")
 {
-    Bus bus = Bus(expect_config);
+    Bus bus = Bus(expect_value);
 
     CHECK(bus == expect_bus);
 }
@@ -189,7 +189,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
-        CHECK(c[0] == expect_config);
+        CHECK(c[0] == expect_value);
 
         v[0] = Bus{};
         CHECK_NOTHROW(v = c);
@@ -204,7 +204,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
-        CHECK(c[0] == expect_config);
+        CHECK(c[0] == expect_value);
 
         v.clear();
         CHECK_NOTHROW(v = c);
@@ -220,7 +220,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
-        CHECK(c[0] == expect_config);
+        CHECK(c[0] == expect_value);
 
         v.clear();
         CHECK_NOTHROW(v = c);
@@ -236,7 +236,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
-        CHECK(c[0] == expect_config);
+        CHECK(c[0] == expect_value);
 
         v.clear();
         CHECK_NOTHROW(v = c);
@@ -252,7 +252,7 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
-        CHECK(c[0] == expect_config);
+        CHECK(c[0] == expect_value);
 
         v.clear();
         CHECK_NOTHROW(v = c);
@@ -368,4 +368,53 @@ TEST_CASE("test_conversion")
         CHECK(v2.passengers[0] == v.passengers[0]);
         CHECK(v2.passengers[1] == v.passengers[1]);
     }
+}
+
+struct WObject
+{
+    std::wstring text;
+    std::wstring text2;
+    std::wstring text3;
+    std::wstring text4;
+
+    bool operator==(const WObject& rhs) const
+    {
+        return text == rhs.text && text2 == rhs.text2 && text3 == rhs.text3 && text4 == rhs.text4;
+    }
+
+    CONFIGOR_BIND(wvalue, WObject, REQUIRED(text, L"text"), OPTIONAL(text2, L"text2"), REQUIRED(text3, L"text3-x"),
+                  OPTIONAL(text4, L"text4-x"));
+};
+
+class WObjectTest
+{
+protected:
+    WObject expect_object;
+    wvalue  expect_value;
+
+    WObjectTest()
+    {
+        expect_object = WObject{ L"1", L"2", L"3", L"4" };
+
+        expect_value = make_object<wvalue>({
+            { L"text", L"1" },
+            { L"text2", L"2" },
+            { L"text3-x", L"3" },
+            { L"text4-x", L"4" },
+        });
+    }
+};
+
+TEST_CASE_METHOD(WObjectTest, "test_wobject_to_config")
+{
+    wvalue c = expect_object;
+
+    CHECK(c == expect_value);
+}
+
+TEST_CASE_METHOD(WObjectTest, "test_wobject_from_config")
+{
+    WObject obj = WObject(expect_value);
+
+    CHECK(obj == expect_object);
 }
