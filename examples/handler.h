@@ -7,7 +7,7 @@
 
 struct Request
 {
-    int user_id;
+    int user_id {};
 
     CONFIGOR_BIND(json::value, Request, REQUIRED(user_id));
 };
