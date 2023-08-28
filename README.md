@@ -2,7 +2,10 @@
 
 ![logo](./assets/logo.png)
 
-A light weight configuration library for C++11.
+*A light weight C++ JSON library*
+
+![](https://github.com/muqiuhan/configor/actions/workflows/build.yml/badge.svg)
+![](https://github.com/muqiuhan/configor/actions/workflows/test.yml/badge.svg)
 
 </div>
 
@@ -13,9 +16,9 @@ A light weight configuration library for C++11.
 - Complete Unicode support
 - ASCII & Wide-character support
 
-## Quick start
+## Demo
 
-Create JSON objects:
+### Create JSON objects:
 
 ```cpp
 json::value j;
@@ -40,7 +43,7 @@ json::value j2 = json::object{
 };
 ```
 
-Conversion & Serialization:
+### Conversion & Serialization
 
 ```cpp
 struct User
@@ -74,6 +77,7 @@ std::cin >> json::wrap(u);
 MIT License
 
 Copyright (c) 2019 Haibo
+
 Copyright (c) 2023 MuqiuHan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
