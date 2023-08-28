@@ -1,0 +1,28 @@
+name: test
+
+on:
+  pull_request:
+  push:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: ${{ github.ref }}-${{ github.base_ref }}-${{ github.head_ref }}-Linux
+        cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: build
+        run: xmake
+
+      - test:
+        run: xmake run -- test
