@@ -19,224 +19,228 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <type_traits>  // std::false_type, std::true_type, std::remove_cv, std::remove_reference
+#include <type_traits> // std::false_type, std::true_type, std::remove_cv, std::remove_reference
 
 namespace configor
 {
 
-//
-// forward declare
-//
+  //
+  // forward declare
+  //
 
-template <typename _Ty>
-class value_binder;
+  template <typename _Ty> class value_binder;
 
-template <typename _Args>
-class basic_value;
+  template <typename _Args> class basic_value;
 
-//
-// is_value
-//
+  //
+  // is_value
+  //
 
-template <typename>
-struct is_value : std::false_type
-{
-};
+  template <typename> struct is_value : std::false_type
+  {
+  };
 
-template <typename _Args>
-struct is_value<basic_value<_Args>> : std::true_type
-{
-};
+  template <typename _Args> struct is_value<basic_value<_Args>> : std::true_type
+  {
+  };
 
-//
-// value_constant
-//
+  //
+  // value_constant
+  //
 
-struct value_constant
-{
+  struct value_constant
+  {
     enum type
     {
-        null,
-        integer,
-        floating,
-        string,
-        array,
-        object,
-        boolean,
+      null,
+      integer,
+      floating,
+      string,
+      array,
+      object,
+      boolean,
     };
-};
+  };
 
-inline const char* to_string(value_constant::type t) noexcept
-{
+  inline const char *
+  to_string(value_constant::type t) noexcept
+  {
     switch (t)
-    {
-    case value_constant::type::object:
+      {
+      case value_constant::type::object:
         return "object";
-    case value_constant::type::array:
+      case value_constant::type::array:
         return "array";
-    case value_constant::type::string:
+      case value_constant::type::string:
         return "string";
-    case value_constant::type::integer:
+      case value_constant::type::integer:
         return "integer";
-    case value_constant::type::floating:
+      case value_constant::type::floating:
         return "float";
-    case value_constant::type::boolean:
+      case value_constant::type::boolean:
         return "boolean";
-    case value_constant::type::null:
+      case value_constant::type::null:
         return "null";
-    }
+      }
     return "unknown";
-}
+  }
 
-namespace detail
-{
+  namespace detail
+  {
 
-// priority
+    // priority
 
-template <int p>
-struct priority : priority<p - 1>
-{
-};
-
-template <>
-struct priority<0>
-{
-};
-
-// remove_cvref
-
-template <typename _Ty>
-struct remove_cvref
-{
-    using type = typename std::remove_cv<typename std::remove_reference<_Ty>::type>::type;
-};
-
-// always_void
-
-template <typename _Ty>
-struct always_void
-{
-    using type = void;
-};
-
-// exact_detect
-
-template <class _Void, template <class...> class _Op, class... _Args>
-struct detect_impl
-{
-    struct dummy
+    template <int p> struct priority : priority<p - 1>
     {
-        dummy()             = delete;
-        ~dummy()            = delete;
-        dummy(const dummy&) = delete;
     };
 
-    using type = dummy;
+    template <> struct priority<0>
+    {
+    };
 
-    static constexpr bool value = false;
-};
+    // remove_cvref
 
-template <template <class...> class _Op, class... _Args>
-struct detect_impl<typename always_void<_Op<_Args...>>::type, _Op, _Args...>
-{
-    using type = _Op<_Args...>;
+    template <typename _Ty> struct remove_cvref
+    {
+      using type =
+        typename std::remove_cv<typename std::remove_reference<_Ty>::type>::type;
+    };
 
-    static constexpr bool value = true;
-};
+    // always_void
 
-template <class _Expected, template <class...> class _Op, class... _Args>
-using exact_detect = std::is_same<_Expected, typename detect_impl<void, _Op, _Args...>::type>;
+    template <typename _Ty> struct always_void
+    {
+      using type = void;
+    };
 
-template <template <class...> class _Op, class... _Args>
-using is_detected = std::integral_constant<bool, detect_impl<void, _Op, _Args...>::value>;
+    // exact_detect
 
-// static_const
+    template <class _Void, template <class...> class _Op, class... _Args>
+    struct detect_impl
+    {
+      struct dummy
+      {
+        dummy() = delete;
+        ~dummy() = delete;
+        dummy(const dummy &) = delete;
+      };
 
-template <typename _Ty>
-struct static_const
-{
-    static constexpr _Ty value = {};
-};
+      using type = dummy;
 
-template <typename _Ty>
-constexpr _Ty static_const<_Ty>::value;
+      static constexpr bool value = false;
+    };
 
-// to value
+    template <template <class...> class _Op, class... _Args>
+    struct detect_impl<typename always_void<_Op<_Args...>>::type, _Op, _Args...>
+    {
+      using type = _Op<_Args...>;
 
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct has_to_value : std::false_type
-{
-};
+      static constexpr bool value = true;
+    };
 
-template <typename _ValTy, typename _Ty>
-struct has_to_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    using binder_type = typename _ValTy::template binder_type<_Ty>;
+    template <class _Expected, template <class...> class _Op, class... _Args>
+    using exact_detect =
+      std::is_same<_Expected, typename detect_impl<void, _Op, _Args...>::type>;
 
-    template <typename _UTy, typename... _Args>
-    using to_config_fn = decltype(_UTy::to_value(std::declval<_Args>()...));
+    template <template <class...> class _Op, class... _Args>
+    using is_detected =
+      std::integral_constant<bool, detect_impl<void, _Op, _Args...>::value>;
 
-public:
-    static constexpr bool value = exact_detect<void, to_config_fn, binder_type, _ValTy&, _Ty>::value;
-};
+    // static_const
 
-// from value
+    template <typename _Ty> struct static_const
+    {
+      static constexpr _Ty value = {};
+    };
 
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct has_from_value : std::false_type
-{
-};
+    template <typename _Ty> constexpr _Ty static_const<_Ty>::value;
 
-template <typename _ValTy, typename _Ty>
-struct has_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    using binder_type = typename _ValTy::template binder_type<_Ty>;
+    // to value
 
-    template <typename _UTy, typename... _Args>
-    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+    template <typename _ValTy, typename _Ty, typename _Void = void>
+    struct has_to_value : std::false_type
+    {
+    };
 
-public:
-    static constexpr bool value = exact_detect<void, from_config_fn, binder_type, _ValTy, _Ty&>::value;
-};
+    template <typename _ValTy, typename _Ty>
+    struct has_to_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
+    {
+     private:
+      using binder_type = typename _ValTy::template binder_type<_Ty>;
 
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct has_non_default_from_value : std::false_type
-{
-};
+      template <typename _UTy, typename... _Args>
+      using to_config_fn = decltype(_UTy::to_value(std::declval<_Args>()...));
 
-template <typename _ValTy, typename _Ty>
-struct has_non_default_from_value<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    using binder_type = typename _ValTy::template binder_type<_Ty>;
+     public:
+      static constexpr bool value =
+        exact_detect<void, to_config_fn, binder_type, _ValTy &, _Ty>::value;
+    };
 
-    template <typename _UTy, typename... _Args>
-    using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+    // from value
 
-public:
-    static constexpr bool value = exact_detect<_Ty, from_config_fn, binder_type, _ValTy>::value;
-};
+    template <typename _ValTy, typename _Ty, typename _Void = void>
+    struct has_from_value : std::false_type
+    {
+    };
 
-// getable
+    template <typename _ValTy, typename _Ty>
+    struct has_from_value<_ValTy,
+                          _Ty,
+                          typename std::enable_if<!is_value<_Ty>::value>::type>
+    {
+     private:
+      using binder_type = typename _ValTy::template binder_type<_Ty>;
 
-template <typename _ValTy, typename _Ty, typename _Void = void>
-struct is_value_getable : std::false_type
-{
-};
+      template <typename _UTy, typename... _Args>
+      using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
 
-template <typename _ValTy, typename _Ty>
-struct is_value_getable<_ValTy, _Ty, typename std::enable_if<!is_value<_Ty>::value>::type>
-{
-private:
-    template <typename _UTy, typename... _Args>
-    using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
+     public:
+      static constexpr bool value =
+        exact_detect<void, from_config_fn, binder_type, _ValTy, _Ty &>::value;
+    };
 
-public:
-    static constexpr bool value = exact_detect<_Ty, get_fn, _ValTy, _Ty>::value;
-};
+    template <typename _ValTy, typename _Ty, typename _Void = void>
+    struct has_non_default_from_value : std::false_type
+    {
+    };
 
-}  // namespace detail
+    template <typename _ValTy, typename _Ty>
+    struct has_non_default_from_value<
+      _ValTy,
+      _Ty,
+      typename std::enable_if<!is_value<_Ty>::value>::type>
+    {
+     private:
+      using binder_type = typename _ValTy::template binder_type<_Ty>;
 
-}  // namespace configor
+      template <typename _UTy, typename... _Args>
+      using from_config_fn = decltype(_UTy::from_value(std::declval<_Args>()...));
+
+     public:
+      static constexpr bool value =
+        exact_detect<_Ty, from_config_fn, binder_type, _ValTy>::value;
+    };
+
+    // getable
+
+    template <typename _ValTy, typename _Ty, typename _Void = void>
+    struct is_value_getable : std::false_type
+    {
+    };
+
+    template <typename _ValTy, typename _Ty>
+    struct is_value_getable<_ValTy,
+                            _Ty,
+                            typename std::enable_if<!is_value<_Ty>::value>::type>
+    {
+     private:
+      template <typename _UTy, typename... _Args>
+      using get_fn = decltype(std::declval<_UTy>().template get<_Args...>());
+
+     public:
+      static constexpr bool value = exact_detect<_Ty, get_fn, _ValTy, _Ty>::value;
+    };
+
+  } // namespace detail
+
+} // namespace configor

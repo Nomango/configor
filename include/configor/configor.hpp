@@ -24,16 +24,16 @@
 #include "configor_serializer.hpp"
 #include "configor_wrapper.hpp"
 
-#include <cstdint>  // std::int64_t
-#include <map>      // std::map
-#include <string>   // std::string
-#include <vector>   // std::vector
+#include <cstdint> // std::int64_t
+#include <map>     // std::map
+#include <string>  // std::string
+#include <vector>  // std::vector
 
 namespace configor
 {
 
-struct value_tplargs
-{
+  struct value_tplargs
+  {
     using boolean_type = bool;
 
     using integer_type = int64_t;
@@ -45,25 +45,22 @@ struct value_tplargs
     template <class _CharTy, class... _Args>
     using string_type = std::basic_string<_CharTy, _Args...>;
 
-    template <class _Kty, class... _Args>
-    using array_type = std::vector<_Kty, _Args...>;
+    template <class _Kty, class... _Args> using array_type = std::vector<_Kty, _Args...>;
 
     template <class _Kty, class _Ty, class... _Args>
     using object_type = std::map<_Kty, _Ty, _Args...>;
 
-    template <class _Ty>
-    using allocator_type = std::allocator<_Ty>;
+    template <class _Ty> using allocator_type = std::allocator<_Ty>;
 
-    template <class _Ty>
-    using binder_type = value_binder<_Ty>;
-};
+    template <class _Ty> using binder_type = value_binder<_Ty>;
+  };
 
-struct wvalue_tplargs : value_tplargs
-{
+  struct wvalue_tplargs : value_tplargs
+  {
     using char_type = wchar_t;
-};
+  };
 
-using value  = basic_value<value_tplargs>;
-using wvalue = basic_value<wvalue_tplargs>;
+  using value = basic_value<value_tplargs>;
+  using wvalue = basic_value<wvalue_tplargs>;
 
-}  // namespace configor
+} // namespace configor
