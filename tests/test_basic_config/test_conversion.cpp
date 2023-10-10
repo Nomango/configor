@@ -198,9 +198,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
 
     {
         std::vector<Bus> v;
+        value c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 0);
+
         v.push_back(expect_bus);
 
-        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -214,9 +218,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
 
     {
         std::deque<Bus> v;
+        value c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 0);
+
         v.push_back(expect_bus);
 
-        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -230,9 +238,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
 
     {
         std::list<Bus> v;
+        value c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 0);
+
         v.push_back(expect_bus);
 
-        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -246,9 +258,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
 
     {
         std::forward_list<Bus> v;
+        value c;
+        CHECK_NOTHROW(c = v);
+        CHECK(c.is_array());
+        CHECK(c.size() == 0);
+
         v.push_front(expect_bus);
 
-        value c;
         CHECK_NOTHROW(c = v);
         CHECK(c.is_array());
         CHECK(c.size() == 1);
@@ -260,9 +276,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     }
 
     {
-        std::set<int> expect = { 1, 1, 2, 3 };
-
+        std::set<int> expect;
         value c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_array());
+        CHECK(c.size() == 0);
+
+        expect = { 1, 1, 2, 3 };
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_array());
         CHECK(c.size() == 3);
@@ -274,9 +294,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     }
 
     {
-        std::unordered_set<int> expect = { 1, 1, 2, 3 };
-
+        std::unordered_set<int> expect;
         value c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_array());
+        CHECK(c.size() == 0);
+
+        expect = { 1, 1, 2, 3 };
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_array());
         CHECK(c.size() == 3);
@@ -288,9 +312,14 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     }
 
     {
-        std::map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
+        std::map<std::string, int> expect;
 
         value c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_object());
+        CHECK(c.size() == 0);
+
+        expect = { { "one", 1 }, { "two", 2 } };
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_object());
         CHECK(c.size() == 2);
@@ -303,9 +332,13 @@ TEST_CASE_METHOD(ConversionTest, "test_containers")
     }
 
     {
-        std::unordered_map<std::string, int> expect = { { "one", 1 }, { "two", 2 } };
-
+        std::unordered_map<std::string, int> expect;
         value c;
+        CHECK_NOTHROW(c = expect);
+        CHECK(c.is_object());
+        CHECK(c.size() == 0);
+
+        expect = { { "one", 1 }, { "two", 2 } };
         CHECK_NOTHROW(c = expect);
         CHECK(c.is_object());
         CHECK(c.size() == 2);
