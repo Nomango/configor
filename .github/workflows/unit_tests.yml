@@ -6,9 +6,23 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      compiler:
+        description: 'Compiler'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - gcc
+        - clang
+        - mingw
+        - msvc
+        - xcode
 
 jobs:
   ci_coverage:
+    if: ${{ !inputs.compiler }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -50,6 +64,7 @@ jobs:
         verbose: true
 
   ci_gcc:
+    if: ${{ !inputs.compiler || inputs.compiler == 'gcc' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -73,6 +88,7 @@ jobs:
       run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_clang:
+    if: ${{ !inputs.compiler || inputs.compiler == 'clang' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -104,6 +120,7 @@ jobs:
       run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_xcode:
+    if: ${{ !inputs.compiler || inputs.compiler == 'xcode' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -126,6 +143,7 @@ jobs:
       run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_mingw:
+    if: ${{ !inputs.compiler || inputs.compiler == 'mingw' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -148,6 +166,7 @@ jobs:
         run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_msvc:
+    if: ${{ !inputs.compiler || inputs.compiler == 'msvc' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
