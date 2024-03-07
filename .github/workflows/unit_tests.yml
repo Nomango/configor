@@ -1,10 +1,11 @@
-name: unit_tests
+name: Unit Test
 
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   ci_coverage:
