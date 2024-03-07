@@ -2,22 +2,46 @@ name: Unit Test
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main, master ]
+    paths:
+      - 'include/**'
+      - 'tests/**'
+      - 'cmake/**'
+      - '.github/workflows/unit_tests.yml'
   pull_request:
-    branches: [ master ]
+    branches: [ main, master ]
+    paths:
+      - 'include/**'
+      - 'tests/**'
+      - 'cmake/**'
+      - '.github/workflows/unit_tests.yml'
   workflow_dispatch:
+    inputs:
+      compiler:
+        description: 'Specific Compiler'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - gcc
+        - clang
+        - mingw
+        - msvc
+        - xcode
 
 jobs:
   ci_coverage:
+    if: ${{ !inputs.compiler || inputs.compiler == 'all' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-22.04 ]
         build_type: [ Debug ]
     env:
       COVERAGE_DIR: ${{github.workspace}}/coverage
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install lcov
       run: |
         sudo apt-get update
@@ -50,18 +74,21 @@ jobs:
         verbose: true
 
   ci_gcc:
+    if: ${{ !inputs.compiler || inputs.compiler == 'all' || inputs.compiler == 'gcc' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, macos-10.15 ]
-        compiler: [ g++-9, g++-10, g++-11 ]
+        os: [ ubuntu-22.04, macos-12 ]
+        compiler: [ g++-9, g++-10, g++-11, g++-12, g++-13 ]
         build_type: [ Debug ]
         exclude:
-          - os: ubuntu-20.04
-            compiler: g++-11
+          - os: macos-12
+            compiler: g++-9
+          - os: macos-12
+            compiler: g++-10
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_CXX_COMPILER="${{matrix.compiler}}" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
     - name: Build
@@ -71,26 +98,37 @@ jobs:
       run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_clang:
+    if: ${{ !inputs.compiler || inputs.compiler == 'all' || inputs.compiler == 'clang' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, windows-2019, macos-10.15 ]
+        os: [ ubuntu-22.04, windows-2022, macos-12 ]
         clang_version: [ 10, 11, 12, 13 ]
         build_type: [ Debug ]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmake_params: -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -stdlib=libc++"
-          - os: windows-2019
+          - os: windows-2022
             cmake_params: -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} /EHsc"
-          - os: macos-10.15
+          - os: macos-12
             cmake_params: -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"
+        exclude:
+          - os: macos-12
+            clang_version: 10
+          - os: macos-12
+            clang_version: 11
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install LLVM and Clang
       uses: KyleMayes/install-llvm-action@v1
       with:
         version: ${{ matrix.clang_version }}
+    - name: Install Dependences
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses5
     - name: Configure CMake
       run: |
         clang++ --version
@@ -102,17 +140,18 @@ jobs:
       run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_xcode:
+    if: ${{ !inputs.compiler || inputs.compiler == 'all' || inputs.compiler == 'xcode' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-10.15 ]
+        os: [ macos-12 ]
         build_type: [ Debug ]
-        xcode_version: [ 12.4, 11.7, 10.3 ]
+        xcode_version: [ 14.2, 13.4.1 ]
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Configure CMake
       run: |
         clang++ --version
@@ -124,15 +163,16 @@ jobs:
       run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_mingw:
+    if: ${{ !inputs.compiler || inputs.compiler == 'all' || inputs.compiler == 'mingw' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-2019 ]
+        os: [ windows-2022 ]
         architecture: [ x64, x86 ]
         build_type: [ Debug ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
@@ -146,6 +186,7 @@ jobs:
         run: cd build ; ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel 10
 
   ci_msvc:
+    if: ${{ !inputs.compiler || inputs.compiler == 'all' || inputs.compiler == 'msvc' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -159,7 +200,7 @@ jobs:
           - os: windows-2022
             vsversion: Visual Studio 17 2022
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Configure CMake
       run: cmake -B build -G "${{ matrix.vsversion }}" -A ${{ matrix.architecture }}
     - name: Build
