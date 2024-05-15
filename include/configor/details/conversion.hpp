@@ -19,8 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_stream.hpp"
-#include "configor_value.hpp"
+#include "stream.hpp"
+#include "value.hpp"
 
 #include <array>          // std::array
 #include <deque>          // std::deque

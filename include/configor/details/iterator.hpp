@@ -19,8 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_declare.hpp"
-#include "configor_exception.hpp"
+#include "declare.hpp"
+#include "exception.hpp"
 
 #include <cstddef>   // std::ptrdiff_t
 #include <iterator>  // std::reverse_iterator, std::prev
