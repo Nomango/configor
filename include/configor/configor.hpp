@@ -19,10 +19,10 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_conversion.hpp"
-#include "configor_parser.hpp"
-#include "configor_serializer.hpp"
-#include "configor_wrapper.hpp"
+#include "details/conversion.hpp"
+#include "details/parser.hpp"
+#include "details/serializer.hpp"
+#include "details/wrapper.hpp"
 
 #include <cstdint>  // std::int64_t
 #include <map>      // std::map

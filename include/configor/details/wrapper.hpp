@@ -19,8 +19,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_parser.hpp"
-#include "configor_serializer.hpp"
+#include "parser.hpp"
+#include "serializer.hpp"
 
 namespace configor
 {

@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_iterator.hpp"
+#include "iterator.hpp"
 
 #include <algorithm>    // std::for_each, std::all_of
 #include <cmath>        // std::fabs

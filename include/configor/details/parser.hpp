@@ -19,10 +19,10 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "configor_encoding.hpp"
-#include "configor_stream.hpp"
-#include "configor_token.hpp"
-#include "configor_value.hpp"
+#include "encoding.hpp"
+#include "stream.hpp"
+#include "token.hpp"
+#include "value.hpp"
 
 #include <initializer_list>  // std::initializer_list
 #include <istream>           // std::basic_istream
