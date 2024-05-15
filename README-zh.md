@@ -82,6 +82,10 @@ std::cin >> json::wrap(u);
 
 更多内容请到 [wiki](https://github.com/Nomango/configor/wiki) 查看。
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=nomango/configor&type=Date)](https://star-history.com/#nomango/configor&Date)
+
 ## 计划
 
 - [x] 自定义类型转换
